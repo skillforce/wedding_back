@@ -9,6 +9,10 @@ import { SWAGGER_PREFIX } from './setup/swagger.setup';
 import { CoreModule } from './core/core.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DBConfig } from './core/configs/db.config';
+import { APP_FILTER } from '@nestjs/core';
+import { AllHttpExceptionsFilter } from './core/exceptions/filters/all-exceptions.filter';
+import { DomainHttpExceptionsFilter } from './core/exceptions/filters/domain-exceptions.filter';
+import { GuestsModule } from './modules/guests/guests.module';
 
 @Module({
   imports: [
@@ -41,9 +45,20 @@ import { DBConfig } from './core/configs/db.config';
       },
       inject: [DBConfig],
     }),
+    GuestsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_FILTER,
+      useClass: AllHttpExceptionsFilter,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: DomainHttpExceptionsFilter,
+    },
+  ],
 })
 export class AppModule {
   static forRoot(coreConfig: CoreConfig): DynamicModule {
