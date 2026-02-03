@@ -6,18 +6,18 @@ import { GuestsController } from './api/guests.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Guest } from './domain/enteties/guest.entity';
 import { DeleteGuestUseCase } from './app/usecases/delete-guest.usecase';
+import { User } from '../user-accounts/domain/entities/user.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Guest]),
-    CreateGuestUseCase,
-    DeleteGuestUseCase,
+  imports: [TypeOrmModule.forFeature([Guest, User])],
+  controllers: [],
+  providers: [
     GuestsRepository,
     GuestsQueryRepository,
+    CreateGuestUseCase,
+    DeleteGuestUseCase,
     GuestsController,
   ],
-  controllers: [],
-  providers: [],
   exports: [],
 })
 export class GuestsModule {}

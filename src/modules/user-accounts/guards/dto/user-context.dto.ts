@@ -1,4 +1,4 @@
 export class UserContextDto {
   id: number;
-  exp: number;
+  exp?: number;
 }

@@ -4,51 +4,50 @@ import { IsBoolean, IsEnum, IsNumber } from 'class-validator';
 import { configValidationUtility } from '../helpers/config-validation.utility';
 
 export enum Environments {
-    DEVELOPMENT = 'development',
-    PRODUCTION = 'production',
+  DEVELOPMENT = 'development',
+  PRODUCTION = 'production',
+  TESTING = 'testing',
 }
 
 @Injectable()
 export class CoreConfig {
-    @IsNumber(
-        {},
-        {
-            message: 'Set Env variable PORT, example: 3000',
-        },
-    )
-    port: number;
+  @IsNumber(
+    {},
+    {
+      message: 'Set Env variable PORT, example: 3000',
+    },
+  )
+  port: number;
 
-    @IsEnum(Environments, {
-        message: `Set correct NODE_ENV value, available values: ${configValidationUtility.getEnumValues(Environments).join(', ')}`,
-    })
-    env: Environments;
+  @IsEnum(Environments, {
+    message: `Set correct NODE_ENV value, available values: ${configValidationUtility.getEnumValues(Environments).join(', ')}`,
+  })
+  env: Environments;
 
-    @IsBoolean({
-        message:
-            'Set Env variable IS_SWAGGER_ENABLED to enable/disable Swagger, example: true, false',
-    })
-    isSwaggerEnabled: boolean;
+  @IsBoolean({
+    message:
+      'Set Env variable IS_SWAGGER_ENABLED to enable/disable Swagger, example: true, false',
+  })
+  isSwaggerEnabled: boolean;
 
-    @IsBoolean({
-        message:
-            'Set Env variable INCLUDE_TESTING_MODULE to enable/disable Dangerous for production TestingModule, example: true, false, 0, 1',
-    })
-    includeTestingModule: boolean;
+  @IsBoolean({
+    message:
+      'Set Env variable INCLUDE_TESTING_MODULE to enable/disable Dangerous for production TestingModule, example: true, false, 0, 1',
+  })
+  includeTestingModule: boolean;
 
+  constructor(private configService: ConfigService<object, true>) {
+    this.port = Number(this.configService.get('PORT'));
+    this.env = this.configService.get('NODE_ENV');
 
+    this.isSwaggerEnabled = configValidationUtility.convertToBoolean(
+      this.configService.get('IS_SWAGGER_ENABLED'),
+    ) as boolean;
+    this.includeTestingModule = configValidationUtility.convertToBoolean(
+      this.configService.get('INCLUDE_TESTING_MODULE'),
+    ) as boolean;
 
-    constructor(private configService: ConfigService<object, true>) {
-        this.port = Number(this.configService.get('PORT'));
-        this.env = this.configService.get('NODE_ENV');
-
-        this.isSwaggerEnabled = configValidationUtility.convertToBoolean(
-            this.configService.get('IS_SWAGGER_ENABLED'),
-        ) as boolean;
-        this.includeTestingModule = configValidationUtility.convertToBoolean(
-            this.configService.get('INCLUDE_TESTING_MODULE'),
-        ) as boolean;
-
-        // Validate after all assignments
-        configValidationUtility.validateConfig(this);
-    }
+    // Validate after all assignments
+    configValidationUtility.validateConfig(this);
+  }
 }

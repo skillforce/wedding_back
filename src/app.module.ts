@@ -13,6 +13,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { AllHttpExceptionsFilter } from './core/exceptions/filters/all-exceptions.filter';
 import { DomainHttpExceptionsFilter } from './core/exceptions/filters/domain-exceptions.filter';
 import { GuestsModule } from './modules/guests/guests.module';
+import { TestingModule } from './modules/testing/testing.module';
 
 @Module({
   imports: [
@@ -38,7 +39,7 @@ import { GuestsModule } from './modules/guests/guests.module';
           password: DBConfig.postgresPassword,
           database: DBConfig.postgresDatabase,
           // ssl: true,
-          ssl: false, // Set to true in case of using local db
+          ssl: false, // Set to false in case of using local db
           autoLoadEntities: true,
           synchronize: false,
         };
@@ -64,7 +65,7 @@ export class AppModule {
   static forRoot(coreConfig: CoreConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [...(coreConfig.includeTestingModule ? [] : [])], // Add dynamic modules here if needed
+      imports: [...(coreConfig.includeTestingModule ? [TestingModule] : [])], // Add dynamic modules here if needed
     };
   }
 }
