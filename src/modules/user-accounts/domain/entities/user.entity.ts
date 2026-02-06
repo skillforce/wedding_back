@@ -3,11 +3,11 @@ import { NumericIdEntity } from '../../../common/domain/base.entity';
 import { Length } from 'class-validator';
 import { Guest } from '../../../guests/domain/enteties/guest.entity';
 
-const loginConstraints = {
+export const loginConstraints = {
   minLength: 3,
   maxLength: 10,
 };
-const passwordConstraints = {
+export const passwordConstraints = {
   minLength: 3,
   maxLength: 30,
 };

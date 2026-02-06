@@ -10,13 +10,12 @@ import { User } from '../user-accounts/domain/entities/user.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Guest, User])],
-  controllers: [],
+  controllers: [GuestsController],
   providers: [
     GuestsRepository,
     GuestsQueryRepository,
     CreateGuestUseCase,
     DeleteGuestUseCase,
-    GuestsController,
   ],
   exports: [],
 })

@@ -1,4 +1,10 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { IsFieldExistAndStringWithTrim } from '../../../../core/decorators/validation/is-field-exist-and-string-with-trim';
 import { guestNameConstraints } from '../../domain/enteties/guest.entity';
 
@@ -9,6 +15,9 @@ export class CreateGuestInputDto {
     guestNameConstraints.maxLength,
   )
   guest_name: string;
+
+  @IsNumber()
+  user_id: number;
 
   @IsArray()
   @IsNotEmpty()

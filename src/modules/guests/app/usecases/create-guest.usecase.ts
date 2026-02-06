@@ -5,10 +5,7 @@ import { DomainExceptionCode } from '../../../../core/exceptions/domain-exceptio
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 
 export class CreateGuestCommand {
-  constructor(
-    public dto: CreateGuestInputDto,
-    public userId: number,
-  ) {}
+  constructor(public dto: CreateGuestInputDto) {}
 }
 
 @CommandHandler(CreateGuestCommand)
@@ -18,10 +15,10 @@ export class CreateGuestUseCase implements ICommandHandler<
 > {
   constructor(private guestsRepository: GuestsRepository) {}
 
-  async execute({ dto, userId }: CreateGuestCommand): Promise<number> {
+  async execute({ dto }: CreateGuestCommand): Promise<number> {
     const userWithSameName = await this.guestsRepository.findGuestByName(
       dto.guest_name,
-      userId,
+      dto.user_id,
     );
     if (userWithSameName) {
       throw new DomainException({
@@ -30,7 +27,7 @@ export class CreateGuestUseCase implements ICommandHandler<
       });
     }
 
-    const guestToCreate = { ...dto, user_id: userId };
-    return this.guestsRepository.save(guestToCreate);
+    const guestToCreate = { ...dto, user_id: dto.user_id };
+    return await this.guestsRepository.save(guestToCreate);
   }
 }

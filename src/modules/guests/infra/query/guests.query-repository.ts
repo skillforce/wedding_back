@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Guest } from '../../domain/enteties/guest.entity';
 import { Repository } from 'typeorm';
+import { GuestsViewDto } from '../../api/view-dto/guests.view-dto';
+import { DomainException } from '../../../../core/exceptions/domain-exceptions';
+import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 
 @Injectable()
 export class GuestsQueryRepository {
@@ -10,7 +13,30 @@ export class GuestsQueryRepository {
     private readonly guestsOrmRepository: Repository<Guest>,
   ) {}
 
-  async findAllGuests() {
-    return this.guestsOrmRepository.find();
+  async findOneByIdOrFail(guestId: number) {
+    const guest = await this.guestsOrmRepository.findOneBy({
+      id: guestId,
+    });
+
+    if (!guest) {
+      throw new DomainException({
+        code: DomainExceptionCode.NotFound,
+        message: 'Guest not found',
+      });
+    }
+
+    return guest;
+  }
+
+  async findAllGuestsByUserId(userId: number): Promise<GuestsViewDto[]> {
+    const guests = await this.guestsOrmRepository.findBy({
+      user_id: userId,
+    });
+    return guests.map(GuestsViewDto.mapToViewDto);
+  }
+
+  async findGuestsById(guestId: number): Promise<GuestsViewDto> {
+    const guests = await this.findOneByIdOrFail(guestId);
+    return GuestsViewDto.mapToViewDto(guests);
   }
 }

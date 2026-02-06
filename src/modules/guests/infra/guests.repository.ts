@@ -21,9 +21,13 @@ export class GuestsRepository {
       user_id: userId,
     });
   }
-  async findGuestByIdOrFail(id: number): Promise<Guest> {
+  async findGuestByIdAndUserOwnerIdOrFail(
+    id: number,
+    userId: number,
+  ): Promise<Guest> {
     const guestResult = await this.guestsOrmRepository.findOneBy({
       id,
+      user_id: userId,
     });
     if (!guestResult) {
       throw new DomainException({

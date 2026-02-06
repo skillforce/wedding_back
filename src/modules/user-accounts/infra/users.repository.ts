@@ -14,4 +14,19 @@ export class UsersRepository {
       login,
     });
   }
+  async findUserById(id: number): Promise<User | null> {
+    return await this.usersOrmRepository.findOneBy({
+      id,
+    });
+  }
+
+  async save(user: Omit<User, 'id'>): Promise<number> {
+    const result = await this.usersOrmRepository.save(user);
+
+    return result.id;
+  }
+  async deleteUserById(id: number): Promise<boolean> {
+    const result = await this.usersOrmRepository.delete(id);
+    return result.affected === 1;
+  }
 }

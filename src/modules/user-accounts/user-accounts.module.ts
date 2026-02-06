@@ -10,17 +10,28 @@ import { User } from './domain/entities/user.entity';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { AuthController } from './api/auth-controller';
 import { ACCESS_TOKEN_STRATEGY_INJECT_TOKEN } from './constants/auth-token.inject-context';
+import { AuthService } from './application/auth.service';
+import { UsersRepository } from './infra/users.repository';
+import { CreateUserUseCase } from './application/usecases/create-user.usecase';
+import { DeleteUserUseCase } from './application/usecases/delete-user.usecase';
+import { UserController } from './api/user-controller';
+import { UsersQueryRepository } from './infra/query/users.query-repository';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User]), JwtModule],
-  controllers: [AuthController],
+  controllers: [AuthController, UserController],
   providers: [
     BcryptService,
     UserAccountsConfig,
     JwtStrategy,
     LocalStrategy,
+    AuthService,
     LoginUserUseCase,
     GenerateNewTokenUsecase,
+    CreateUserUseCase,
+    DeleteUserUseCase,
+    UsersRepository,
+    UsersQueryRepository,
     {
       provide: ACCESS_TOKEN_STRATEGY_INJECT_TOKEN,
       useFactory: (userAccountConfig: UserAccountsConfig): JwtService => {

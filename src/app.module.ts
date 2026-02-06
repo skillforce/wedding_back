@@ -14,6 +14,7 @@ import { AllHttpExceptionsFilter } from './core/exceptions/filters/all-exception
 import { DomainHttpExceptionsFilter } from './core/exceptions/filters/domain-exceptions.filter';
 import { GuestsModule } from './modules/guests/guests.module';
 import { TestingModule } from './modules/testing/testing.module';
+import { UserAccountsModule } from './modules/user-accounts/user-accounts.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { TestingModule } from './modules/testing/testing.module';
       inject: [DBConfig],
     }),
     GuestsModule,
+    UserAccountsModule,
   ],
   controllers: [AppController],
   providers: [
