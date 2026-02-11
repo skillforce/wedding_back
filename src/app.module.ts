@@ -1,5 +1,6 @@
 import { configModule } from './dynamic-config-module';
 import { DynamicModule, Module } from '@nestjs/common';
+import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CoreConfig } from './core/configs/core.config';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -49,7 +50,7 @@ import { UserAccountsModule } from './modules/user-accounts/user-accounts.module
     GuestsModule,
     UserAccountsModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [
     AppService,
     {
