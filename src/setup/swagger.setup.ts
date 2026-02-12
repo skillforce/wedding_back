@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { CoreConfig } from '../core/configs/core.config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { GLOBAL_PREFIX } from './global-prefix.setup';
 
 export const SWAGGER_PREFIX = 'swagger';
 
@@ -16,7 +17,7 @@ export function swaggerSetup(app: INestApplication, coreConfig: CoreConfig) {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  SwaggerModule.setup(SWAGGER_PREFIX, app, document, {
+  SwaggerModule.setup(`${GLOBAL_PREFIX}/${SWAGGER_PREFIX}`, app, document, {
     customSiteTitle: 'Wedding API Swagger',
   });
 }

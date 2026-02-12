@@ -6,8 +6,8 @@ import { pipesSetup } from './pipes.setup';
 
 export function appSetup(app: INestApplication, coreConfig: CoreConfig) {
   app.enableCors();
-  swaggerSetup(app, coreConfig);
   globalPrefixSetup(app);
+  swaggerSetup(app, coreConfig);
   app.getHttpAdapter().getInstance().set('trust proxy', true);
   pipesSetup(app);
 }
