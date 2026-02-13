@@ -15,7 +15,6 @@ services:
   db_test:
     image: postgres:17
     container_name: wedding_db_test
-    restart: always
     env_file:
       - .env.testing
     ports:
