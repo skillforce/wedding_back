@@ -20,8 +20,6 @@ services:
       - .env.testing
     ports:
       - "5433:5432"
-    volumes:
-      - pgdata_test:/var/lib/postgresql/data
 
   test:
     build:
@@ -50,4 +48,3 @@ services:
 
 volumes:
   pgdata:
-  pgdata_test:
