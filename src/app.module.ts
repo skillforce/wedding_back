@@ -31,6 +31,7 @@ import { UserAccountsModule } from './modules/user-accounts/user-accounts.module
         console.log('PG_DB_USER', DBConfig.postgresUser);
         console.log('PG_DB_PASSWORD', DBConfig.postgresPassword);
         console.log('PG_DB_NAME', DBConfig.postgresDatabase);
+        console.log('PG_SSL_STATUS', DBConfig.postgresIsSSLEnabled);
 
         return {
           type: 'postgres',
@@ -39,8 +40,7 @@ import { UserAccountsModule } from './modules/user-accounts/user-accounts.module
           username: DBConfig.postgresUser,
           password: DBConfig.postgresPassword,
           database: DBConfig.postgresDatabase,
-          // ssl: true,
-          ssl: false, // Set to false in case of using local db
+          ssl: DBConfig.postgresIsSSLEnabled,
           autoLoadEntities: true,
           synchronize: false,
         };

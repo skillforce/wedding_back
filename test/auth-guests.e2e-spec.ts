@@ -59,6 +59,18 @@ describe('AuthController & GuestsController (e2e)', () => {
     });
   });
 
+  it('should return current user in me request', async () => {
+    const { credentials, userId, accessToken } =
+      await userAccountsTestManager.createUserAndLogin();
+
+    const meResponse = await userAccountsTestManager.me(accessToken);
+
+    expect(meResponse).toEqual({
+      id: userId,
+      login: credentials.login,
+    });
+  });
+
   it('should reject duplicate user login', async () => {
     const credentials = userAccountsTestManager.buildCreateUserDto();
 

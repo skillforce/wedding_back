@@ -61,6 +61,18 @@ export class UserAccountsTestManager {
     return response.body;
   }
 
+  async me(
+    accessToken: string,
+    expectedStatus: HttpStatus = HttpStatus.OK,
+  ) {
+    const response = await request(this.httpServer)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
   async deleteUserById(
     id: number,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
