@@ -39,7 +39,7 @@ export class DBConfig {
     this.postgresPort = this.configService.get('POSTGRES_PORT');
     this.postgresUser = this.configService.get('POSTGRES_USER');
     this.postgresPassword = this.configService.get('POSTGRES_PASSWORD');
-    this.postgresDatabase = this.configService.get('POSTGRES_DATABASE');
+    this.postgresDatabase = this.configService.get('POSTGRES_DB');
     this.postgresIsSSLEnabled = configValidationUtility.convertToBoolean(
       this.configService.get('POSTGRES_SSL_STATUS'),
     ) as boolean;

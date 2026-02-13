@@ -13,7 +13,7 @@ export default new DataSource({
   port: process.env.POSTGRES_PORT as unknown as number,
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
-  database: process.env.POSTGRES_DATABASE,
+  database: process.env.POSTGRES_DB,
   ssl: configValidationUtility.convertToBoolean(
     process.env.POSTGRES_SSL_STATUS || '',
   ) as boolean,
@@ -21,5 +21,4 @@ export default new DataSource({
   entities: ['src/**/*.entity.ts'],
   logging: ['query'],
   dropSchema: isTesting,
-  synchronize: isTesting,
 });
