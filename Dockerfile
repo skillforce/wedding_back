@@ -1,27 +1,37 @@
 # ---------- Base ----------
 FROM node:20-alpine AS base
+
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+RUN corepack enable
+RUN corepack prepare pnpm@latest --activate
+
+COPY pnpm-lock.yaml package.json ./
+
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
 # ---------- Test ----------
 FROM base AS test
 ENV NODE_ENV=testing
-CMD ["npm", "run", "test:e2e"]
+CMD ["pnpm", "run", "test:e2e"]
 
 # ---------- Build ----------
 FROM base AS build
-RUN npm run build
+RUN pnpm run build
 
 # ---------- Production ----------
 FROM node:20-alpine AS production
+
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --omit=dev
+RUN corepack enable
+RUN corepack prepare pnpm@latest --activate
+
+COPY pnpm-lock.yaml package.json ./
+
+RUN pnpm install --prod --frozen-lockfile
 
 COPY --from=build /app/dist ./dist
 
