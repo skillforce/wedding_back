@@ -37,4 +37,4 @@ COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "pnpm run migration:run && node dist/main.js"]
+CMD ["sh", "-c", "pnpm run migration:run:prod && node dist/main.js"]
