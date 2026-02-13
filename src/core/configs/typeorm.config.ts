@@ -21,4 +21,5 @@ export default new DataSource({
   entities: ['src/**/*.entity.ts'],
   logging: ['query'],
   dropSchema: isTesting,
+  synchronize: isTesting,
 });

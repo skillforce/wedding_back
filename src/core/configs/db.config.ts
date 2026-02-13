@@ -34,6 +34,11 @@ export class DBConfig {
   })
   postgresIsSSLEnabled: boolean;
 
+  @IsNotEmpty({
+    message: 'Set correct isTesting status to connect to postgres DB',
+  })
+  isTesting: boolean;
+
   constructor(private configService: ConfigService<object, true>) {
     this.postgresHost = this.configService.get('POSTGRES_HOST');
     this.postgresPort = this.configService.get('POSTGRES_PORT');
@@ -42,6 +47,9 @@ export class DBConfig {
     this.postgresDatabase = this.configService.get('POSTGRES_DB');
     this.postgresIsSSLEnabled = configValidationUtility.convertToBoolean(
       this.configService.get('POSTGRES_SSL_STATUS'),
+    ) as boolean;
+    this.isTesting = configValidationUtility.convertToBoolean(
+      this.configService.get('IS_TESTING_ENABLED'),
     ) as boolean;
 
     // Validate after all assignments

@@ -32,6 +32,7 @@ import { UserAccountsModule } from './modules/user-accounts/user-accounts.module
         console.log('PG_DB_PASSWORD', DBConfig.postgresPassword);
         console.log('PG_DB_NAME', DBConfig.postgresDatabase);
         console.log('PG_SSL_STATUS', DBConfig.postgresIsSSLEnabled);
+        console.log('PD_IS_TESTING', DBConfig.isTesting);
 
         return {
           type: 'postgres',
@@ -42,7 +43,7 @@ import { UserAccountsModule } from './modules/user-accounts/user-accounts.module
           database: DBConfig.postgresDatabase,
           ssl: DBConfig.postgresIsSSLEnabled,
           autoLoadEntities: true,
-          synchronize: false,
+          synchronize: DBConfig.isTesting,
         };
       },
       inject: [DBConfig],
