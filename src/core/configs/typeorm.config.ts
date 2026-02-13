@@ -4,6 +4,8 @@ import { configValidationUtility } from '../helpers/config-validation.utility';
 
 config();
 
+const isTesting = process.env.NODE_ENV === 'testing';
+
 export default new DataSource({
   url: process.env.DATABASE_URL,
   type: 'postgres',
@@ -18,4 +20,6 @@ export default new DataSource({
   migrations: ['src/migrations/*.ts'],
   entities: ['src/**/*.entity.ts'],
   logging: ['query'],
+  dropSchema: isTesting,
+  synchronize: isTesting,
 });

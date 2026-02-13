@@ -7,23 +7,47 @@ services:
     restart: always
     env_file:
       - .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DATABASE}
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  app:
-    build: .
-    container_name: wedding_backend
+  db_test:
+    image: postgres:17
+    container_name: wedding_db_test
     restart: always
+    env_file:
+      - .env.testing
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_test:/var/lib/postgresql/data
+
+  test:
+    build:
+      context: .
+      target: test
+    depends_on:
+      - db_test
+    env_file:
+      - .env.testing
+    environment:
+      NODE_ENV: testing
+
+  app:
+    build:
+      context: .
+      target: production
+    container_name: wedding_backend
     depends_on:
       - db
     ports:
       - "${PORT}:${PORT}"
     env_file:
       - .env
+    environment:
+      NODE_ENV: development
 
 volumes:
   pgdata:
+  pgdata_test:
