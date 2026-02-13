@@ -8,7 +8,7 @@ import { UserAccountsConfig } from '../../config/user-accounts.config';
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(readonly userAccountsConfig: UserAccountsConfig) {
     super({
-      jwtFromRequest: ExtractJwt?.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: userAccountsConfig.accessTokenSecret,
     });

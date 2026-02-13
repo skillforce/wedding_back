@@ -32,6 +32,9 @@ export class GuestsQueryRepository {
     const guests = await this.guestsOrmRepository.findBy({
       user_id: userId,
     });
+    if (!guests.length) {
+      return [];
+    }
     return guests.map(GuestsViewDto.mapToViewDto);
   }
 
