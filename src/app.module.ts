@@ -1,7 +1,5 @@
 import { configModule } from './dynamic-config-module';
 import { DynamicModule, Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { CoreConfig } from './core/configs/core.config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -9,12 +7,13 @@ import { SWAGGER_PREFIX } from './setup/swagger.setup';
 import { CoreModule } from './core/core.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DBConfig } from './core/configs/db.config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AllHttpExceptionsFilter } from './core/exceptions/filters/all-exceptions.filter';
 import { DomainHttpExceptionsFilter } from './core/exceptions/filters/domain-exceptions.filter';
 import { GuestsModule } from './modules/guests/guests.module';
 import { TestingModule } from './modules/testing/testing.module';
 import { UserAccountsModule } from './modules/user-accounts/user-accounts.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -48,12 +47,17 @@ import { UserAccountsModule } from './modules/user-accounts/user-accounts.module
       },
       inject: [DBConfig],
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 10000,
+        limit: 5,
+      },
+    ]),
     GuestsModule,
     UserAccountsModule,
   ],
-  controllers: [AppController],
+  controllers: [],
   providers: [
-    AppService,
     {
       provide: APP_FILTER,
       useClass: AllHttpExceptionsFilter,
@@ -61,6 +65,10 @@ import { UserAccountsModule } from './modules/user-accounts/user-accounts.module
     {
       provide: APP_FILTER,
       useClass: DomainHttpExceptionsFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

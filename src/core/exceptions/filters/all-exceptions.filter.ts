@@ -16,7 +16,7 @@ export class AllHttpExceptionsFilter implements ExceptionFilter {
 
     const request = ctx.getRequest<Request>();
     const message = exception?.message || 'Unknown exception occurred.';
-    const status = HttpStatus.INTERNAL_SERVER_ERROR;
+    const status = exception?.status || HttpStatus.INTERNAL_SERVER_ERROR;
     const responseBody = this.buildResponseBody(request.url, message);
 
     response.status(status).json(responseBody);
