@@ -23,7 +23,7 @@ import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-
 import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
 import { Throttle } from '@nestjs/throttler';
 
-@Throttle({ default: { limit: 5, ttl: 5000 } })
+@Throttle({ default: { limit: 10, ttl: 5000 } })
 @Controller('guests')
 export class GuestsController {
   constructor(
