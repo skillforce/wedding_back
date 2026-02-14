@@ -6,6 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { GuestsTestManager } from './helpers/guests.test-manager';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 describe('AuthController & GuestsController (e2e)', () => {
   let app: INestApplication;
@@ -15,6 +16,15 @@ describe('AuthController & GuestsController (e2e)', () => {
   beforeAll(async () => {
     const result = await initTesting((moduleBuilder) =>
       moduleBuilder
+        .overrideModule(ThrottlerModule)
+        .useModule(
+          ThrottlerModule.forRoot([
+            {
+              ttl: 10000,
+              limit: 9999,
+            },
+          ]),
+        )
         .overrideProvider(ACCESS_TOKEN_STRATEGY_INJECT_TOKEN)
         .useFactory({
           factory: (userAccountsConfig: UserAccountsConfig) => {
