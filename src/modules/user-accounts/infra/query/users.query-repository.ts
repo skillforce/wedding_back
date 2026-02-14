@@ -34,7 +34,7 @@ export class UsersQueryRepository {
 
     if (!user) {
       throw new DomainException({
-        code: DomainExceptionCode.NotFound,
+        code: DomainExceptionCode.Unauthorized,
         message: 'user not found, internal service error',
       });
     }
