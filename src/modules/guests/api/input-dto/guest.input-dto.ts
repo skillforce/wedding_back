@@ -10,7 +10,7 @@ import { guestNameConstraints } from '../../domain/enteties/guest.entity';
 
 export class CreateGuestInputDto {
   @IsFieldExistAndStringWithTrim(
-    'login',
+    'guest_name',
     guestNameConstraints.minLength,
     guestNameConstraints.maxLength,
   )
