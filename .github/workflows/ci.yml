@@ -39,6 +39,14 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: true
+
+
+
       - name: Install pnpm
         run: npm install -g pnpm
 
@@ -46,7 +54,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Use test environment
-        run: cp .env.testing 
+        run: cp .env.testing
 
       - name: Wait for Postgres
         run: |
