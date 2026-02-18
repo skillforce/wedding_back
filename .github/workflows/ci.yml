@@ -44,16 +44,11 @@ jobs:
           version: 9
           run_install: true
 
-
-
-      - name: Install pnpm
-        run: npm install -g pnpm
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Use test environment
-        run: cp .env.testing
+        run: cp .env.testing .env
 
       - name: Wait for Postgres
         run: |
