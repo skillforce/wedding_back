@@ -5,6 +5,7 @@ import { configValidationUtility } from '../helpers/config-validation.utility';
 config();
 
 const isTesting = process.env.NODE_ENV === 'testing';
+const isProd = process.env.NODE_ENV === 'production';
 
 export default new DataSource({
   url: process.env.DATABASE_URL,
@@ -17,8 +18,8 @@ export default new DataSource({
   ssl: configValidationUtility.convertToBoolean(
     process.env.POSTGRES_SSL_STATUS || '',
   ) as boolean,
-  migrations: ['src/migrations/*.ts'],
-  entities: ['src/**/*.entity.ts'],
+  migrations: [isProd ? 'dist/migrations/*.js' : 'src/migrations/*.ts'],
+  entities: [isProd ? 'dist/**/*.entity.js' : 'src/**/*.entity.ts'],
   logging: ['query'],
   dropSchema: isTesting,
   synchronize: isTesting,
