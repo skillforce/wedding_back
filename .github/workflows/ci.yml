@@ -97,3 +97,6 @@ jobs:
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/wedding_invitation_back:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/wedding_invitation_back:${{ github.sha }}
+
+      - name: Trigger Dockploy Deploy
+        run: curl -X POST ${{ secrets.DOCKPLOY_WEBHOOK }}
