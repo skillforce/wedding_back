@@ -1,40 +1,31 @@
-# ---------- Base ----------
-FROM node:20-alpine AS base
+# ---------- Build ----------
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 RUN corepack enable
-RUN corepack prepare pnpm@latest --activate
+RUN corepack prepare pnpm@9 --activate
 
 COPY pnpm-lock.yaml package.json ./
-
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-
-# ---------- Test ----------
-FROM base AS test
-ENV NODE_ENV=testing
-CMD ["pnpm", "run", "test:e2e"]
-
-# ---------- Build ----------
-FROM base AS build
 RUN pnpm run build
 
+
 # ---------- Production ----------
-FROM node:20-alpine AS production
+FROM node:20-alpine
 
 WORKDIR /app
 
 RUN corepack enable
-RUN corepack prepare pnpm@latest --activate
+RUN corepack prepare pnpm@9 --activate
 
 COPY pnpm-lock.yaml package.json ./
-
 RUN pnpm install --prod --frozen-lockfile
 
-COPY --from=build /app/dist ./dist
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "pnpm run migration:run:prod && node dist/main.js"]
+CMD ["node", "dist/main.js"]
