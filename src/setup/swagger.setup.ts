@@ -11,7 +11,7 @@ export function swaggerSetup(app: INestApplication, coreConfig: CoreConfig) {
   const config = new DocumentBuilder()
     .setTitle('WEDDING INVITATION API')
     .setDescription('Wedding Invitation API documentation')
-    .setVersion('1.0.3')
+    .setVersion('1.0.4')
     .addBearerAuth()
     .build();
 
