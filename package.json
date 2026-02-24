@@ -16,7 +16,7 @@
     "migration:generate": "npm run typeorm:dev -- migration:generate",
     "migration:run": "npm run typeorm:dev migration:run",
     "migration:revert": "npm run typeorm:dev -- migration:revert",
-    "migration:run:prod": "npm run typeorm:prod -- migration:run",
+    "migration:run:prod": "npm run typeorm:prod migration:run",
     "migration:revert:prod": "npm run typeorm:prod -- migration:revert",
     "test:e2e": "cross-env NODE_ENV=testing jest --runInBand --config ./test/jest-e2e.json"
   },
