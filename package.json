@@ -18,7 +18,7 @@
     "migration:revert": "npm run typeorm:dev -- migration:revert",
     "migration:run:prod": "npm run typeorm:prod -- migration:run",
     "migration:revert:prod": "npm run typeorm:prod -- migration:revert",
-    "test:e2e": "cross-env NODE_ENV=testing jest --config ./test/jest-e2e.json"
+    "test:e2e": "cross-env NODE_ENV=testing jest --runInBand --config ./test/jest-e2e.json"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
