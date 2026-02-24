@@ -9,8 +9,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiParam } from '@nestjs/swagger';
-
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { GuestsQueryRepository } from '../infra/query/guests.query-repository';
 import { GuestsViewDto } from './view-dto/guests.view-dto';
@@ -23,6 +28,8 @@ import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-
 import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
 import { Throttle } from '@nestjs/throttler';
 
+@ApiTags('Guests')
+@ApiBearerAuth()
 @Throttle({ default: { limit: 10, ttl: 5000 } })
 @Controller('guests')
 export class GuestsController {
@@ -33,14 +40,22 @@ export class GuestsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('')
+  @ApiOperation({ summary: 'Get all guests for the authenticated user' })
+  @ApiResponse({ status: 200, description: 'List of guests', type: [GuestsViewDto] })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAllGuests(
     @ExtractUserFromRequest() user: UserContextDto,
   ): Promise<GuestsViewDto[]> {
     return await this.guestsQueryRepository.findAllGuestsByUserId(user.id);
   }
+
   @UseGuards(JwtAuthGuard)
   @Post('/')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new guest' })
+  @ApiResponse({ status: 201, description: 'Guest created successfully', type: GuestsViewDto })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createGuest(@Body() dto: CreateGuestInputDto) {
     const newGuestId = await this.commandBus.execute<
       CreateGuestCommand,
@@ -51,9 +66,14 @@ export class GuestsController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @ApiParam({ name: 'id' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a guest by ID' })
+  @ApiParam({ name: 'id', description: 'Guest ID', type: Number })
+  @ApiResponse({ status: 204, description: 'Guest deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - guest does not belong to user' })
+  @ApiResponse({ status: 404, description: 'Guest not found' })
   async deleteGuestById(
     @Param() { id }: IdNumberParamDto,
     @ExtractUserFromRequest() user: UserContextDto,

@@ -11,6 +11,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AllHttpExceptionsFilter } from './core/exceptions/filters/all-exceptions.filter';
 import { DomainHttpExceptionsFilter } from './core/exceptions/filters/domain-exceptions.filter';
 import { GuestsModule } from './modules/guests/guests.module';
+import { SeatingArrangementsModule } from './modules/seating-arrangements/seating-arrangements.module';
 import { TestingModule } from './modules/testing/testing.module';
 import { UserAccountsModule } from './modules/user-accounts/user-accounts.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -54,6 +55,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
       },
     ]),
     GuestsModule,
+    SeatingArrangementsModule,
     UserAccountsModule,
   ],
   controllers: [],

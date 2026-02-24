@@ -16,3 +16,8 @@ export abstract class NumericIdEntity extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 }
+
+export abstract class UuidEntity extends BaseEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+}

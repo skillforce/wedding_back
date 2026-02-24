@@ -13,6 +13,7 @@ export function swaggerSetup(app: INestApplication, coreConfig: CoreConfig) {
     .setDescription('Wedding Invitation API documentation')
     .setVersion('1.0.4')
     .addBearerAuth()
+    .addBasicAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

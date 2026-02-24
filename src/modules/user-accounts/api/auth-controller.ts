@@ -8,6 +8,12 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { LocalAuthGuard } from '../guards/local/local-auth.guard';
 import { LoginInputDto } from './input-dto/auth-input-dto';
@@ -18,6 +24,7 @@ import { JwtAuthGuard } from '../guards/bearer/jwt-auth.guard';
 import { UsersQueryRepository } from '../infra/query/users.query-repository';
 import { MeViewDto } from './view-dto/auth-view-dto';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -28,6 +35,18 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UseGuards(LocalAuthGuard)
+  @ApiOperation({ summary: 'Login with login and password' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns a JWT access token',
+    schema: {
+      type: 'object',
+      properties: {
+        accessToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(
     @Body() _: LoginInputDto,
     @ExtractUserFromRequest() user: UserContextDto,
@@ -42,6 +61,10 @@ export class AuthController {
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get the currently authenticated user' })
+  @ApiResponse({ status: 200, description: 'Current user info', type: MeViewDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async me(
     @ExtractUserFromRequest() user: UserContextDto,
   ): Promise<MeViewDto> {
