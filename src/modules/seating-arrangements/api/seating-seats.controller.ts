@@ -28,7 +28,6 @@ import { DeleteSeatingSeatCommand } from '../app/usecases/delete-seating-seat.us
 
 @ApiTags('Seating Seats')
 @ApiBearerAuth()
-@Throttle({ default: { limit: 10, ttl: 5000 } })
 @UseGuards(JwtAuthGuard)
 @Controller('seating-arrangements/tables/:tableId/seats')
 export class SeatingSeatsController {
@@ -41,7 +40,11 @@ export class SeatingSeatsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Add a seat to a table' })
   @ApiParam({ name: 'tableId', description: 'Table UUID', type: String })
-  @ApiResponse({ status: 201, description: 'Seat created successfully', type: SeatingSeatViewDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Seat created successfully',
+    type: SeatingSeatViewDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Table not found' })
@@ -50,9 +53,10 @@ export class SeatingSeatsController {
     @Body() dto: CreateSeatingSeatInputDto,
     @ExtractUserFromRequest() user: UserContextDto,
   ): Promise<SeatingSeatViewDto> {
-    const seatId = await this.commandBus.execute<CreateSeatingSeatCommand, string>(
-      new CreateSeatingSeatCommand(tableId, dto, user.id),
-    );
+    const seatId = await this.commandBus.execute<
+      CreateSeatingSeatCommand,
+      string
+    >(new CreateSeatingSeatCommand(tableId, dto, user.id));
     return this.queryRepository.findByIdOrFail(seatId);
   }
 
@@ -63,7 +67,10 @@ export class SeatingSeatsController {
   @ApiParam({ name: 'seatId', description: 'Seat UUID', type: String })
   @ApiResponse({ status: 204, description: 'Seat deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - seat does not belong to user' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - seat does not belong to user',
+  })
   @ApiResponse({ status: 404, description: 'Seat or table not found' })
   async deleteSeat(
     @Param('tableId') tableId: string,

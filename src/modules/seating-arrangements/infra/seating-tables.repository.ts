@@ -12,8 +12,8 @@ export class SeatingTablesRepository {
     private readonly tablesOrmRepository: Repository<SeatingTable>,
   ) {}
 
-  async findByIdAndUserIdOrFail(id: string, userId: number): Promise<SeatingTable> {
-    const table = await this.tablesOrmRepository.findOneBy({ id, user_id: userId });
+  async findByIdOrFail(id: string): Promise<SeatingTable> {
+    const table = await this.tablesOrmRepository.findOneBy({ id });
     if (!table) {
       throw new DomainException({
         code: DomainExceptionCode.NotFound,
@@ -23,7 +23,9 @@ export class SeatingTablesRepository {
     return table;
   }
 
-  async save(table: Omit<SeatingTable, 'id' | 'user' | 'seats'>): Promise<string> {
+  async save(
+    table: Omit<SeatingTable, 'id' | 'user' | 'seats'>,
+  ): Promise<string> {
     const result = await this.tablesOrmRepository.save(table);
     return result.id;
   }

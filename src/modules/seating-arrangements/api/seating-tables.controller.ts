@@ -32,7 +32,6 @@ import { DeleteSeatingTableCommand } from '../app/usecases/delete-seating-table.
 
 @ApiTags('Seating tables')
 @ApiBearerAuth()
-@Throttle({ default: { limit: 10, ttl: 5000 } })
 @UseGuards(JwtAuthGuard)
 @Controller('seating-arrangements/tables')
 export class SeatingTablesController {
@@ -42,8 +41,14 @@ export class SeatingTablesController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all seating tables for the authenticated user' })
-  @ApiResponse({ status: 200, description: 'List of seating tables', type: [SeatingTableViewDto] })
+  @ApiOperation({
+    summary: 'Get all seating tables for the authenticated user',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of seating tables',
+    type: [SeatingTableViewDto],
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAllTables(
     @ExtractUserFromRequest() user: UserContextDto,
@@ -54,16 +59,21 @@ export class SeatingTablesController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new seating tables' })
-  @ApiResponse({ status: 201, description: 'Seating table created successfully', type: SeatingTableViewDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Seating table created successfully',
+    type: SeatingTableViewDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createTable(
     @Body() dto: CreateSeatingTableInputDto,
     @ExtractUserFromRequest() user: UserContextDto,
   ): Promise<SeatingTableViewDto> {
-    const tableId = await this.commandBus.execute<CreateSeatingTableCommand, string>(
-      new CreateSeatingTableCommand(dto, user.id),
-    );
+    const tableId = await this.commandBus.execute<
+      CreateSeatingTableCommand,
+      string
+    >(new CreateSeatingTableCommand(dto, user.id));
     return this.queryRepository.findByIdOrFail(tableId);
   }
 
@@ -71,10 +81,17 @@ export class SeatingTablesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update an existing seating table' })
   @ApiParam({ name: 'id', description: 'Table UUID', type: String })
-  @ApiResponse({ status: 200, description: 'Seating table updated successfully', type: SeatingTableViewDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Seating table updated successfully',
+    type: SeatingTableViewDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - table does not belong to user' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - table does not belong to user',
+  })
   @ApiResponse({ status: 404, description: 'Table not found' })
   async updateTable(
     @Param('id') id: string,
@@ -91,9 +108,15 @@ export class SeatingTablesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a seating table by ID' })
   @ApiParam({ name: 'id', description: 'Table UUID', type: String })
-  @ApiResponse({ status: 204, description: 'Seating table deleted successfully' })
+  @ApiResponse({
+    status: 204,
+    description: 'Seating table deleted successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - table does not belong to user' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - table does not belong to user',
+  })
   @ApiResponse({ status: 404, description: 'Table not found' })
   async deleteTable(
     @Param('id') id: string,
