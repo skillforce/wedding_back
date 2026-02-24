@@ -3,8 +3,6 @@ name: CI
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
 
@@ -70,11 +68,11 @@ jobs:
 
 
   # =========================
-  # 2️⃣ BUILD & PUSH JOB
+  # 2️⃣ BUILD & PUSH IMAGE
   # =========================
   build:
     runs-on: ubuntu-latest
-    needs: test   # 🔥 Only runs if test job succeeds
+    needs: test
 
     steps:
       - name: Checkout repository
@@ -98,5 +96,40 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/wedding_invitation_back:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/wedding_invitation_back:${{ github.sha }}
 
-      - name: Trigger Dockploy Deploy
+  # =========================
+  # 3️⃣ RUN PROD MIGRATIONS
+  # =========================
+  migrate-prod:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: true
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Run production migrations
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: pnpm migration:run:prod
+
+  # =========================
+  # 4️⃣ DEPLOY
+  # =========================
+  deploy:
+    runs-on: ubuntu-latest
+    needs: migrate-prod
+
+    steps:
+      - name: Trigger Dockploy
         run: curl -X POST ${{ secrets.DOCKPLOY_WEBHOOK }}
