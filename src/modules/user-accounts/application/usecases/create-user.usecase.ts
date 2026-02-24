@@ -1,11 +1,12 @@
 import { UserDto } from '../../dto/user.dto';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UsersRepository } from '../../infra/users.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { BcryptService } from '../bcrypt.service';
 import { CreateUserDomainDto } from '../../domain/dto/create-user.domain.dto';
 import { User } from '../../domain/entities/user.entity';
+import { CreateDefaultSeatingTableCommand } from '../../../seating-arrangements/app/usecases/create-default-seating-table.usecase';
 
 export class CreateUserCommand {
   constructor(public dto: UserDto) {}
@@ -19,6 +20,7 @@ export class CreateUserUseCase implements ICommandHandler<
   constructor(
     public userRepository: UsersRepository,
     public bcryptService: BcryptService,
+    private readonly commandBus: CommandBus,
   ) {}
 
   async execute({ dto }: CreateUserCommand) {
@@ -27,7 +29,9 @@ export class CreateUserUseCase implements ICommandHandler<
 
     const newUser = this.createUser({ login: dto.login, passwordHash });
 
-    return await this.userRepository.save(newUser);
+    const userId = await this.userRepository.save(newUser);
+    await this.commandBus.execute(new CreateDefaultSeatingTableCommand(userId));
+    return userId;
   }
 
   private async checkUserDtoForUniqueFields(login: string) {

@@ -8,6 +8,7 @@ import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { SeatingTablesTestManager } from './helpers/seating-tables.test-manager';
 import { SeatingSeatsTestManager } from './helpers/seating-seats.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
+import { delay } from 'rxjs';
 
 describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
   let app: INestApplication;
@@ -49,14 +50,40 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     }
   });
 
+  // ─── Default table on registration ────────────────────────────────────────
+
+  it('should create a default table when a new user registers', async () => {
+    const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+
+    const tables = await seatingTablesTestManager.getAllTables(accessToken);
+    console.log(tables);
+    expect(tables).toHaveLength(1);
+    expect(tables[0]).toEqual(
+      expect.objectContaining({
+        id: expect.any(String),
+        name: 'Молодожены',
+        position: { x: 10, y: 0 },
+        shape: 'rect',
+        rotation: 0,
+        seats: [],
+      }),
+    );
+  });
+
   // ─── Tables ───────────────────────────────────────────────────────────────
 
   describe('Tables', () => {
     it('should create a table and return it', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
-      const dto = seatingTablesTestManager.buildCreateTableDto({ name: 'Main Table' });
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+      const dto = seatingTablesTestManager.buildCreateTableDto({
+        name: 'Main Table',
+      });
 
-      const created = await seatingTablesTestManager.createTable(dto, accessToken);
+      const created = await seatingTablesTestManager.createTable(
+        dto,
+        accessToken,
+      );
 
       expect(created).toEqual(
         expect.objectContaining({
@@ -72,20 +99,29 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
 
     it('should return 401 when creating table without auth', async () => {
       const dto = seatingTablesTestManager.buildCreateTableDto();
-      await seatingTablesTestManager.createTable(dto, 'invalid-token', HttpStatus.UNAUTHORIZED);
+      await seatingTablesTestManager.createTable(
+        dto,
+        'invalid-token',
+        HttpStatus.UNAUTHORIZED,
+      );
     });
 
     it('should return all tables for the authenticated user', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
-      const dto1 = seatingTablesTestManager.buildCreateTableDto({ name: 'Table A' });
-      const dto2 = seatingTablesTestManager.buildCreateTableDto({ name: 'Table B' });
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+      const dto1 = seatingTablesTestManager.buildCreateTableDto({
+        name: 'Table A',
+      });
+      const dto2 = seatingTablesTestManager.buildCreateTableDto({
+        name: 'Table B',
+      });
 
       await seatingTablesTestManager.createTable(dto1, accessToken);
       await seatingTablesTestManager.createTable(dto2, accessToken);
 
       const tables = await seatingTablesTestManager.getAllTables(accessToken);
 
-      expect(tables).toHaveLength(2);
+      expect(tables).toHaveLength(3);
       expect(tables).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ name: 'Table A' }),
@@ -95,8 +131,10 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should not return tables of another user', async () => {
-      const { accessToken: tokenA } = await userAccountsTestManager.createUserAndLogin();
-      const { accessToken: tokenB } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken: tokenA } =
+        await userAccountsTestManager.createUserAndLogin();
+      const { accessToken: tokenB } =
+        await userAccountsTestManager.createUserAndLogin();
 
       await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto({ name: 'User A Table' }),
@@ -104,11 +142,12 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       );
 
       const tablesB = await seatingTablesTestManager.getAllTables(tokenB);
-      expect(tablesB).toHaveLength(0);
+      expect(tablesB).toHaveLength(1);
     });
 
     it('should update table name', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const created = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto({ name: 'Old Name' }),
         accessToken,
@@ -124,9 +163,12 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should update table position', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const created = await seatingTablesTestManager.createTable(
-        seatingTablesTestManager.buildCreateTableDto({ position: { x: 0, y: 0 } }),
+        seatingTablesTestManager.buildCreateTableDto({
+          position: { x: 0, y: 0 },
+        }),
         accessToken,
       );
 
@@ -140,7 +182,8 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should update table rotation', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const created = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
@@ -156,7 +199,8 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should update table shape', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const created = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto({ shape: 'circle' }),
         accessToken,
@@ -171,9 +215,11 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       expect(updated.shape).toBe('rect');
     });
 
-    it('should return 403 when updating another user\'s table', async () => {
-      const { accessToken: tokenA } = await userAccountsTestManager.createUserAndLogin();
-      const { accessToken: tokenB } = await userAccountsTestManager.createUserAndLogin();
+    it("should return 403 when updating another user's table", async () => {
+      const { accessToken: tokenA } =
+        await userAccountsTestManager.createUserAndLogin();
+      const { accessToken: tokenB } =
+        await userAccountsTestManager.createUserAndLogin();
 
       const created = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
@@ -189,7 +235,8 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should delete a table', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const created = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
@@ -198,26 +245,37 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       await seatingTablesTestManager.deleteTable(created.id, accessToken);
 
       const tables = await seatingTablesTestManager.getAllTables(accessToken);
-      expect(tables).toHaveLength(0);
+      expect(tables).toHaveLength(1);
     });
 
     it('should return 404 when deleting a non-existing table', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const nonExistingId = '00000000-0000-0000-0000-000000000000';
 
-      await seatingTablesTestManager.deleteTable(nonExistingId, accessToken, HttpStatus.NOT_FOUND);
+      await seatingTablesTestManager.deleteTable(
+        nonExistingId,
+        accessToken,
+        HttpStatus.NOT_FOUND,
+      );
     });
 
-    it('should return 403 when deleting another user\'s table', async () => {
-      const { accessToken: tokenA } = await userAccountsTestManager.createUserAndLogin();
-      const { accessToken: tokenB } = await userAccountsTestManager.createUserAndLogin();
+    it("should return 403 when deleting another user's table", async () => {
+      const { accessToken: tokenA } =
+        await userAccountsTestManager.createUserAndLogin();
+      const { accessToken: tokenB } =
+        await userAccountsTestManager.createUserAndLogin();
 
       const created = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         tokenA,
       );
 
-      await seatingTablesTestManager.deleteTable(created.id, tokenB, HttpStatus.FORBIDDEN);
+      await seatingTablesTestManager.deleteTable(
+        created.id,
+        tokenB,
+        HttpStatus.FORBIDDEN,
+      );
     });
   });
 
@@ -225,7 +283,8 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
 
   describe('Seats', () => {
     it('should create a seat for a table', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
@@ -246,7 +305,8 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should return 404 when creating seat for non-existing table', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const nonExistingTableId = '00000000-0000-0000-0000-000000000000';
 
       await seatingSeatsTestManager.createSeat(
@@ -257,9 +317,11 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       );
     });
 
-    it('should return 403 when creating seat on another user\'s table', async () => {
-      const { accessToken: tokenA } = await userAccountsTestManager.createUserAndLogin();
-      const { accessToken: tokenB } = await userAccountsTestManager.createUserAndLogin();
+    it("should return 403 when creating seat on another user's table", async () => {
+      const { accessToken: tokenA } =
+        await userAccountsTestManager.createUserAndLogin();
+      const { accessToken: tokenB } =
+        await userAccountsTestManager.createUserAndLogin();
 
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
@@ -275,7 +337,8 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should delete a seat', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
@@ -293,7 +356,8 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should return 404 when deleting a non-existing seat', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
@@ -308,9 +372,11 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       );
     });
 
-    it('should return 403 when deleting a seat from another user\'s table', async () => {
-      const { accessToken: tokenA } = await userAccountsTestManager.createUserAndLogin();
-      const { accessToken: tokenB } = await userAccountsTestManager.createUserAndLogin();
+    it("should return 403 when deleting a seat from another user's table", async () => {
+      const { accessToken: tokenA } =
+        await userAccountsTestManager.createUserAndLogin();
+      const { accessToken: tokenB } =
+        await userAccountsTestManager.createUserAndLogin();
 
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
@@ -331,7 +397,8 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should delete table and cascade delete its seats', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
@@ -351,7 +418,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       await seatingTablesTestManager.deleteTable(table.id, accessToken);
 
       const tables = await seatingTablesTestManager.getAllTables(accessToken);
-      expect(tables).toHaveLength(0);
+      expect(tables).toHaveLength(1);
     });
   });
 });

@@ -13,6 +13,7 @@ import { UpdateSeatingTableUseCase } from './app/usecases/update-seating-table.u
 import { DeleteSeatingTableUseCase } from './app/usecases/delete-seating-table.usecase';
 import { CreateSeatingSeatUseCase } from './app/usecases/create-seating-seat.usecase';
 import { DeleteSeatingSeatUseCase } from './app/usecases/delete-seating-seat.usecase';
+import { CreateDefaultSeatingTableUseCase } from './app/usecases/create-default-seating-table.usecase';
 
 @Module({
   imports: [TypeOrmModule.forFeature([SeatingTable, SeatingSeat])],
@@ -27,6 +28,7 @@ import { DeleteSeatingSeatUseCase } from './app/usecases/delete-seating-seat.use
     DeleteSeatingTableUseCase,
     CreateSeatingSeatUseCase,
     DeleteSeatingSeatUseCase,
+    CreateDefaultSeatingTableUseCase,
   ],
   exports: [],
 })
