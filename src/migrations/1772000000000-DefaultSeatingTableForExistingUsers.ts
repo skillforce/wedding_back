@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class DefaultSeatingTableForExistingUsers1740355200000 implements MigrationInterface {
-  name = 'DefaultSeatingTableForExistingUsers1740355200000';
+export class DefaultSeatingTableForExistingUsers1772000000000 implements MigrationInterface {
+  name = 'DefaultSeatingTableForExistingUsers1772000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
