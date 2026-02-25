@@ -33,6 +33,7 @@ import { DeleteSeatingTableCommand } from '../app/usecases/delete-seating-table.
 @ApiTags('Seating tables')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@Throttle({ default: { limit: 30, ttl: 5000 } })
 @Controller('seating-arrangements/tables')
 export class SeatingTablesController {
   constructor(

@@ -29,6 +29,7 @@ import { DeleteSeatingSeatCommand } from '../app/usecases/delete-seating-seat.us
 @ApiTags('Seating Seats')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@Throttle({ default: { limit: 20, ttl: 5000 } })
 @Controller('seating-arrangements/tables/:tableId/seats')
 export class SeatingSeatsController {
   constructor(
