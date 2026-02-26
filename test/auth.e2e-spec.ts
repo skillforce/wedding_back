@@ -70,6 +70,7 @@ describe('AuthController (e2e)', () => {
     expect(meResponse).toEqual({
       id: userId,
       login: credentials.login,
+      invitationUrl: null,
     });
   });
 

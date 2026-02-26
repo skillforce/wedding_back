@@ -22,6 +22,9 @@ export class User extends NumericIdEntity {
   @Length(passwordConstraints.minLength, passwordConstraints.maxLength)
   passwordHash: string;
 
+  @Column({ nullable: true })
+  invitationUrl?: string;
+
   @OneToMany(() => Guest, (guest) => guest.user)
   public guests?: Guest[];
 }
