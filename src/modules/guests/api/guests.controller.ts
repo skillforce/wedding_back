@@ -19,6 +19,7 @@ import {
 import { CommandBus } from '@nestjs/cqrs';
 import { GuestsQueryRepository } from '../infra/query/guests.query-repository';
 import { GuestsViewDto } from './view-dto/guests.view-dto';
+import { GuestDetailViewDto } from './view-dto/guest-detail.view-dto';
 import { CreateGuestInputDto } from './input-dto/guest.input-dto';
 import { CreateGuestCommand } from '../app/usecases/create-guest.usecase';
 import { DeleteGuestCommand } from '../app/usecases/delete-guest.usecase';
@@ -52,13 +53,12 @@ export class GuestsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a guest by ID' })
+  @ApiOperation({ summary: 'Get a guest by ID with response details' })
   @ApiParam({ name: 'id', description: 'Guest UUID' })
-  @ApiResponse({ status: 200, description: 'Guest found', type: GuestsViewDto })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 200, description: 'Guest found', type: GuestDetailViewDto })
   @ApiResponse({ status: 404, description: 'Guest not found' })
-  async getGuestById(@Param() { id }: IdUuidParamDto): Promise<GuestsViewDto> {
-    return this.guestsQueryRepository.findGuestsById(id);
+  async getGuestById(@Param() { id }: IdUuidParamDto): Promise<GuestDetailViewDto> {
+    return this.guestsQueryRepository.findGuestDetailById(id);
   }
 
   @Post('/')

@@ -83,6 +83,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
           id: created.id,
           name: dto.guest_name,
           is_already_answered: false,
+          response: null,
         }),
       );
     });
@@ -163,6 +164,15 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       const updated = await guestsTestManager.getGuestById(guest.id);
       expect(updated.is_already_answered).toBe(true);
+      expect(updated.response).toEqual(
+        expect.objectContaining({
+          id: expect.any(String),
+          preferred_drinks: ['wine', 'juice'],
+          plus_one: false,
+          plus_one_name: null,
+          other_preferences: null,
+        }),
+      );
     });
 
     it('should return 404 when submitting response for non-existing guest', async () => {
@@ -252,6 +262,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       const updated = await guestsTestManager.getGuestById(guest.id);
       expect(updated.is_already_answered).toBe(false);
+      expect(updated.response).toBeNull();
     });
 
     it('should return 401 when deleting response without token', async () => {
