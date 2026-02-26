@@ -58,7 +58,7 @@ jobs:
           exit 1
 
       - name: Run migrations
-        run: pnpm migration:run
+        run: pnpm migration:run:dev
 
       - name: Run e2e tests
         run: pnpm test:e2e
