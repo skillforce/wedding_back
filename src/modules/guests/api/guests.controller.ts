@@ -43,12 +43,12 @@ export class GuestsController {
   @ApiResponse({
     status: 200,
     description: 'List of guests',
-    type: [GuestsViewDto],
+    type: [GuestDetailViewDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAllGuests(
     @ExtractUserFromRequest() user: UserContextDto,
-  ): Promise<GuestsViewDto[]> {
+  ): Promise<GuestDetailViewDto[]> {
     return this.guestsQueryRepository.findAllGuestsByUserId(user.id);
   }
 

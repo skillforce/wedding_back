@@ -30,7 +30,7 @@ export class GuestsQueryRepository {
     return guest;
   }
 
-  async findAllGuestsByUserId(userId: number): Promise<GuestsViewDto[]> {
+  async findAllGuestsByUserId(userId: number): Promise<GuestDetailViewDto[]> {
     const guests = await this.guestsOrmRepository.find({
       where: { user_id: userId },
       relations: ['response'],
@@ -38,7 +38,7 @@ export class GuestsQueryRepository {
     if (!guests.length) {
       return [];
     }
-    return guests.map(GuestsViewDto.mapToViewDto);
+    return guests.map(GuestDetailViewDto.mapToDetailViewDto);
   }
 
   async findGuestsById(guestId: string): Promise<GuestsViewDto> {

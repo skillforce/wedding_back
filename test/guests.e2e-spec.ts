@@ -66,7 +66,12 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       const list = await guestsTestManager.getAllGuests(accessToken);
       expect(list).toEqual([
-        expect.objectContaining({ id: created.id, name: dto.guest_name }),
+        expect.objectContaining({
+          id: created.id,
+          name: dto.guest_name,
+          is_already_answered: false,
+          response: null,
+        }),
       ]);
     });
 
