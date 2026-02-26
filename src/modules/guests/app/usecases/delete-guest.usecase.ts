@@ -3,7 +3,7 @@ import { GuestsRepository } from '../../infra/guests.repository';
 
 export class DeleteGuestCommand {
   constructor(
-    public guest_id: number,
+    public guest_id: string,
     public userId: number,
   ) {}
 }

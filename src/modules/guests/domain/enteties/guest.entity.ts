@@ -1,7 +1,8 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
-import { NumericIdEntity } from '../../../common/domain/base.entity';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
+import { UuidEntity } from '../../../common/domain/base.entity';
 import { Length } from 'class-validator';
 import { User } from '../../../user-accounts/domain/entities/user.entity';
+import { GuestResponse } from './guest-response.entity';
 
 export const guestNameConstraints = {
   minLength: 3,
@@ -9,7 +10,7 @@ export const guestNameConstraints = {
 };
 
 @Entity('Guests')
-export class Guest extends NumericIdEntity {
+export class Guest extends UuidEntity {
   @Column({ nullable: false })
   user_id: number;
 
@@ -17,17 +18,10 @@ export class Guest extends NumericIdEntity {
   @Length(guestNameConstraints.minLength, guestNameConstraints.maxLength)
   guest_name: string;
 
-  @Column({
-    type: 'text',
-    array: true,
-    nullable: false,
-  })
-  preferred_drinks: string[];
-
-  @Column({ nullable: true, default: null })
-  other_preferences?: string;
-
   @ManyToOne(() => User, (user) => user.guests, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user?: User;
+
+  @OneToOne(() => GuestResponse, (response) => response.guest)
+  response?: GuestResponse;
 }

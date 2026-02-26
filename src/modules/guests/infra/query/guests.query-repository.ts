@@ -13,9 +13,10 @@ export class GuestsQueryRepository {
     private readonly guestsOrmRepository: Repository<Guest>,
   ) {}
 
-  async findOneByIdOrFail(guestId: number) {
-    const guest = await this.guestsOrmRepository.findOneBy({
-      id: guestId,
+  async findOneByIdOrFail(guestId: string) {
+    const guest = await this.guestsOrmRepository.findOne({
+      where: { id: guestId },
+      relations: ['response'],
     });
 
     if (!guest) {
@@ -29,8 +30,9 @@ export class GuestsQueryRepository {
   }
 
   async findAllGuestsByUserId(userId: number): Promise<GuestsViewDto[]> {
-    const guests = await this.guestsOrmRepository.findBy({
-      user_id: userId,
+    const guests = await this.guestsOrmRepository.find({
+      where: { user_id: userId },
+      relations: ['response'],
     });
     if (!guests.length) {
       return [];
@@ -38,8 +40,8 @@ export class GuestsQueryRepository {
     return guests.map(GuestsViewDto.mapToViewDto);
   }
 
-  async findGuestsById(guestId: number): Promise<GuestsViewDto> {
-    const guests = await this.findOneByIdOrFail(guestId);
-    return GuestsViewDto.mapToViewDto(guests);
+  async findGuestsById(guestId: string): Promise<GuestsViewDto> {
+    const guest = await this.findOneByIdOrFail(guestId);
+    return GuestsViewDto.mapToViewDto(guest);
   }
 }

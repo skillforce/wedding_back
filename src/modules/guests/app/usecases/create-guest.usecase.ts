@@ -11,11 +11,11 @@ export class CreateGuestCommand {
 @CommandHandler(CreateGuestCommand)
 export class CreateGuestUseCase implements ICommandHandler<
   CreateGuestCommand,
-  number
+  string
 > {
   constructor(private guestsRepository: GuestsRepository) {}
 
-  async execute({ dto }: CreateGuestCommand): Promise<number> {
+  async execute({ dto }: CreateGuestCommand): Promise<string> {
     const userWithSameName = await this.guestsRepository.findGuestByName(
       dto.guest_name,
       dto.user_id,

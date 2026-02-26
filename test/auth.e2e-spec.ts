@@ -5,24 +5,17 @@ import { UserAccountsConfig } from '../src/modules/user-accounts/config/user-acc
 import { JwtService } from '@nestjs/jwt';
 import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
-import { GuestsTestManager } from './helpers/guests.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
 
-describe('AuthController & GuestsController (e2e)', () => {
+describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let userAccountsTestManager: UserAccountsTestManager;
-  let guestsTestManager: GuestsTestManager;
 
   beforeAll(async () => {
     const result = await initTesting((moduleBuilder) =>
       moduleBuilder
         .overrideProvider(getOptionsToken())
-        .useValue([
-          {
-            ttl: 10000,
-            limit: 9999,
-          },
-        ])
+        .useValue([{ ttl: 10000, limit: 9999 }])
         .overrideProvider(ACCESS_TOKEN_STRATEGY_INJECT_TOKEN)
         .useFactory({
           factory: (userAccountsConfig: UserAccountsConfig) => {
@@ -38,7 +31,6 @@ describe('AuthController & GuestsController (e2e)', () => {
     );
     app = result.app;
     userAccountsTestManager = result.userAccountsTestManager;
-    guestsTestManager = result.guestsTestManager;
   });
 
   beforeEach(async () => {
@@ -124,50 +116,6 @@ describe('AuthController & GuestsController (e2e)', () => {
         },
       ],
     });
-  });
-
-  it('should create list and delete guest', async () => {
-    const { userId, accessToken } =
-      await userAccountsTestManager.createUserAndLogin();
-    const createGuestDto = guestsTestManager.buildCreateGuestDto(userId, {
-      preferred_drinks: ['tea', 'coffee'],
-      other_preferences: 'window seat',
-    });
-
-    const createGuestResponse = await guestsTestManager.createGuest(
-      createGuestDto,
-      accessToken,
-    );
-
-    const guestId = createGuestResponse.id;
-    expect(guestId).toEqual(expect.any(Number));
-
-    const getGuestsResponse = await guestsTestManager.getAllGuests(accessToken);
-    expect(getGuestsResponse).toEqual([
-      expect.objectContaining({
-        id: guestId,
-        name: createGuestDto.guest_name,
-        preferred_drinks: createGuestDto.preferred_drinks,
-        other_preferences: createGuestDto.other_preferences,
-      }),
-    ]);
-
-    await guestsTestManager.deleteGuestById(guestId, accessToken);
-    const guestsAfterDelete = await guestsTestManager.getAllGuests(accessToken);
-    expect(guestsAfterDelete).toEqual([]);
-  });
-
-  it('should reject duplicate guest name for same user', async () => {
-    const { userId, accessToken } =
-      await userAccountsTestManager.createUserAndLogin();
-    const createGuestDto = guestsTestManager.buildCreateGuestDto(userId);
-
-    await guestsTestManager.createGuest(createGuestDto, accessToken);
-    await guestsTestManager.createGuest(
-      createGuestDto,
-      accessToken,
-      HttpStatus.BAD_REQUEST,
-    );
   });
 
   it('should delete user and reject next login', async () => {
