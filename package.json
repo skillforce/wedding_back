@@ -11,10 +11,13 @@
     "start:dev": "cross-env NODE_ENV=development nest start --watch",
     "start:debug": "cross-env NODE_ENV=development nest start --debug --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/main",
-    "typeorm": "typeorm-ts-node-commonjs -d src/core/configs/typeorm.config.ts",
-    "migration:generate": "npm run typeorm -- migration:generate",
-    "migration:run": "npm run typeorm -- migration:run",
-    "migration:revert": "npm run typeorm -- migration:revert",
+    "typeorm:dev": "typeorm-ts-node-commonjs -d src/core/configs/typeorm.config.ts",
+    "typeorm:prod": "typeorm-ts-node-commonjs -d dist/core/configs/typeorm.config.js",
+    "migration:generate": "npm run typeorm:dev -- migration:generate",
+    "migration:run:dev": "npm run typeorm:dev -- migration:run",
+    "migration:run:prod": "npm run typeorm:prod -- migration:run",
+    "migration:revert:dev": "npm run typeorm:dev -- migration:revert",
+    "migration:revert:prod": "npm run typeorm:prod -- migration:revert",
     "test:e2e": "cross-env NODE_ENV=testing jest --runInBand --config ./test/jest-e2e.json"
   },
   "dependencies": {
