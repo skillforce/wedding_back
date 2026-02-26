@@ -8,8 +8,12 @@ export class MeViewDto {
   @ApiProperty({ description: 'User login', example: 'admin' })
   login: string;
 
-  @ApiProperty({ description: 'Invitation URL', example: 'https://example.com/invite/abc123', nullable: true })
-  invitationUrl: string | null;
+  @ApiProperty({
+    description: 'Invitation URL',
+    example: 'https://example.com/invite/abc123',
+    nullable: true,
+  })
+  invitationUrl?: string;
 
   static mapToViewDto(user: User): MeViewDto {
     const dto = new MeViewDto();
