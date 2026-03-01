@@ -10,6 +10,5 @@ export type ErrorResponseExtendedBody = {
 };
 
 export type ErrorResponseBody = {
-  message: string;
   errorsMessages: Extension[];
 };
