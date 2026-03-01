@@ -29,6 +29,12 @@ export class CreateGuestResponseUseCase implements ICommandHandler<
     if (isExist) {
       throw new DomainException({
         code: DomainExceptionCode.BadRequest,
+        extensions: [
+          {
+            field: 'guestId',
+            message: 'Guest has already submitted a response',
+          },
+        ],
         message: 'Guest has already submitted a response',
       });
     }
