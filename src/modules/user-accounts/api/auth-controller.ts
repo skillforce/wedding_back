@@ -53,7 +53,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with login and password' })
   @ApiResponse({
     status: 200,
-    description: 'Returns a JWT access token',
+    description: 'Returns a JWT access token and current user info',
     schema: {
       type: 'object',
       properties: {
@@ -61,6 +61,9 @@ export class AuthController {
           type: 'string',
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         },
+        id: { type: 'number', example: 1 },
+        login: { type: 'string', example: 'john' },
+        invitationUrl: { type: 'string', nullable: true, example: null },
       },
     },
   })
@@ -77,7 +80,9 @@ export class AuthController {
 
     res.cookie(REFRESH_COOKIE, refreshToken, COOKIE_OPTIONS);
 
-    return { accessToken };
+    const me = await this.usersQueryRepository.findMeByIdOrNotFoundFail(user.id);
+
+    return { accessToken, ...me };
   }
 
   @Post('refresh')

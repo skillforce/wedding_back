@@ -73,7 +73,12 @@ describe('AuthController (e2e)', () => {
     const { body, refreshTokenCookie } =
       await userAccountsTestManager.login(credentials);
 
-    expect(body).toEqual({ accessToken: expect.any(String) });
+    expect(body).toEqual({
+      accessToken: expect.any(String),
+      id: expect.any(Number),
+      login: credentials.login,
+      invitationUrl: null,
+    });
     expect(refreshTokenCookie).toBeDefined();
     expect(refreshTokenCookie).toContain('HttpOnly');
   });
