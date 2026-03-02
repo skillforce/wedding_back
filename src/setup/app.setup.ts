@@ -7,7 +7,12 @@ import cookieParser from 'cookie-parser';
 
 export function appSetup(app: INestApplication, coreConfig: CoreConfig) {
   app.use(cookieParser());
-  app.enableCors();
+  app.enableCors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
   globalPrefixSetup(app);
   swaggerSetup(app, coreConfig);
   app.getHttpAdapter().getInstance().set('trust proxy', true);

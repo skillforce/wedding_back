@@ -30,14 +30,7 @@ import { RefreshTokenCommand } from '../application/usecases/refresh-token.useca
 import { LogoutCommand } from '../application/usecases/logout.usecase';
 import { UsersQueryRepository } from '../infra/query/users.query-repository';
 import { MeViewDto } from './view-dto/auth-view-dto';
-
-const REFRESH_COOKIE = 'refreshToken';
-
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'none' as const,
-};
+import { CookieService } from '../application/cookie.service';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -45,6 +38,7 @@ export class AuthController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly usersQueryRepository: UsersQueryRepository,
+    private readonly cookieService: CookieService,
   ) {}
 
   @Post('login')
@@ -78,7 +72,7 @@ export class AuthController {
       { accessToken: string; refreshToken: string }
     >(new LoginUserCommand(user.id));
 
-    res.cookie(REFRESH_COOKIE, refreshToken, COOKIE_OPTIONS);
+    this.cookieService.setRefreshToken(res, refreshToken);
 
     const me = await this.usersQueryRepository.findMeByIdOrNotFoundFail(user.id);
 
@@ -88,7 +82,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseGuards(RefreshTokenGuard)
-  @ApiCookieAuth(REFRESH_COOKIE)
+  @ApiCookieAuth('refreshToken')
   @ApiOperation({ summary: 'Refresh access token using refresh token cookie' })
   @ApiResponse({
     status: 200,
@@ -110,7 +104,7 @@ export class AuthController {
       { accessToken: string; refreshToken: string }
     >(new RefreshTokenCommand(req.user.id, req.user.tokenId, req.refreshToken));
 
-    res.cookie(REFRESH_COOKIE, refreshToken, COOKIE_OPTIONS);
+    this.cookieService.setRefreshToken(res, refreshToken);
 
     return { accessToken };
   }
@@ -118,7 +112,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(RefreshTokenGuard)
-  @ApiCookieAuth(REFRESH_COOKIE)
+  @ApiCookieAuth('refreshToken')
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
   @ApiResponse({ status: 204, description: 'Logged out successfully' })
   @ApiResponse({ status: 401, description: 'Invalid or missing refresh token' })
@@ -127,7 +121,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.commandBus.execute(new LogoutCommand(req.user.tokenId));
-    res.clearCookie(REFRESH_COOKIE, COOKIE_OPTIONS);
+    this.cookieService.clearRefreshToken(res);
   }
 
   @Get('me')

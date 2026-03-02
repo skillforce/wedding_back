@@ -18,6 +18,7 @@ import {
   REFRESH_TOKEN_STRATEGY_INJECT_TOKEN,
 } from './constants/auth-token.inject-context';
 import { AuthService } from './application/auth.service';
+import { CookieService } from './application/cookie.service';
 import { UsersRepository } from './infra/users.repository';
 import { RefreshTokensRepository } from './infra/refresh-tokens.repository';
 import { CreateUserUseCase } from './application/usecases/create-user.usecase';
@@ -31,6 +32,7 @@ import { RefreshTokenGuard } from './guards/refresh/refresh-token.guard';
   controllers: [AuthController, UserController],
   providers: [
     BcryptService,
+    CookieService,
     UserAccountsConfig,
     JwtStrategy,
     LocalStrategy,
