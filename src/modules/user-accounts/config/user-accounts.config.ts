@@ -15,12 +15,28 @@ export class UserAccountsConfig {
   })
   accessTokenExpireIn!: any;
 
+  @IsNotEmpty({
+    message: 'Set Env variable REFRESH_TOKEN_SECRET, dangerous for security!',
+  })
+  refreshTokenSecret!: string;
+
+  @IsNotEmpty({
+    message: 'Set Env variable REFRESH_TOKEN_EXPIRE_IN, examples: 30d, 7d',
+  })
+  refreshTokenExpireIn!: string;
+
   constructor(private readonly configService: ConfigService<any, true>) {
     this.accessTokenExpireIn = this.configService.get<string>(
       'ACCESS_TOKEN_EXPIRE_IN',
     );
     this.accessTokenSecret = this.configService.get<string>(
       'ACCESS_TOKEN_SECRET',
+    );
+    this.refreshTokenSecret = this.configService.get<string>(
+      'REFRESH_TOKEN_SECRET',
+    );
+    this.refreshTokenExpireIn = this.configService.get<string>(
+      'REFRESH_TOKEN_EXPIRE_IN',
     );
 
     configValidationUtility.validateConfig(this);

@@ -52,10 +52,42 @@ export class UserAccountsTestManager {
   async login(
     dto: Partial<LoginInputDto>,
     expectedStatus: HttpStatus = HttpStatus.OK,
-  ) {
+  ): Promise<{ body: any; refreshTokenCookie: string | undefined }> {
     const response = await request(this.httpServer)
       .post('/api/auth/login')
       .send(dto)
+      .expect(expectedStatus);
+
+    const setCookie = response.headers['set-cookie'];
+    const cookieArray = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+    const refreshTokenCookie = cookieArray.find((c) => c.startsWith('refreshToken='));
+
+    return { body: response.body, refreshTokenCookie };
+  }
+
+  async refresh(
+    refreshTokenCookie: string,
+    expectedStatus: HttpStatus = HttpStatus.OK,
+  ): Promise<{ body: any; refreshTokenCookie: string | undefined }> {
+    const response = await request(this.httpServer)
+      .post('/api/auth/refresh')
+      .set('Cookie', refreshTokenCookie)
+      .expect(expectedStatus);
+
+    const setCookie = response.headers['set-cookie'];
+    const cookieArray = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+    const newRefreshTokenCookie = cookieArray.find((c) => c.startsWith('refreshToken='));
+
+    return { body: response.body, refreshTokenCookie: newRefreshTokenCookie };
+  }
+
+  async logout(
+    refreshTokenCookie: string,
+    expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+  ) {
+    const response = await request(this.httpServer)
+      .post('/api/auth/logout')
+      .set('Cookie', refreshTokenCookie)
       .expect(expectedStatus);
 
     return response.body;
@@ -97,15 +129,17 @@ export class UserAccountsTestManager {
     credentials: CreateUserInputDto;
     userId: number;
     accessToken: string;
+    refreshTokenCookie: string;
   }> {
     const credentials = this.buildCreateUserDto(overrides);
     const createUserResponse = await this.createUser(credentials);
-    const loginResponse = await this.login(credentials);
+    const { body: loginBody, refreshTokenCookie } = await this.login(credentials);
 
     return {
       credentials,
       userId: createUserResponse.id as number,
-      accessToken: loginResponse.accessToken as string,
+      accessToken: loginBody.accessToken as string,
+      refreshTokenCookie: refreshTokenCookie!,
     };
   }
 

@@ -21,6 +21,6 @@ export default new DataSource({
   migrations: [isProd ? 'dist/migrations/*.js' : 'src/migrations/*.ts'],
   entities: [isProd ? 'dist/**/*.entity.js' : 'src/**/*.entity.ts'],
   logging: ['query'],
-  dropSchema: isTesting,
-  synchronize: isTesting,
+  dropSchema: false,
+  synchronize: false,
 });

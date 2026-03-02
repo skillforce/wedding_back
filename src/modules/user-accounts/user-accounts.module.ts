@@ -5,20 +5,29 @@ import { JwtStrategy } from './guards/bearer/jwt.strategy';
 import { LocalStrategy } from './guards/local/local.strategy';
 import { LoginUserUseCase } from './application/usecases/login-user.usecase';
 import { GenerateNewTokenUsecase } from './application/usecases/generate-token.usecase';
+import { GenerateRefreshTokenUsecase } from './application/usecases/generate-refresh-token.usecase';
+import { RefreshTokenUsecase } from './application/usecases/refresh-token.usecase';
+import { LogoutUsecase } from './application/usecases/logout.usecase';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './domain/entities/user.entity';
+import { RefreshToken } from './domain/entities/refresh-token.entity';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { AuthController } from './api/auth-controller';
-import { ACCESS_TOKEN_STRATEGY_INJECT_TOKEN } from './constants/auth-token.inject-context';
+import {
+  ACCESS_TOKEN_STRATEGY_INJECT_TOKEN,
+  REFRESH_TOKEN_STRATEGY_INJECT_TOKEN,
+} from './constants/auth-token.inject-context';
 import { AuthService } from './application/auth.service';
 import { UsersRepository } from './infra/users.repository';
+import { RefreshTokensRepository } from './infra/refresh-tokens.repository';
 import { CreateUserUseCase } from './application/usecases/create-user.usecase';
 import { DeleteUserUseCase } from './application/usecases/delete-user.usecase';
 import { UserController } from './api/user-controller';
 import { UsersQueryRepository } from './infra/query/users.query-repository';
+import { RefreshTokenGuard } from './guards/refresh/refresh-token.guard';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), JwtModule],
+  imports: [TypeOrmModule.forFeature([User, RefreshToken]), JwtModule],
   controllers: [AuthController, UserController],
   providers: [
     BcryptService,
@@ -28,17 +37,34 @@ import { UsersQueryRepository } from './infra/query/users.query-repository';
     AuthService,
     LoginUserUseCase,
     GenerateNewTokenUsecase,
+    GenerateRefreshTokenUsecase,
+    RefreshTokenUsecase,
+    LogoutUsecase,
+    RefreshTokenGuard,
+    UsersRepository,
+    RefreshTokensRepository,
+    UsersQueryRepository,
     CreateUserUseCase,
     DeleteUserUseCase,
-    UsersRepository,
-    UsersQueryRepository,
     {
       provide: ACCESS_TOKEN_STRATEGY_INJECT_TOKEN,
-      useFactory: (userAccountConfig: UserAccountsConfig): JwtService => {
+      useFactory: (userAccountsConfig: UserAccountsConfig): JwtService => {
         return new JwtService({
-          secret: userAccountConfig.accessTokenSecret,
+          secret: userAccountsConfig.accessTokenSecret,
           signOptions: {
-            expiresIn: userAccountConfig.accessTokenExpireIn,
+            expiresIn: userAccountsConfig.accessTokenExpireIn,
+          },
+        });
+      },
+      inject: [UserAccountsConfig],
+    },
+    {
+      provide: REFRESH_TOKEN_STRATEGY_INJECT_TOKEN,
+      useFactory: (userAccountsConfig: UserAccountsConfig): JwtService => {
+        return new JwtService({
+          secret: userAccountsConfig.refreshTokenSecret,
+          signOptions: {
+            expiresIn: userAccountsConfig.refreshTokenExpireIn as any,
           },
         });
       },

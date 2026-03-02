@@ -1,5 +1,8 @@
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { ACCESS_TOKEN_STRATEGY_INJECT_TOKEN } from '../src/modules/user-accounts/constants/auth-token.inject-context';
+import {
+  ACCESS_TOKEN_STRATEGY_INJECT_TOKEN,
+  REFRESH_TOKEN_STRATEGY_INJECT_TOKEN,
+} from '../src/modules/user-accounts/constants/auth-token.inject-context';
 import { initTesting } from './helpers/initTesting';
 import { UserAccountsConfig } from '../src/modules/user-accounts/config/user-accounts.config';
 import { JwtService } from '@nestjs/jwt';
@@ -23,6 +26,18 @@ describe('AuthController (e2e)', () => {
               secret: userAccountsConfig.accessTokenSecret,
               signOptions: {
                 expiresIn: userAccountsConfig.accessTokenExpireIn,
+              },
+            });
+          },
+          inject: [UserAccountsConfig],
+        })
+        .overrideProvider(REFRESH_TOKEN_STRATEGY_INJECT_TOKEN)
+        .useFactory({
+          factory: (userAccountsConfig: UserAccountsConfig) => {
+            return new JwtService({
+              secret: userAccountsConfig.refreshTokenSecret,
+              signOptions: {
+                expiresIn: userAccountsConfig.refreshTokenExpireIn as any,
               },
             });
           },
@@ -55,10 +70,12 @@ describe('AuthController (e2e)', () => {
       }),
     );
 
-    const loginResponse = await userAccountsTestManager.login(credentials);
-    expect(loginResponse).toEqual({
-      accessToken: expect.any(String),
-    });
+    const { body, refreshTokenCookie } =
+      await userAccountsTestManager.login(credentials);
+
+    expect(body).toEqual({ accessToken: expect.any(String) });
+    expect(refreshTokenCookie).toBeDefined();
+    expect(refreshTokenCookie).toContain('HttpOnly');
   });
 
   it('should return current user in me request', async () => {
@@ -72,6 +89,42 @@ describe('AuthController (e2e)', () => {
       login: credentials.login,
       invitationUrl: null,
     });
+  });
+
+  it('should refresh tokens and return new access token', async () => {
+    const { refreshTokenCookie } =
+      await userAccountsTestManager.createUserAndLogin();
+
+    const { body, refreshTokenCookie: newCookie } =
+      await userAccountsTestManager.refresh(refreshTokenCookie);
+
+    expect(body).toEqual({ accessToken: expect.any(String) });
+    expect(newCookie).toBeDefined();
+    expect(newCookie).not.toEqual(refreshTokenCookie);
+  });
+
+  it('should reject second refresh with the same refresh token (rotation)', async () => {
+    const { refreshTokenCookie } =
+      await userAccountsTestManager.createUserAndLogin();
+
+    await userAccountsTestManager.refresh(refreshTokenCookie);
+
+    await userAccountsTestManager.refresh(
+      refreshTokenCookie,
+      HttpStatus.UNAUTHORIZED,
+    );
+  });
+
+  it('should logout and reject subsequent refresh', async () => {
+    const { refreshTokenCookie } =
+      await userAccountsTestManager.createUserAndLogin();
+
+    await userAccountsTestManager.logout(refreshTokenCookie);
+
+    await userAccountsTestManager.refresh(
+      refreshTokenCookie,
+      HttpStatus.UNAUTHORIZED,
+    );
   });
 
   it('should reject duplicate user login', async () => {
@@ -97,7 +150,7 @@ describe('AuthController (e2e)', () => {
     const credentials = userAccountsTestManager.buildCreateUserDto();
     await userAccountsTestManager.createUser(credentials);
 
-    const loginResponse = await userAccountsTestManager.login(
+    const { body } = await userAccountsTestManager.login(
       {
         login: credentials.login,
         password: 'wrong-pass',
@@ -105,7 +158,7 @@ describe('AuthController (e2e)', () => {
       HttpStatus.UNAUTHORIZED,
     );
 
-    expect(loginResponse).toEqual({
+    expect(body).toEqual({
       errorsMessages: [
         {
           field: 'login',
