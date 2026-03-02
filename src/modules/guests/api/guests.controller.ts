@@ -53,11 +53,18 @@ export class GuestsController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get a guest by ID with response details' })
   @ApiParam({ name: 'id', description: 'Guest UUID' })
-  @ApiResponse({ status: 200, description: 'Guest found', type: GuestDetailViewDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Guest found',
+    type: GuestDetailViewDto,
+  })
   @ApiResponse({ status: 404, description: 'Guest not found' })
-  async getGuestById(@Param() { id }: IdUuidParamDto): Promise<GuestDetailViewDto> {
+  async getGuestById(
+    @Param() { id }: IdUuidParamDto,
+  ): Promise<GuestDetailViewDto> {
     return this.guestsQueryRepository.findGuestDetailById(id);
   }
 
