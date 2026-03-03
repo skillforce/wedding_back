@@ -38,6 +38,8 @@ export class DomainHttpExceptionsFilter implements ExceptionFilter {
         return HttpStatus.INTERNAL_SERVER_ERROR;
       case DomainExceptionCode.TooManyRequests:
         return HttpStatus.TOO_MANY_REQUESTS;
+      case DomainExceptionCode.Conflict:
+        return HttpStatus.CONFLICT;
       default:
         return HttpStatus.I_AM_A_TEAPOT;
     }

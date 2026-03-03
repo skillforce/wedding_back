@@ -7,6 +7,9 @@ import { UserAccountsTestManager } from './user-acounts.test-manager';
 import { GuestsTestManager } from './guests.test-manager';
 import { SeatingTablesTestManager } from './seating-tables.test-manager';
 import { SeatingSeatsTestManager } from './seating-seats.test-manager';
+import { BudgetTestManager } from './budget/budget.test-manager';
+import { BudgetSectionsTestManager } from './budget/budget-sections.test-manager';
+import { BudgetItemsTestManager } from './budget/budget-items.test-manager';
 
 export const initTesting = async (
   addSettingsToModuleBuilder?: (moduleBuilder: TestingModuleBuilder) => void,
@@ -34,6 +37,9 @@ export const initTesting = async (
   const guestsTestManager = new GuestsTestManager(app);
   const seatingTablesTestManager = new SeatingTablesTestManager(app);
   const seatingSeatsTestManager = new SeatingSeatsTestManager(app);
+  const budgetTestManager = new BudgetTestManager(app);
+  const budgetSectionsTestManager = new BudgetSectionsTestManager(app);
+  const budgetItemsTestManager = new BudgetItemsTestManager(app);
 
   await deleteAllData(app);
 
@@ -44,5 +50,8 @@ export const initTesting = async (
     guestsTestManager,
     seatingTablesTestManager,
     seatingSeatsTestManager,
+    budgetTestManager,
+    budgetSectionsTestManager,
+    budgetItemsTestManager,
   };
 };
