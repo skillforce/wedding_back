@@ -82,10 +82,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       const dto = guestsTestManager.buildCreateGuestDto(userId);
       const created = await guestsTestManager.createGuest(dto, accessToken);
 
-      const found = await guestsTestManager.getGuestById(
-        created.id,
-        accessToken,
-      );
+      const found = await guestsTestManager.getGuestById(created.id);
       expect(found).toEqual(
         expect.objectContaining({
           id: created.id,
@@ -99,8 +96,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
     it('should return 404 when getting guest by non-existing id', async () => {
       await guestsTestManager.getGuestById(
         '00000000-0000-0000-0000-000000000000',
-        'invalid-token',
-        HttpStatus.UNAUTHORIZED,
+        HttpStatus.NOT_FOUND,
       );
     });
 
@@ -171,10 +167,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       await guestsTestManager.createGuestResponse(guest.id, responseDto);
 
-      const updated = await guestsTestManager.getGuestById(
-        guest.id,
-        accessToken,
-      );
+      const updated = await guestsTestManager.getGuestById(guest.id);
       expect(updated.is_already_answered).toBe(true);
       expect(updated.response).toEqual(
         expect.objectContaining({
@@ -252,10 +245,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       await guestsTestManager.createGuestResponse(guest.id, responseDto);
 
-      const updated = await guestsTestManager.getGuestById(
-        guest.id,
-        accessToken,
-      );
+      const updated = await guestsTestManager.getGuestById(guest.id);
       expect(updated.is_already_answered).toBe(true);
     });
 
@@ -275,10 +265,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       await guestsTestManager.deleteGuestResponse(guest.id, accessToken);
 
-      const updated = await guestsTestManager.getGuestById(
-        guest.id,
-        accessToken,
-      );
+      const updated = await guestsTestManager.getGuestById(guest.id);
       expect(updated.is_already_answered).toBe(false);
       expect(updated.response).toBeNull();
     });

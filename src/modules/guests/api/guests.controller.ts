@@ -53,7 +53,6 @@ export class GuestsController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get a guest by ID with response details' })
   @ApiParam({ name: 'id', description: 'Guest UUID' })
   @ApiResponse({

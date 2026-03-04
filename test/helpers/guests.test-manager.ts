@@ -49,12 +49,10 @@ export class GuestsTestManager {
 
   async getGuestById(
     id: string,
-    accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
   ) {
     const response = await request(this.httpServer)
       .get(`/api/guests/${id}`)
-      .set('Authorization', `Bearer ${accessToken}`)
       .expect(expectedStatus);
 
     return response.body;
