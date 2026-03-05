@@ -1,9 +1,10 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { SeatingTablesRepository } from '../../infra/seating-tables.repository';
-import { SeatingSeatsRepository } from '../../infra/seating-seats.repository';
 import { CreateSeatingSeatInputDto } from '../../api/input-dto/create-seating-seat.input-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { DataSource } from 'typeorm';
+import { SeatingTablesRepository } from '../../infra/seating-tables.repository';
+import { SeatingSeatsRepository } from '../../infra/seating-seats.repository';
 
 export class CreateSeatingSeatCommand {
   constructor(
@@ -19,6 +20,7 @@ export class CreateSeatingSeatUseCase implements ICommandHandler<
   string
 > {
   constructor(
+    private readonly dataSource: DataSource,
     private readonly tablesRepository: SeatingTablesRepository,
     private readonly seatsRepository: SeatingSeatsRepository,
   ) {}
@@ -28,18 +30,19 @@ export class CreateSeatingSeatUseCase implements ICommandHandler<
     dto,
     userId,
   }: CreateSeatingSeatCommand): Promise<string> {
-    await this.findTableAndCheckOwnership(tableId, userId);
+    return this.dataSource.transaction(async (manager) => {
+      const table = await this.tablesRepository.findByIdForUpdateOrFail(manager, tableId);
+      this.checkTableOwnership(table.user_id, userId);
 
-    const newSeat = {
-      table_id: tableId,
-      name: dto.name,
-    };
-    return this.seatsRepository.save(newSeat);
+      return this.seatsRepository.saveWithManager(manager, {
+        table_id: tableId,
+        name: dto.name,
+      });
+    });
   }
 
-  private async findTableAndCheckOwnership(tableId: string, userId: number): Promise<void> {
-    const table = await this.tablesRepository.findByIdOrFail(tableId);
-    if (table.user_id !== userId) {
+  private checkTableOwnership(ownerUserId: number, userId: number): void {
+    if (ownerUserId !== userId) {
       throw new DomainException({
         code: DomainExceptionCode.Forbidden,
         message: 'Seating table does not belong to user',

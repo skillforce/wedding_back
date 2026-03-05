@@ -1,7 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { SeatingTablesRepository } from '../../infra/seating-tables.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { DataSource } from 'typeorm';
+import { SeatingTablesRepository } from '../../infra/seating-tables.repository';
 
 export class DeleteSeatingTableCommand {
   constructor(
@@ -14,16 +15,21 @@ export class DeleteSeatingTableCommand {
 export class DeleteSeatingTableUseCase
   implements ICommandHandler<DeleteSeatingTableCommand, void>
 {
-  constructor(private readonly tablesRepository: SeatingTablesRepository) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly tablesRepository: SeatingTablesRepository,
+  ) {}
 
   async execute({ tableId, userId }: DeleteSeatingTableCommand): Promise<void> {
-    await this.findTableAndCheckOwnership(tableId, userId);
-    await this.tablesRepository.deleteByIdOrFail(tableId);
+    await this.dataSource.transaction(async (manager) => {
+      const table = await this.tablesRepository.findByIdForUpdateOrFail(manager, tableId);
+      this.checkTableOwnership(table.user_id, userId);
+      await this.tablesRepository.deleteByIdWithManager(manager, tableId);
+    });
   }
 
-  private async findTableAndCheckOwnership(tableId: string, userId: number): Promise<void> {
-    const table = await this.tablesRepository.findByIdOrFail(tableId);
-    if (table.user_id !== userId) {
+  private checkTableOwnership(ownerUserId: number, userId: number): void {
+    if (ownerUserId !== userId) {
       throw new DomainException({
         code: DomainExceptionCode.Forbidden,
         message: 'Seating table does not belong to user',

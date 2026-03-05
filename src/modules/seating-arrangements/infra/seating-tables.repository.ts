@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { SeatingTable } from '../domain/entities/seating-table.entity';
 import { DomainException } from '../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../core/exceptions/domain-exception-codes';
@@ -12,14 +12,24 @@ export class SeatingTablesRepository {
     private readonly tablesOrmRepository: Repository<SeatingTable>,
   ) {}
 
-  async findByIdOrFail(id: string): Promise<SeatingTable> {
-    const table = await this.tablesOrmRepository.findOneBy({ id });
+  async findByIdForUpdateOrFail(
+    manager: EntityManager,
+    id: string,
+  ): Promise<SeatingTable> {
+    const table = await manager
+      .getRepository(SeatingTable)
+      .createQueryBuilder('table')
+      .setLock('pessimistic_write')
+      .where('table.id = :id', { id })
+      .getOne();
+
     if (!table) {
       throw new DomainException({
         code: DomainExceptionCode.NotFound,
         message: 'Seating table not found',
       });
     }
+
     return table;
   }
 
@@ -30,11 +40,25 @@ export class SeatingTablesRepository {
     return result.id;
   }
 
-  async update(id: string, updates: Partial<SeatingTable>): Promise<void> {
-    await this.tablesOrmRepository.update(id, updates);
+  async saveWithManager(
+    manager: EntityManager,
+    table: Omit<SeatingTable, 'id' | 'user' | 'seats'>,
+  ): Promise<string> {
+    const result = await manager.getRepository(SeatingTable).save(table);
+    return result.id;
   }
 
-  async deleteByIdOrFail(id: string): Promise<void> {
-    await this.tablesOrmRepository.delete(id);
+  async saveEntityWithManager(
+    manager: EntityManager,
+    table: SeatingTable,
+  ): Promise<void> {
+    await manager.getRepository(SeatingTable).save(table);
+  }
+
+  async deleteByIdWithManager(
+    manager: EntityManager,
+    id: string,
+  ): Promise<void> {
+    await manager.getRepository(SeatingTable).delete({ id });
   }
 }
