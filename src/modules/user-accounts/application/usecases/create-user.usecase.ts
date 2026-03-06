@@ -8,6 +8,7 @@ import { CreateUserDomainDto } from '../../domain/dto/create-user.domain.dto';
 import { User } from '../../domain/entities/user.entity';
 import { CreateDefaultSeatingTableCommand } from '../../../seating-arrangements/app/usecases/create-default-seating-table.usecase';
 import { CreateDefaultBudgetCommand } from '../../../budget/app/usecases/create-default-budget.usecase';
+import { CreateDefaultChecklistCommand } from '../../../checklist/app/usecases/create-default-checklist.usecase';
 
 export class CreateUserCommand {
   constructor(public dto: UserDto) {}
@@ -33,6 +34,7 @@ export class CreateUserUseCase implements ICommandHandler<
     const userId = await this.userRepository.save(newUser);
     await this.commandBus.execute(new CreateDefaultSeatingTableCommand(userId));
     await this.commandBus.execute(new CreateDefaultBudgetCommand(userId));
+    await this.commandBus.execute(new CreateDefaultChecklistCommand(userId));
     return userId;
   }
 

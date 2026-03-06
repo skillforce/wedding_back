@@ -15,6 +15,7 @@ import { SeatingArrangementsModule } from './modules/seating-arrangements/seatin
 import { TestingModule } from './modules/testing/testing.module';
 import { UserAccountsModule } from './modules/user-accounts/user-accounts.module';
 import { BudgetModule } from './modules/budget/budget.module';
+import { ChecklistModule } from './modules/checklist/checklist.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
@@ -59,6 +60,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     SeatingArrangementsModule,
     UserAccountsModule,
     BudgetModule,
+    ChecklistModule,
   ],
   controllers: [],
   providers: [

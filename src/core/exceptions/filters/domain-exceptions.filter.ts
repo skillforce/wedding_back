@@ -26,8 +26,9 @@ export class DomainHttpExceptionsFilter implements ExceptionFilter {
   private mapToHttpStatus(code: DomainExceptionCode): number {
     switch (code) {
       case DomainExceptionCode.BadRequest:
-      case DomainExceptionCode.ValidationError:
         return HttpStatus.BAD_REQUEST;
+      case DomainExceptionCode.ValidationError:
+        return HttpStatus.UNPROCESSABLE_ENTITY;
       case DomainExceptionCode.Forbidden:
         return HttpStatus.FORBIDDEN;
       case DomainExceptionCode.NotFound:
