@@ -1,9 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Length,
+  Min,
+} from 'class-validator';
 import { Trim } from '../../../../core/decorators/transform/trim';
 import { BudgetItemPriority } from '../../domain/entities/budget-item.entity';
 
-export class CreateItemInputDto {
+export class CreateBudgetSectionItemInputDto {
   @ApiProperty({ description: 'Section ID the item belongs to', example: 1 })
   @IsInt()
   sectionId: number;

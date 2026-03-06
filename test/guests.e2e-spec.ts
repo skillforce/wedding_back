@@ -225,7 +225,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       await guestsTestManager.createGuestResponse(
         guest.id,
         responseDto,
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNPROCESSABLE_ENTITY,
       );
     });
 

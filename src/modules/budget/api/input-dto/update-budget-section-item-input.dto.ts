@@ -12,7 +12,7 @@ import {
 import { Trim } from '../../../../core/decorators/transform/trim';
 import { BudgetItemPriority } from '../../domain/entities/budget-item.entity';
 
-export class UpdateItemInputDto {
+export class UpdateBudgetSectionItemInputDto {
   @ApiProperty({
     description: 'Item name',
     example: 'Ведущий',

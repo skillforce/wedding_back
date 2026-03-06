@@ -1,10 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 import { Trim } from '../../../../core/decorators/transform/trim';
 import { TrimAndNullifyEmpty } from '../../../../core/decorators/transform/trim-and-nullify-empty';
 import { ChecklistItemPriority } from '../../domain/entities/checklist-item.entity';
 
-export class UpdateItemInputDto {
+export class UpdateChecklistPhaseItemInputDto {
   @ApiProperty({
     example: 'Updated title',
     required: false,

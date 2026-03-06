@@ -4,7 +4,7 @@ import { Trim } from '../../../../core/decorators/transform/trim';
 import { TrimAndNullifyEmpty } from '../../../../core/decorators/transform/trim-and-nullify-empty';
 import { ChecklistItemPriority } from '../../domain/entities/checklist-item.entity';
 
-export class CreateItemInputDto {
+export class CreateChecklistPhaseItemInputDto {
   @ApiProperty({ example: 'Book DJ' })
   @IsString()
   @Trim()

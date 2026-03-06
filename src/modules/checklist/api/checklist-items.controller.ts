@@ -16,8 +16,8 @@ import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
 import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
 import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
 import { ChecklistQueryRepository } from '../infra/query/checklist.query-repository';
-import { CreateItemInputDto } from './input-dto/create-item.input-dto';
-import { UpdateItemInputDto } from './input-dto/update-item.input-dto';
+import { CreateChecklistPhaseItemInputDto } from './input-dto/create-checklist-phase-item-input.dto';
+import { UpdateChecklistPhaseItemInputDto } from './input-dto/update-checklist-phase-item-input.dto';
 import { MoveItemInputDto } from './input-dto/move-item.input-dto';
 import { ChecklistItemViewDto } from './view-dto/checklist-item.view-dto';
 import { ChecklistItemCompletionViewDto } from './view-dto/checklist-item-completion.view-dto';
@@ -41,7 +41,7 @@ export class ChecklistItemsController {
   @HttpCode(HttpStatus.CREATED)
   async createItem(
     @Param('phaseId', new ParseUUIDPipe()) phaseId: string,
-    @Body() dto: CreateItemInputDto,
+    @Body() dto: CreateChecklistPhaseItemInputDto,
     @ExtractUserFromRequest() user: UserContextDto,
   ): Promise<ChecklistItemViewDto> {
     const itemId = await this.commandBus.execute<CreateItemCommand, string>(
@@ -54,7 +54,7 @@ export class ChecklistItemsController {
   async updateItem(
     @Param('phaseId', new ParseUUIDPipe()) phaseId: string,
     @Param('itemId', new ParseUUIDPipe()) itemId: string,
-    @Body() dto: UpdateItemInputDto,
+    @Body() dto: UpdateChecklistPhaseItemInputDto,
     @ExtractUserFromRequest() user: UserContextDto,
   ): Promise<ChecklistItemViewDto> {
     await this.commandBus.execute<UpdateItemCommand, void>(

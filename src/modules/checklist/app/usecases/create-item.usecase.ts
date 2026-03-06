@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
-import { CreateItemInputDto } from '../../api/input-dto/create-item.input-dto';
+import { CreateChecklistPhaseItemInputDto } from '../../api/input-dto/create-checklist-phase-item-input.dto';
 import { ChecklistPhasesRepository } from '../../infra/checklist-phases.repository';
 import { ChecklistItemsRepository } from '../../infra/checklist-items.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
@@ -12,7 +12,7 @@ const CHECKLIST_ITEMS_LIMIT = 10;
 export class CreateItemCommand {
   constructor(
     public readonly phaseId: string,
-    public readonly dto: CreateItemInputDto,
+    public readonly dto: CreateChecklistPhaseItemInputDto,
     public readonly userId: number,
   ) {}
 }

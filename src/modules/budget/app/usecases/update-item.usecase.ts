@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BudgetRepository } from '../../infra/budget.repository';
 import { BudgetItemsRepository } from '../../infra/budget-items.repository';
-import { UpdateItemInputDto } from '../../api/input-dto/update-item.input-dto';
+import { UpdateBudgetSectionItemInputDto } from '../../api/input-dto/update-budget-section-item-input.dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { Budget } from '../../domain/entities/budget.entity';
@@ -9,15 +9,16 @@ import { Budget } from '../../domain/entities/budget.entity';
 export class UpdateItemCommand {
   constructor(
     public readonly itemId: number,
-    public readonly dto: UpdateItemInputDto,
+    public readonly dto: UpdateBudgetSectionItemInputDto,
     public readonly userId: number,
   ) {}
 }
 
 @CommandHandler(UpdateItemCommand)
-export class UpdateItemUseCase
-  implements ICommandHandler<UpdateItemCommand, void>
-{
+export class UpdateItemUseCase implements ICommandHandler<
+  UpdateItemCommand,
+  void
+> {
   constructor(
     private readonly budgetRepository: BudgetRepository,
     private readonly itemsRepository: BudgetItemsRepository,
@@ -40,7 +41,10 @@ export class UpdateItemUseCase
     return budget;
   }
 
-  private async findItemAndCheckOwnership(itemId: number, budgetId: number): Promise<void> {
+  private async findItemAndCheckOwnership(
+    itemId: number,
+    budgetId: number,
+  ): Promise<void> {
     const item = await this.itemsRepository.findByIdOrFail(itemId);
     if (item.section!.budgetId !== budgetId) {
       throw new DomainException({

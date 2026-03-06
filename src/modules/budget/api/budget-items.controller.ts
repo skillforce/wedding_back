@@ -17,8 +17,8 @@ import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-
 import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
 import { BudgetQueryRepository } from '../infra/query/budget.query-repository';
 import { BudgetViewDto } from './view-dto/budget.view-dto';
-import { CreateItemInputDto } from './input-dto/create-item.input-dto';
-import { UpdateItemInputDto } from './input-dto/update-item.input-dto';
+import { CreateBudgetSectionItemInputDto } from './input-dto/create-budget-section-item-input.dto';
+import { UpdateBudgetSectionItemInputDto } from './input-dto/update-budget-section-item-input.dto';
 import { CreateItemCommand } from '../app/usecases/create-item.usecase';
 import { UpdateItemCommand } from '../app/usecases/update-item.usecase';
 import { DeleteItemCommand } from '../app/usecases/delete-item.usecase';
@@ -36,7 +36,7 @@ export class BudgetItemsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createItem(
-    @Body() dto: CreateItemInputDto,
+    @Body() dto: CreateBudgetSectionItemInputDto,
     @ExtractUserFromRequest() user: UserContextDto,
   ): Promise<BudgetViewDto> {
     await this.commandBus.execute(new CreateItemCommand(dto, user.id));
@@ -46,7 +46,7 @@ export class BudgetItemsController {
   @Patch(':id')
   async updateItem(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateItemInputDto,
+    @Body() dto: UpdateBudgetSectionItemInputDto,
     @ExtractUserFromRequest() user: UserContextDto,
   ): Promise<BudgetViewDto> {
     await this.commandBus.execute(new UpdateItemCommand(id, dto, user.id));

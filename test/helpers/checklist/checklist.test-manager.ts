@@ -4,8 +4,8 @@ import { App } from 'supertest/types';
 import { GLOBAL_PREFIX } from '../../../src/setup/global-prefix.setup';
 import { CreatePhaseInputDto } from '../../../src/modules/checklist/api/input-dto/create-phase.input-dto';
 import { UpdatePhaseInputDto } from '../../../src/modules/checklist/api/input-dto/update-phase.input-dto';
-import { CreateItemInputDto } from '../../../src/modules/checklist/api/input-dto/create-item.input-dto';
-import { UpdateItemInputDto } from '../../../src/modules/checklist/api/input-dto/update-item.input-dto';
+import { CreateChecklistPhaseItemInputDto } from '../../../src/modules/checklist/api/input-dto/create-checklist-phase-item-input.dto';
+import { UpdateChecklistPhaseItemInputDto } from '../../../src/modules/checklist/api/input-dto/update-checklist-phase-item-input.dto';
 import { MoveItemInputDto } from '../../../src/modules/checklist/api/input-dto/move-item.input-dto';
 import { ChecklistItemPriority } from '../../../src/modules/checklist/domain/entities/checklist-item.entity';
 
@@ -40,8 +40,8 @@ export class ChecklistTestManager {
   }
 
   buildCreateItemDto(
-    overrides: Partial<CreateItemInputDto> = {},
-  ): CreateItemInputDto {
+    overrides: Partial<CreateChecklistPhaseItemInputDto> = {},
+  ): CreateChecklistPhaseItemInputDto {
     this.sequence += 1;
 
     return {
@@ -52,8 +52,8 @@ export class ChecklistTestManager {
   }
 
   buildUpdateItemDto(
-    overrides: Partial<UpdateItemInputDto> = {},
-  ): UpdateItemInputDto {
+    overrides: Partial<UpdateChecklistPhaseItemInputDto> = {},
+  ): UpdateChecklistPhaseItemInputDto {
     return {
       title: overrides.title,
       note: overrides.note,
@@ -131,7 +131,7 @@ export class ChecklistTestManager {
 
   async createItem(
     phaseId: string,
-    dto: CreateItemInputDto,
+    dto: CreateChecklistPhaseItemInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
   ) {
@@ -147,7 +147,7 @@ export class ChecklistTestManager {
   async updateItem(
     phaseId: string,
     itemId: string,
-    dto: UpdateItemInputDto,
+    dto: UpdateChecklistPhaseItemInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
   ) {

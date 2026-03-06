@@ -1,8 +1,8 @@
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { CreateItemInputDto } from '../../../src/modules/budget/api/input-dto/create-item.input-dto';
-import { UpdateItemInputDto } from '../../../src/modules/budget/api/input-dto/update-item.input-dto';
+import { CreateBudgetSectionItemInputDto } from '../../../src/modules/budget/api/input-dto/create-budget-section-item-input.dto';
+import { UpdateBudgetSectionItemInputDto } from '../../../src/modules/budget/api/input-dto/update-budget-section-item-input.dto';
 import { GLOBAL_PREFIX } from '../../../src/setup/global-prefix.setup';
 
 export class BudgetItemsTestManager {
@@ -15,8 +15,8 @@ export class BudgetItemsTestManager {
 
   buildCreateItemDto(
     sectionId: number,
-    overrides: Partial<Omit<CreateItemInputDto, 'sectionId'>> = {},
-  ): CreateItemInputDto {
+    overrides: Partial<Omit<CreateBudgetSectionItemInputDto, 'sectionId'>> = {},
+  ): CreateBudgetSectionItemInputDto {
     this.sequence += 1;
     return {
       sectionId,
@@ -27,7 +27,7 @@ export class BudgetItemsTestManager {
   }
 
   async createItem(
-    dto: CreateItemInputDto,
+    dto: CreateBudgetSectionItemInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
   ) {
@@ -42,7 +42,7 @@ export class BudgetItemsTestManager {
 
   async updateItem(
     id: number,
-    dto: UpdateItemInputDto,
+    dto: UpdateBudgetSectionItemInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
   ) {
