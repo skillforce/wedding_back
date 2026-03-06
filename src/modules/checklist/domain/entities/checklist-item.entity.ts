@@ -15,7 +15,9 @@ export enum ChecklistItemPriority {
 }
 
 @Entity('checklist_items')
-@Unique(['phaseId', 'sortOrder'])
+@Unique('UQ_checklist_items_phase_id_sort_order', ['phaseId', 'sortOrder'], {
+  deferrable: 'INITIALLY DEFERRED',
+})
 @Index('idx_items_phase', ['phaseId'])
 export class ChecklistItem extends UuidEntity {
   @Column({ name: 'phase_id', nullable: false })

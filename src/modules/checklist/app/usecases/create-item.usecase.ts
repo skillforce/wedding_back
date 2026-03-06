@@ -7,7 +7,7 @@ import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { ChecklistItemPriority } from '../../domain/entities/checklist-item.entity';
 
-const CHECKLIST_ITEMS_LIMIT = 20;
+const CHECKLIST_ITEMS_LIMIT = 10;
 
 export class CreateItemCommand {
   constructor(
@@ -44,11 +44,11 @@ export class CreateItemUseCase implements ICommandHandler<
       if (itemsCount >= CHECKLIST_ITEMS_LIMIT) {
         throw new DomainException({
           code: DomainExceptionCode.ValidationError,
-          message: 'Maximum of 20 items per phase reached',
+          message: 'Maximum of 10 items per phase reached',
           extensions: [
             {
               field: 'title',
-              message: 'Maximum of 20 items per phase reached',
+              message: 'Maximum of 10 items per phase reached',
             },
           ],
         });

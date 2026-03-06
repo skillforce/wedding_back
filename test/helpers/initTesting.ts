@@ -10,6 +10,7 @@ import { SeatingSeatsTestManager } from './seating-seats.test-manager';
 import { BudgetTestManager } from './budget/budget.test-manager';
 import { BudgetSectionsTestManager } from './budget/budget-sections.test-manager';
 import { BudgetItemsTestManager } from './budget/budget-items.test-manager';
+import { ChecklistTestManager } from './checklist/checklist.test-manager';
 
 export const initTesting = async (
   addSettingsToModuleBuilder?: (moduleBuilder: TestingModuleBuilder) => void,
@@ -40,6 +41,7 @@ export const initTesting = async (
   const budgetTestManager = new BudgetTestManager(app);
   const budgetSectionsTestManager = new BudgetSectionsTestManager(app);
   const budgetItemsTestManager = new BudgetItemsTestManager(app);
+  const checklistTestManager = new ChecklistTestManager(app);
 
   await deleteAllData(app);
 
@@ -53,5 +55,6 @@ export const initTesting = async (
     budgetTestManager,
     budgetSectionsTestManager,
     budgetItemsTestManager,
+    checklistTestManager,
   };
 };

@@ -12,8 +12,12 @@ export class ChecklistItemsRepository {
     private readonly itemsOrmRepository: Repository<ChecklistItem>,
   ) {}
 
-  async countByPhaseId(phaseId: string, manager?: EntityManager): Promise<number> {
-    const repository = manager?.getRepository(ChecklistItem) ?? this.itemsOrmRepository;
+  async countByPhaseId(
+    phaseId: string,
+    manager?: EntityManager,
+  ): Promise<number> {
+    const repository =
+      manager?.getRepository(ChecklistItem) ?? this.itemsOrmRepository;
     return repository.countBy({ phaseId });
   }
 
@@ -21,7 +25,8 @@ export class ChecklistItemsRepository {
     phaseId: string,
     manager?: EntityManager,
   ): Promise<number | null> {
-    const repository = manager?.getRepository(ChecklistItem) ?? this.itemsOrmRepository;
+    const repository =
+      manager?.getRepository(ChecklistItem) ?? this.itemsOrmRepository;
     const result = await repository
       .createQueryBuilder('item')
       .select('MAX(item.sort_order)', 'maxSortOrder')
@@ -40,8 +45,8 @@ export class ChecklistItemsRepository {
     const item = await manager
       .getRepository(ChecklistItem)
       .createQueryBuilder('item')
-      .leftJoinAndSelect('item.phase', 'phase')
-      .leftJoinAndSelect('phase.checklist', 'checklist')
+      .innerJoinAndSelect('item.phase', 'phase')
+      .innerJoinAndSelect('phase.checklist', 'checklist')
       .setLock('pessimistic_write')
       .where('item.id = :id', { id })
       .getOne();
@@ -64,8 +69,8 @@ export class ChecklistItemsRepository {
     const item = await manager
       .getRepository(ChecklistItem)
       .createQueryBuilder('item')
-      .leftJoinAndSelect('item.phase', 'phase')
-      .leftJoinAndSelect('phase.checklist', 'checklist')
+      .innerJoinAndSelect('item.phase', 'phase')
+      .innerJoinAndSelect('phase.checklist', 'checklist')
       .setLock('pessimistic_write')
       .where('item.id = :id', { id })
       .andWhere('item.phase_id = :phaseId', { phaseId })

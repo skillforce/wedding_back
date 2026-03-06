@@ -72,7 +72,9 @@ export class ChecklistItemsController {
     await this.commandBus.execute<ToggleItemCompletionCommand, void>(
       new ToggleItemCompletionCommand(phaseId, itemId, user.id),
     );
-    return this.checklistQueryRepository.findItemCompletionViewByIdOrFail(itemId);
+    return this.checklistQueryRepository.findItemCompletionViewByIdOrFail(
+      itemId,
+    );
   }
 
   @Delete('phases/:phaseId/items/:itemId')

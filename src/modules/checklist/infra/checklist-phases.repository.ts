@@ -16,7 +16,8 @@ export class ChecklistPhasesRepository {
     checklistId: string,
     manager?: EntityManager,
   ): Promise<number> {
-    const repository = manager?.getRepository(ChecklistPhase) ?? this.phasesOrmRepository;
+    const repository =
+      manager?.getRepository(ChecklistPhase) ?? this.phasesOrmRepository;
     return repository.countBy({ checklistId });
   }
 
@@ -24,7 +25,8 @@ export class ChecklistPhasesRepository {
     checklistId: string,
     manager?: EntityManager,
   ): Promise<number | null> {
-    const repository = manager?.getRepository(ChecklistPhase) ?? this.phasesOrmRepository;
+    const repository =
+      manager?.getRepository(ChecklistPhase) ?? this.phasesOrmRepository;
     const result = await repository
       .createQueryBuilder('phase')
       .select('MAX(phase.sort_order)', 'maxSortOrder')
@@ -43,7 +45,7 @@ export class ChecklistPhasesRepository {
     const phase = await manager
       .getRepository(ChecklistPhase)
       .createQueryBuilder('phase')
-      .leftJoinAndSelect('phase.checklist', 'checklist')
+      .innerJoinAndSelect('phase.checklist', 'checklist')
       .setLock('pessimistic_write')
       .where('phase.id = :id', { id })
       .getOne();
@@ -72,14 +74,20 @@ export class ChecklistPhasesRepository {
   }
 
   async save(
-    phase: Omit<ChecklistPhase, 'id' | 'checklist' | 'items' | 'createdAt' | 'updatedAt'>,
+    phase: Omit<
+      ChecklistPhase,
+      'id' | 'checklist' | 'items' | 'createdAt' | 'updatedAt'
+    >,
   ): Promise<ChecklistPhase> {
     return this.phasesOrmRepository.save(phase);
   }
 
   async saveWithManager(
     manager: EntityManager,
-    phase: Omit<ChecklistPhase, 'id' | 'checklist' | 'items' | 'createdAt' | 'updatedAt'>,
+    phase: Omit<
+      ChecklistPhase,
+      'id' | 'checklist' | 'items' | 'createdAt' | 'updatedAt'
+    >,
   ): Promise<ChecklistPhase> {
     return manager.getRepository(ChecklistPhase).save(phase);
   }
@@ -94,7 +102,10 @@ export class ChecklistPhasesRepository {
   async saveManyWithManager(
     manager: EntityManager,
     phases: Array<
-      Omit<ChecklistPhase, 'id' | 'checklist' | 'items' | 'createdAt' | 'updatedAt'>
+      Omit<
+        ChecklistPhase,
+        'id' | 'checklist' | 'items' | 'createdAt' | 'updatedAt'
+      >
     >,
   ): Promise<ChecklistPhase[]> {
     return manager.getRepository(ChecklistPhase).save(phases);

@@ -12,7 +12,9 @@ import { Checklist } from './checklist.entity';
 import { ChecklistItem } from './checklist-item.entity';
 
 @Entity('checklist_phases')
-@Unique(['checklistId', 'sortOrder'])
+@Unique('UQ_checklist_phases_checklist_id_sort_order', ['checklistId', 'sortOrder'], {
+  deferrable: 'INITIALLY DEFERRED',
+})
 @Index('idx_phases_checklist', ['checklistId'])
 export class ChecklistPhase extends UuidEntity {
   @Column({ name: 'checklist_id', nullable: false })
