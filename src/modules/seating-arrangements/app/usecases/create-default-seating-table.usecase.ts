@@ -19,6 +19,7 @@ export class CreateDefaultSeatingTableUseCase implements ICommandHandler<
       position: { x: 10, y: 0 },
       shape: 'rect',
       rotation: 0,
+      radius: 70,
     });
   }
 }

@@ -65,6 +65,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         position: { x: 10, y: 0 },
         shape: 'rect',
         rotation: 0,
+        radius: 70,
         seats: [],
       }),
     );
@@ -92,6 +93,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
           position: dto.position,
           shape: 'circle',
           rotation: 0,
+          radius: 70,
           seats: [],
         }),
       );
@@ -213,6 +215,74 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       );
 
       expect(updated.shape).toBe('rect');
+    });
+
+    it('should create a table with pillar shape', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+      const dto = seatingTablesTestManager.buildCreateTableDto({
+        name: 'Pillar',
+        shape: 'pillar',
+      });
+
+      const created = await seatingTablesTestManager.createTable(dto, accessToken);
+
+      expect(created.shape).toBe('pillar');
+    });
+
+    it('should update table shape to pillar', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+      const created = await seatingTablesTestManager.createTable(
+        seatingTablesTestManager.buildCreateTableDto({ shape: 'circle' }),
+        accessToken,
+      );
+
+      const updated = await seatingTablesTestManager.updateTable(
+        created.id,
+        { shape: 'pillar' },
+        accessToken,
+      );
+
+      expect(updated.shape).toBe('pillar');
+    });
+
+    it('should create a table with custom radius', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+      const dto = seatingTablesTestManager.buildCreateTableDto({ radius: 100 });
+
+      const created = await seatingTablesTestManager.createTable(dto, accessToken);
+
+      expect(created.radius).toBe(100);
+    });
+
+    it('should update table radius', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+      const created = await seatingTablesTestManager.createTable(
+        seatingTablesTestManager.buildCreateTableDto(),
+        accessToken,
+      );
+
+      const updated = await seatingTablesTestManager.updateTable(
+        created.id,
+        { radius: 80 },
+        accessToken,
+      );
+
+      expect(updated.radius).toBe(80);
+    });
+
+    it('should default radius to 70 when not provided', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+      const created = await seatingTablesTestManager.createTable(
+        seatingTablesTestManager.buildCreateTableDto(),
+        accessToken,
+      );
+
+      expect(created.radius).toBe(70);
     });
 
     it("should return 403 when updating another user's table", async () => {

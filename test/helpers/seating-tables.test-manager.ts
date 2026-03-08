@@ -22,6 +22,7 @@ export class SeatingTablesTestManager {
       position: overrides.position ?? { x: this.sequence * 10, y: this.sequence * 10 },
       shape: overrides.shape,
       rotation: overrides.rotation,
+      radius: overrides.radius,
     };
   }
 

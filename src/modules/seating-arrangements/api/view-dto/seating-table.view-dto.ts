@@ -20,13 +20,16 @@ export class SeatingTableViewDto {
 
   @ApiProperty({
     description: 'Shape of the table',
-    enum: ['circle', 'rect'],
+    enum: ['circle', 'rect', 'pillar'],
     example: 'circle',
   })
   shape: string;
 
   @ApiProperty({ description: 'Rotation angle in degrees', example: 0 })
   rotation: number;
+
+  @ApiProperty({ description: 'Radius of the table object', example: 70 })
+  radius: number;
 
   @ApiProperty({ description: 'Date the table was created' })
   createdAt: Date;
@@ -44,6 +47,7 @@ export class SeatingTableViewDto {
     dto.position = table.position;
     dto.shape = table.shape;
     dto.rotation = table.rotation;
+    dto.radius = table.radius;
     dto.createdAt = table.createdAt!;
     dto.seats = (table.seats ?? []).map(SeatingSeatViewDto.mapToViewDto);
     return dto;

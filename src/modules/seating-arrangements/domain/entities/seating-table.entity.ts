@@ -16,11 +16,14 @@ export class SeatingTable extends UuidEntity {
   @Column({ type: 'jsonb', nullable: false })
   position: TablePosition;
 
-  @Column({ type: 'varchar', length: 8, nullable: false, default: 'circle' })
+  @Column({ type: 'varchar', length: 16, nullable: false, default: 'circle' })
   shape: string;
 
   @Column({ type: 'float', nullable: false, default: 0 })
   rotation: number;
+
+  @Column({ type: 'int', nullable: false, default: 70 })
+  radius: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

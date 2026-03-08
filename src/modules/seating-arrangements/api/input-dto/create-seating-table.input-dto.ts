@@ -5,6 +5,8 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Max,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -34,12 +36,12 @@ export class CreateSeatingTableInputDto {
 
   @ApiProperty({
     description: 'Shape of the table',
-    enum: ['circle', 'rect'],
+    enum: ['circle', 'rect', 'pillar'],
     required: false,
     example: 'circle',
   })
   @IsOptional()
-  @IsIn(['circle', 'rect'])
+  @IsIn(['circle', 'rect', 'pillar'])
   shape?: string;
 
   @ApiProperty({
@@ -50,5 +52,16 @@ export class CreateSeatingTableInputDto {
   @IsOptional()
   @IsNumber()
   rotation?: number;
+
+  @ApiProperty({
+    description: 'Radius of the table object (40–120)',
+    required: false,
+    example: 70,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(40)
+  @Max(120)
+  radius?: number;
 
 }

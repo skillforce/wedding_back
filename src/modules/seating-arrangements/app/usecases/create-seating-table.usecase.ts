@@ -23,6 +23,7 @@ export class CreateSeatingTableUseCase implements ICommandHandler<
       position: dto.position,
       shape: dto.shape ?? 'circle',
       rotation: dto.rotation ?? 0,
+      radius: dto.radius ?? 70,
     };
     return this.tablesRepository.save(newTable);
   }

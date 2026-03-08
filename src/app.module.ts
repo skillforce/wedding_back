@@ -45,7 +45,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
           database: DBConfig.postgresDatabase,
           ssl: DBConfig.postgresIsSSLEnabled,
           autoLoadEntities: true,
-          synchronize: DBConfig.isTesting,
+          synchronize: false,
         };
       },
       inject: [DBConfig],
