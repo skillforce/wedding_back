@@ -14,9 +14,10 @@ export class UpdatePhaseCommand {
 }
 
 @CommandHandler(UpdatePhaseCommand)
-export class UpdatePhaseUseCase
-  implements ICommandHandler<UpdatePhaseCommand, void>
-{
+export class UpdatePhaseUseCase implements ICommandHandler<
+  UpdatePhaseCommand,
+  void
+> {
   constructor(
     private readonly dataSource: DataSource,
     private readonly checklistPhasesRepository: ChecklistPhasesRepository,
@@ -24,27 +25,35 @@ export class UpdatePhaseUseCase
 
   async execute({ phaseId, dto, userId }: UpdatePhaseCommand): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      const phase = await this.checklistPhasesRepository.findByIdForUpdateOrFail(
-        manager,
-        phaseId,
-      );
+      const phase =
+        await this.checklistPhasesRepository.findByIdForUpdateOrFail(
+          manager,
+          phaseId,
+        );
+
       this.checkOwnership(phase.checklist?.userId, userId);
 
-      if ('name' in dto) {
-        phase.name = dto.name ?? null;
+      if (dto.name !== undefined) {
+        phase.name = dto.name;
       }
-      if ('timeline' in dto) {
-        phase.timeline = dto.timeline ?? null;
+      if (dto.timeline !== undefined) {
+        phase.timeline = dto.timeline;
       }
-      if ('icon' in dto) {
-        phase.icon = dto.icon ?? null;
+      if (dto.icon !== undefined) {
+        phase.icon = dto.icon;
       }
 
-      await this.checklistPhasesRepository.saveEntityWithManager(manager, phase);
+      await this.checklistPhasesRepository.saveEntityWithManager(
+        manager,
+        phase,
+      );
     });
   }
 
-  private checkOwnership(ownerUserId: number | undefined, userId: number): void {
+  private checkOwnership(
+    ownerUserId: number | undefined,
+    userId: number,
+  ): void {
     if (ownerUserId !== userId) {
       throw new DomainException({
         code: DomainExceptionCode.Forbidden,

@@ -39,19 +39,19 @@ export class UpdateItemUseCase implements ICommandHandler<
         );
       this.checkOwnership(item.phase?.checklist?.userId, userId);
 
-      if ('title' in dto && dto.title !== undefined) {
+      if (dto.title !== undefined) {
         item.title = dto.title;
       }
-      if ('note' in dto) {
-        item.note = dto.note ?? null;
+      if (dto.note !== undefined) {
+        item.note = dto.note;
       }
-      if ('comment' in dto) {
-        item.comment = dto.comment ?? null;
+      if (dto.comment !== undefined) {
+        item.comment = dto.comment;
       }
-      if ('completed' in dto && dto.completed !== undefined) {
+      if (dto.completed !== undefined) {
         item.completed = dto.completed;
       }
-      if ('priority' in dto && dto.priority !== undefined) {
+      if (dto.priority !== undefined) {
         item.priority = dto.priority;
       }
 

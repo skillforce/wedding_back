@@ -174,6 +174,36 @@ describe('Checklist (e2e)', () => {
       );
     });
 
+    it('should keep previous phase fields when they are omitted in patch dto', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+      const created = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({
+          name: 'Initial phase',
+          timeline: 'Initial timeline',
+          icon: 'rings',
+        }),
+        accessToken,
+      );
+
+      const updated = await checklistTestManager.updatePhase(
+        created.id,
+        checklistTestManager.buildUpdatePhaseDto({
+          timeline: 'Updated timeline',
+        }),
+        accessToken,
+      );
+
+      expect(updated).toEqual(
+        expect.objectContaining({
+          id: created.id,
+          name: 'Initial phase',
+          timeline: 'Updated timeline',
+          icon: 'rings',
+        }),
+      );
+    });
+
     it('should reindex remaining phases after delete', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
@@ -315,6 +345,62 @@ describe('Checklist (e2e)', () => {
           comment: 'Call vendor',
           completed: true,
           priority: ChecklistItemPriority.High,
+        }),
+      );
+    });
+
+    it('should keep previous item fields when they are omitted in patch dto', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+      const checklist = await checklistTestManager.getChecklist(accessToken);
+      const phaseId = checklist.phases[0].id;
+      const item = await checklistTestManager.createItem(
+        phaseId,
+        checklistTestManager.buildCreateItemDto({
+          title: 'Initial title',
+          note: 'Initial note',
+          priority: ChecklistItemPriority.Normal,
+        }),
+        accessToken,
+      );
+
+      const withComment = await checklistTestManager.updateItem(
+        phaseId,
+        item.id,
+        checklistTestManager.buildUpdateItemDto({
+          comment: 'Initial comment',
+        }),
+        accessToken,
+      );
+
+      const updated = await checklistTestManager.updateItem(
+        phaseId,
+        item.id,
+        checklistTestManager.buildUpdateItemDto({
+          completed: true,
+        }),
+        accessToken,
+      );
+
+      expect(withComment).toEqual(
+        expect.objectContaining({
+          id: item.id,
+          title: 'Initial title',
+          note: 'Initial note',
+          comment: 'Initial comment',
+          completed: false,
+          priority: ChecklistItemPriority.Normal,
+        }),
+      );
+
+      expect(updated).toEqual(
+        expect.objectContaining({
+          id: item.id,
+          title: 'Initial title',
+          note: 'Initial note',
+          comment: 'Initial comment',
+          completed: true,
+          priority: ChecklistItemPriority.Normal,
         }),
       );
     });
