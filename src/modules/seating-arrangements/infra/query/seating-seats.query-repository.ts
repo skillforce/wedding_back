@@ -14,7 +14,10 @@ export class SeatingSeatsQueryRepository {
   ) {}
 
   async findByIdOrFail(id: string): Promise<SeatingSeatViewDto> {
-    const seat = await this.seatsOrmRepository.findOneBy({ id });
+    const seat = await this.seatsOrmRepository.findOne({
+      where: { id },
+      relations: ['guest'],
+    });
     if (!seat) {
       throw new DomainException({
         code: DomainExceptionCode.NotFound,

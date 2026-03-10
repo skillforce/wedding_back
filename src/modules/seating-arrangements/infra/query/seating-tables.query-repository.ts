@@ -16,7 +16,7 @@ export class SeatingTablesQueryRepository {
   async findAllByUserId(userId: number): Promise<SeatingTableViewDto[]> {
     const tables = await this.tablesOrmRepository.find({
       where: { user_id: userId },
-      relations: ['seats'],
+      relations: ['seats', 'seats.guest'],
       order: { createdAt: 'ASC' },
     });
     return tables.map(SeatingTableViewDto.mapToViewDto);
@@ -25,7 +25,7 @@ export class SeatingTablesQueryRepository {
   async findByIdOrFail(id: string): Promise<SeatingTableViewDto> {
     const table = await this.tablesOrmRepository.findOne({
       where: { id },
-      relations: ['seats'],
+      relations: ['seats', 'seats.guest'],
     });
     if (!table) {
       throw new DomainException({

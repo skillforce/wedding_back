@@ -3,6 +3,7 @@ import { UuidEntity } from '../../../common/domain/base.entity';
 import { Length } from 'class-validator';
 import { User } from '../../../user-accounts/domain/entities/user.entity';
 import { GuestResponse } from './guest-response.entity';
+import { SeatingSeat } from '../../../seating-arrangements/domain/entities/seating-seat.entity';
 
 export const guestNameConstraints = {
   minLength: 3,
@@ -24,4 +25,7 @@ export class Guest extends UuidEntity {
 
   @OneToOne(() => GuestResponse, (response) => response.guest)
   response?: GuestResponse;
+
+  @OneToOne(() => SeatingSeat, (seat) => seat.guest)
+  seat?: SeatingSeat;
 }

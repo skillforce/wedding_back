@@ -36,7 +36,7 @@ export class CreateSeatingSeatUseCase implements ICommandHandler<
 
       return this.seatsRepository.saveWithManager(manager, {
         table_id: tableId,
-        name: dto.name,
+        guest_id: dto.guest_id,
       });
     });
   }
