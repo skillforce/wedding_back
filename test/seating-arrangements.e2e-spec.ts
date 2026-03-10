@@ -7,14 +7,15 @@ import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { SeatingTablesTestManager } from './helpers/seating-tables.test-manager';
 import { SeatingSeatsTestManager } from './helpers/seating-seats.test-manager';
+import { GuestsTestManager } from './helpers/guests.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
-import { delay } from 'rxjs';
 
 describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
   let app: INestApplication;
   let userAccountsTestManager: UserAccountsTestManager;
   let seatingTablesTestManager: SeatingTablesTestManager;
   let seatingSeatsTestManager: SeatingSeatsTestManager;
+  let guestsTestManager: GuestsTestManager;
 
   beforeAll(async () => {
     const result = await initTesting((moduleBuilder) =>
@@ -38,6 +39,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     userAccountsTestManager = result.userAccountsTestManager;
     seatingTablesTestManager = result.seatingTablesTestManager;
     seatingSeatsTestManager = result.seatingSeatsTestManager;
+    guestsTestManager = result.guestsTestManager;
   });
 
   beforeEach(async () => {
@@ -352,70 +354,87 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
   // ─── Seats ────────────────────────────────────────────────────────────────
 
   describe('Seats', () => {
-    it('should create a seat for a table', async () => {
-      const { accessToken } =
+    it('should create a seat for a table and return guest id and name', async () => {
+      const { accessToken, userId } =
         await userAccountsTestManager.createUserAndLogin();
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
       );
+      const guest = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId, { guest_name: 'JohnDoe' }),
+        accessToken,
+      );
 
       const seat = await seatingSeatsTestManager.createSeat(
         table.id,
-        seatingSeatsTestManager.buildCreateSeatDto({ name: 'Seat A1' }),
+        seatingSeatsTestManager.buildCreateSeatDto(guest.id),
         accessToken,
       );
 
       expect(seat).toEqual(
         expect.objectContaining({
           id: expect.any(String),
-          name: 'Seat A1',
+          guest_id: guest.id,
+          name: 'JohnDoe',
         }),
       );
     });
 
     it('should return 404 when creating seat for non-existing table', async () => {
-      const { accessToken } =
+      const { accessToken, userId } =
         await userAccountsTestManager.createUserAndLogin();
       const nonExistingTableId = '00000000-0000-0000-0000-000000000000';
+      const guest = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId),
+        accessToken,
+      );
 
       await seatingSeatsTestManager.createSeat(
         nonExistingTableId,
-        seatingSeatsTestManager.buildCreateSeatDto(),
+        seatingSeatsTestManager.buildCreateSeatDto(guest.id),
         accessToken,
         HttpStatus.NOT_FOUND,
       );
     });
 
     it("should return 403 when creating seat on another user's table", async () => {
-      const { accessToken: tokenA } =
+      const { accessToken: tokenA, userId: userIdA } =
         await userAccountsTestManager.createUserAndLogin();
-      const { accessToken: tokenB } =
+      const { accessToken: tokenB, userId: userIdB } =
         await userAccountsTestManager.createUserAndLogin();
 
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         tokenA,
       );
+      const guest = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userIdB),
+        tokenB,
+      );
 
       await seatingSeatsTestManager.createSeat(
         table.id,
-        seatingSeatsTestManager.buildCreateSeatDto(),
+        seatingSeatsTestManager.buildCreateSeatDto(guest.id),
         tokenB,
         HttpStatus.FORBIDDEN,
       );
     });
 
     it('should delete a seat', async () => {
-      const { accessToken } =
+      const { accessToken, userId } =
         await userAccountsTestManager.createUserAndLogin();
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
       );
+      const guest = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId),
+        accessToken,
+      );
       const seat = await seatingSeatsTestManager.createSeat(
         table.id,
-        seatingSeatsTestManager.buildCreateSeatDto(),
+        seatingSeatsTestManager.buildCreateSeatDto(guest.id),
         accessToken,
       );
 
@@ -443,7 +462,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it("should return 403 when deleting a seat from another user's table", async () => {
-      const { accessToken: tokenA } =
+      const { accessToken: tokenA, userId: userIdA } =
         await userAccountsTestManager.createUserAndLogin();
       const { accessToken: tokenB } =
         await userAccountsTestManager.createUserAndLogin();
@@ -452,9 +471,13 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         seatingTablesTestManager.buildCreateTableDto(),
         tokenA,
       );
+      const guest = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userIdA),
+        tokenA,
+      );
       const seat = await seatingSeatsTestManager.createSeat(
         table.id,
-        seatingSeatsTestManager.buildCreateSeatDto(),
+        seatingSeatsTestManager.buildCreateSeatDto(guest.id),
         tokenA,
       );
 
@@ -467,21 +490,29 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     });
 
     it('should delete table and cascade delete its seats', async () => {
-      const { accessToken } =
+      const { accessToken, userId } =
         await userAccountsTestManager.createUserAndLogin();
       const table = await seatingTablesTestManager.createTable(
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
       );
+      const guest1 = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId),
+        accessToken,
+      );
+      const guest2 = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId),
+        accessToken,
+      );
 
       await seatingSeatsTestManager.createSeat(
         table.id,
-        seatingSeatsTestManager.buildCreateSeatDto(),
+        seatingSeatsTestManager.buildCreateSeatDto(guest1.id),
         accessToken,
       );
       await seatingSeatsTestManager.createSeat(
         table.id,
-        seatingSeatsTestManager.buildCreateSeatDto(),
+        seatingSeatsTestManager.buildCreateSeatDto(guest2.id),
         accessToken,
       );
 
@@ -489,6 +520,29 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
 
       const tables = await seatingTablesTestManager.getAllTables(accessToken);
       expect(tables).toHaveLength(1);
+    });
+
+    it('should cascade delete seat when guest is deleted', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+      const table = await seatingTablesTestManager.createTable(
+        seatingTablesTestManager.buildCreateTableDto(),
+        accessToken,
+      );
+      const guest = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId),
+        accessToken,
+      );
+      await seatingSeatsTestManager.createSeat(
+        table.id,
+        seatingSeatsTestManager.buildCreateSeatDto(guest.id),
+        accessToken,
+      );
+
+      await guestsTestManager.deleteGuestById(guest.id, accessToken);
+
+      const tables = await seatingTablesTestManager.getAllTables(accessToken);
+      expect(tables[0].seats).toHaveLength(0);
     });
   });
 });

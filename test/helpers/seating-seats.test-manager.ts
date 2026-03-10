@@ -6,19 +6,13 @@ import { GLOBAL_PREFIX } from '../../src/setup/global-prefix.setup';
 
 export class SeatingSeatsTestManager {
   private readonly httpServer: App;
-  private sequence = 0;
 
   constructor(private readonly app: INestApplication) {
     this.httpServer = this.app.getHttpServer();
   }
 
-  buildCreateSeatDto(
-    overrides: Partial<CreateSeatingSeatInputDto> = {},
-  ): CreateSeatingSeatInputDto {
-    this.sequence += 1;
-    return {
-      name: overrides.name ?? `Seat ${this.sequence}`,
-    }; 
+  buildCreateSeatDto(guestId: string): CreateSeatingSeatInputDto {
+    return { guest_id: guestId };
   }
 
   async createSeat(
