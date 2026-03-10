@@ -34,6 +34,8 @@ export class CreateSeatingSeatUseCase implements ICommandHandler<
       const table = await this.tablesRepository.findByIdForUpdateOrFail(manager, tableId);
       this.checkTableOwnership(table.user_id, userId);
 
+      await this.seatsRepository.deleteByGuestIdWithManager(manager, dto.guest_id);
+
       return this.seatsRepository.saveWithManager(manager, {
         table_id: tableId,
         guest_id: dto.guest_id,

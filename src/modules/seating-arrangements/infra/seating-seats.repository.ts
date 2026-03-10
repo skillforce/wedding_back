@@ -60,4 +60,11 @@ export class SeatingSeatsRepository {
   ): Promise<void> {
     await manager.getRepository(SeatingSeat).delete({ id });
   }
+
+  async deleteByGuestIdWithManager(
+    manager: EntityManager,
+    guestId: string,
+  ): Promise<void> {
+    await manager.getRepository(SeatingSeat).delete({ guest_id: guestId });
+  }
 }
