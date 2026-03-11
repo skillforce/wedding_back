@@ -2,11 +2,16 @@ import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 import { UuidEntity } from '../../../common/domain/base.entity';
 import { Guest } from './guest.entity';
 
-export const RELATIONSHIP_TO_COUPLE_VALUES = ['bride_side', 'groom_side', 'mutual'] as const;
+export const RELATIONSHIP_TO_COUPLE_VALUES = [
+  'bride_side',
+  'groom_side',
+  'mutual',
+] as const;
 export const AGE_GROUPS = ['child', 'young', 'adult', 'old'] as const;
 export const PERSONALITY_TYPES = ['introvert', 'extrovert', 'unknown'] as const;
 
-export type RelationshipToCouple = (typeof RELATIONSHIP_TO_COUPLE_VALUES)[number];
+export type RelationshipToCouple =
+  (typeof RELATIONSHIP_TO_COUPLE_VALUES)[number];
 export type AgeGroup = (typeof AGE_GROUPS)[number];
 export type PersonalityType = (typeof PERSONALITY_TYPES)[number];
 
