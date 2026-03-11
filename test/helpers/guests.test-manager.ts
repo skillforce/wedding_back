@@ -1,8 +1,9 @@
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { CreateGuestInputDto } from '../../src/modules/guests/api/input-dto/guest.input-dto';
+import { CreateGuestInputDto, GuestFormInputDto } from '../../src/modules/guests/api/input-dto/guest.input-dto';
 import { CreateGuestResponseInputDto } from '../../src/modules/guests/api/input-dto/guest-response.input-dto';
+import { UpdateGuestFormInputDto } from '../../src/modules/guests/api/input-dto/update-guest-form.input-dto';
 
 export class GuestsTestManager {
   private readonly httpServer: App;
@@ -12,6 +13,18 @@ export class GuestsTestManager {
     this.httpServer = this.app.getHttpServer();
   }
 
+  buildGuestFormDto(overrides: Partial<GuestFormInputDto> = {}): GuestFormInputDto {
+    return {
+      relationship_to_couple: overrides.relationship_to_couple ?? 'bride_side',
+      age_group: overrides.age_group ?? 'adult',
+      has_kids_attending: overrides.has_kids_attending ?? false,
+      personality_type: overrides.personality_type ?? 'introvert',
+      vip_parents: overrides.vip_parents ?? false,
+      vip_grandparents: overrides.vip_grandparents ?? false,
+      vip_relatives: overrides.vip_relatives ?? false,
+    };
+  }
+
   buildCreateGuestDto(
     userId: number,
     overrides: Partial<CreateGuestInputDto> = {},
@@ -19,6 +32,7 @@ export class GuestsTestManager {
     return {
       guest_name: overrides.guest_name ?? this.generateUniqueGuestName(),
       user_id: userId,
+      guestForm: overrides.guestForm,
     };
   }
 
@@ -79,6 +93,21 @@ export class GuestsTestManager {
       .delete(`/api/guests/${id}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(expectedStatus);
+    return response.body;
+  }
+
+  async updateGuestForm(
+    guestId: string,
+    dto: UpdateGuestFormInputDto,
+    accessToken: string,
+    expectedStatus: HttpStatus = HttpStatus.OK,
+  ) {
+    const response = await request(this.httpServer)
+      .patch(`/api/guests/${guestId}/form`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send(dto)
+      .expect(expectedStatus);
+
     return response.body;
   }
 

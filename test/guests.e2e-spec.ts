@@ -49,7 +49,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
   // ─── Guests ────────────────────────────────────────────────────────────────
 
   describe('Guests', () => {
-    it('should create a guest and return it in list', async () => {
+    it('should create a guest without guestForm and return null guestForm', async () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
@@ -61,8 +61,46 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
           id: expect.any(String),
           name: dto.guest_name,
           is_already_answered: false,
+          guestForm: null,
+          response: null,
         }),
       );
+    });
+
+    it('should create a guest with guestForm and return it', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto();
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      expect(created).toEqual(
+        expect.objectContaining({
+          id: expect.any(String),
+          name: dto.guest_name,
+          is_already_answered: false,
+          guestForm: expect.objectContaining({
+            relationship_to_couple: guestForm.relationship_to_couple,
+            age_group: guestForm.age_group,
+            has_kids_attending: guestForm.has_kids_attending,
+            personality_type: guestForm.personality_type,
+            vip_parents: guestForm.vip_parents,
+            vip_grandparents: guestForm.vip_grandparents,
+            vip_relatives: guestForm.vip_relatives,
+          }),
+          response: null,
+        }),
+      );
+    });
+
+    it('should return guestForm in list', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto({ age_group: 'young' });
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
 
       const list = await guestsTestManager.getAllGuests(accessToken);
       expect(list).toEqual([
@@ -70,6 +108,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
           id: created.id,
           name: dto.guest_name,
           is_already_answered: false,
+          guestForm: expect.objectContaining({ age_group: 'young' }),
           response: null,
         }),
       ]);
@@ -88,6 +127,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
           id: created.id,
           name: dto.guest_name,
           is_already_answered: false,
+          guestForm: null,
           response: null,
         }),
       );
@@ -144,6 +184,131 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       await guestsTestManager.getAllGuests(
         'invalid-token',
         HttpStatus.UNAUTHORIZED,
+      );
+    });
+  });
+
+  // ─── Guest Forms ───────────────────────────────────────────────────────────
+
+  describe('Guest Forms', () => {
+    it('should update guest form and return updated guest', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto();
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      const updated = await guestsTestManager.updateGuestForm(
+        created.id,
+        { age_group: 'old', vip_relatives: true },
+        accessToken,
+      );
+
+      expect(updated.guestForm).toEqual(
+        expect.objectContaining({
+          age_group: 'old',
+          vip_relatives: true,
+          relationship_to_couple: guestForm.relationship_to_couple,
+          personality_type: guestForm.personality_type,
+        }),
+      );
+    });
+
+    it('should preserve omitted fields on partial update', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto({
+        personality_type: 'extrovert',
+        vip_parents: true,
+      });
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      await guestsTestManager.updateGuestForm(
+        created.id,
+        { age_group: 'child' },
+        accessToken,
+      );
+
+      const found = await guestsTestManager.getGuestById(created.id);
+      expect(found.guestForm).toEqual(
+        expect.objectContaining({
+          age_group: 'child',
+          personality_type: 'extrovert',
+          vip_parents: true,
+        }),
+      );
+    });
+
+    it('should return 404 when updating form for guest with no form', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const dto = guestsTestManager.buildCreateGuestDto(userId);
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      await guestsTestManager.updateGuestForm(
+        created.id,
+        { age_group: 'young' },
+        accessToken,
+        HttpStatus.NOT_FOUND,
+      );
+    });
+
+    it('should return 404 when updating form for non-existing guest', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      await guestsTestManager.updateGuestForm(
+        '00000000-0000-0000-0000-000000000000',
+        { age_group: 'young' },
+        accessToken,
+        HttpStatus.NOT_FOUND,
+      );
+    });
+
+    it('should return 403 when updating form belonging to another user', async () => {
+      const { userId: userId1, accessToken: token1 } =
+        await userAccountsTestManager.createUserAndLogin();
+      const { accessToken: token2 } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto();
+      const dto = guestsTestManager.buildCreateGuestDto(userId1, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, token1);
+
+      await guestsTestManager.updateGuestForm(
+        created.id,
+        { age_group: 'young' },
+        token2,
+        HttpStatus.FORBIDDEN,
+      );
+    });
+
+    it('should return 401 when updating form without token', async () => {
+      await guestsTestManager.updateGuestForm(
+        '00000000-0000-0000-0000-000000000000',
+        { age_group: 'young' },
+        '',
+        HttpStatus.UNAUTHORIZED,
+      );
+    });
+
+    it('should return 400 for invalid enum value in update', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto();
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      await guestsTestManager.updateGuestForm(
+        created.id,
+        { age_group: 'invalid_value' as any },
+        accessToken,
+        HttpStatus.UNPROCESSABLE_ENTITY,
       );
     });
   });

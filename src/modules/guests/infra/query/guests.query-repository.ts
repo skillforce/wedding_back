@@ -17,7 +17,7 @@ export class GuestsQueryRepository {
   async findOneByIdOrFail(guestId: string) {
     const guest = await this.guestsOrmRepository.findOne({
       where: { id: guestId },
-      relations: ['response'],
+      relations: ['response', 'guestForm'],
     });
 
     if (!guest) {
@@ -33,7 +33,7 @@ export class GuestsQueryRepository {
   async findAllGuestsByUserId(userId: number): Promise<GuestDetailViewDto[]> {
     const guests = await this.guestsOrmRepository.find({
       where: { user_id: userId },
-      relations: ['response'],
+      relations: ['response', 'guestForm'],
     });
     if (!guests.length) {
       return [];

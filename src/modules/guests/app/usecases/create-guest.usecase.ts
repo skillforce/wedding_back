@@ -1,6 +1,7 @@
 import { CreateGuestInputDto } from '../../api/input-dto/guest.input-dto';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { GuestsRepository } from '../../infra/guests.repository';
+import { GuestFormRepository } from '../../infra/guest-form.repository';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 
@@ -13,7 +14,10 @@ export class CreateGuestUseCase implements ICommandHandler<
   CreateGuestCommand,
   string
 > {
-  constructor(private guestsRepository: GuestsRepository) {}
+  constructor(
+    private guestsRepository: GuestsRepository,
+    private guestFormRepository: GuestFormRepository,
+  ) {}
 
   async execute({ dto }: CreateGuestCommand): Promise<string> {
     const userWithSameName = await this.guestsRepository.findGuestByName(
@@ -27,7 +31,15 @@ export class CreateGuestUseCase implements ICommandHandler<
       });
     }
 
-    const guestToCreate = { ...dto, user_id: dto.user_id };
-    return await this.guestsRepository.save(guestToCreate);
+    const guestId = await this.guestsRepository.save({
+      guest_name: dto.guest_name,
+      user_id: dto.user_id,
+    });
+
+    if (dto.guestForm) {
+      await this.guestFormRepository.save(guestId, dto.guestForm);
+    }
+
+    return guestId;
   }
 }

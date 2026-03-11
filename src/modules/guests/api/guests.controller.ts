@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -18,11 +19,12 @@ import {
 } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { GuestsQueryRepository } from '../infra/query/guests.query-repository';
-import { GuestsViewDto } from './view-dto/guests.view-dto';
 import { GuestDetailViewDto } from './view-dto/guest-detail.view-dto';
 import { CreateGuestInputDto } from './input-dto/guest.input-dto';
 import { CreateGuestCommand } from '../app/usecases/create-guest.usecase';
 import { DeleteGuestCommand } from '../app/usecases/delete-guest.usecase';
+import { UpdateGuestFormCommand } from '../app/usecases/update-guest-form.usecase';
+import { UpdateGuestFormInputDto } from './input-dto/update-guest-form.input-dto';
 import { IdUuidParamDto } from '../../../core/decorators/validation/queryParamDto';
 import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
 import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
@@ -74,16 +76,40 @@ export class GuestsController {
   @ApiResponse({
     status: 201,
     description: 'Guest created successfully',
-    type: GuestsViewDto,
+    type: GuestDetailViewDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async createGuest(@Body() dto: CreateGuestInputDto): Promise<GuestsViewDto> {
+  async createGuest(@Body() dto: CreateGuestInputDto): Promise<GuestDetailViewDto> {
     const newGuestId = await this.commandBus.execute<
       CreateGuestCommand,
       string
     >(new CreateGuestCommand(dto));
-    return this.guestsQueryRepository.findGuestsById(newGuestId);
+    return this.guestsQueryRepository.findGuestDetailById(newGuestId);
+  }
+
+  @Patch(':id/form')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update guest form (profile data)' })
+  @ApiParam({ name: 'id', description: 'Guest UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Guest form updated',
+    type: GuestDetailViewDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - guest does not belong to user' })
+  @ApiResponse({ status: 404, description: 'Guest or guest form not found' })
+  async updateGuestForm(
+    @Param() { id }: IdUuidParamDto,
+    @Body() dto: UpdateGuestFormInputDto,
+    @ExtractUserFromRequest() user: UserContextDto,
+  ): Promise<GuestDetailViewDto> {
+    await this.commandBus.execute<UpdateGuestFormCommand, void>(
+      new UpdateGuestFormCommand(id, dto, user.id),
+    );
+    return this.guestsQueryRepository.findGuestDetailById(id);
   }
 
   @Delete(':id')
