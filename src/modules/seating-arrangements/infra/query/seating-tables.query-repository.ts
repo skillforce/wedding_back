@@ -13,15 +13,6 @@ export class SeatingTablesQueryRepository {
     private readonly tablesOrmRepository: Repository<SeatingTable>,
   ) {}
 
-  async findAllByUserId(userId: number): Promise<SeatingTableViewDto[]> {
-    const tables = await this.tablesOrmRepository.find({
-      where: { user_id: userId },
-      relations: ['seats', 'seats.guest'],
-      order: { createdAt: 'ASC' },
-    });
-    return tables.map(SeatingTableViewDto.mapToViewDto);
-  }
-
   async findByIdOrFail(id: string): Promise<SeatingTableViewDto> {
     const table = await this.tablesOrmRepository.findOne({
       where: { id },

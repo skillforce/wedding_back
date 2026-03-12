@@ -23,7 +23,9 @@ import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
 import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
 import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
 import { SeatingTablesQueryRepository } from '../infra/query/seating-tables.query-repository';
+import { SeatingArrangementsQueryRepository } from '../infra/query/seating-arrangements.query-repository';
 import { SeatingTableViewDto } from './view-dto/seating-table.view-dto';
+import { SeatingArrangementViewDto } from './view-dto/seating-arrangement.view-dto';
 import { CreateSeatingTableInputDto } from './input-dto/create-seating-table.input-dto';
 import { UpdateSeatingTableInputDto } from './input-dto/update-seating-table.input-dto';
 import { CreateSeatingTableCommand } from '../app/usecases/create-seating-table.usecase';
@@ -38,23 +40,24 @@ import { DeleteSeatingTableCommand } from '../app/usecases/delete-seating-table.
 export class SeatingTablesController {
   constructor(
     private readonly queryRepository: SeatingTablesQueryRepository,
+    private readonly arrangementQueryRepository: SeatingArrangementsQueryRepository,
     private readonly commandBus: CommandBus,
   ) {}
 
   @Get()
   @ApiOperation({
-    summary: 'Get all seating tables for the authenticated user',
+    summary: 'Get seating arrangement with all tables for the authenticated user',
   })
   @ApiResponse({
     status: 200,
-    description: 'List of seating tables',
-    type: [SeatingTableViewDto],
+    description: 'Seating arrangement with workspace settings and tables',
+    type: SeatingArrangementViewDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAllTables(
     @ExtractUserFromRequest() user: UserContextDto,
-  ): Promise<SeatingTableViewDto[]> {
-    return this.queryRepository.findAllByUserId(user.id);
+  ): Promise<SeatingArrangementViewDto> {
+    return this.arrangementQueryRepository.findByUserId(user.id);
   }
 
   @Post()

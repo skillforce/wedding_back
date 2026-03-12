@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
-import { User } from '../../../user-accounts/domain/entities/user.entity';
+import { SeatingArrangement } from './seating-arrangement.entity';
 import { SeatingSeat } from './seating-seat.entity';
 import { UuidEntity } from '../../../common/domain/base.entity';
 
@@ -7,8 +7,8 @@ export type TablePosition = { x: number; y: number };
 
 @Entity('seating_tables')
 export class SeatingTable extends UuidEntity {
-  @Column({ nullable: false })
-  user_id: number;
+  @Column({ type: 'uuid', nullable: false })
+  arrangement_id: string;
 
   @Column({ nullable: false })
   name: string;
@@ -25,9 +25,9 @@ export class SeatingTable extends UuidEntity {
   @Column({ type: 'int', nullable: false, default: 70 })
   radius: number;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user?: User;
+  @ManyToOne(() => SeatingArrangement, (arrangement) => arrangement.tables, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'arrangement_id' })
+  arrangement?: SeatingArrangement;
 
   @OneToMany(() => SeatingSeat, (seat) => seat.table, { cascade: true })
   seats?: SeatingSeat[];

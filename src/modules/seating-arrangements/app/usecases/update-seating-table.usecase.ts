@@ -25,7 +25,7 @@ export class UpdateSeatingTableUseCase
   async execute({ tableId, dto, userId }: UpdateSeatingTableCommand): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const table = await this.tablesRepository.findByIdForUpdateOrFail(manager, tableId);
-      this.checkTableOwnership(table.user_id, userId);
+      this.checkTableOwnership(table.arrangement!.user_id, userId);
       Object.assign(table, dto);
       await this.tablesRepository.saveEntityWithManager(manager, table);
     });

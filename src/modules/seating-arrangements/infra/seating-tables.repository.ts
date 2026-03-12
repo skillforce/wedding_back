@@ -19,6 +19,7 @@ export class SeatingTablesRepository {
     const table = await manager
       .getRepository(SeatingTable)
       .createQueryBuilder('table')
+      .innerJoinAndSelect('table.arrangement', 'arrangement')
       .setLock('pessimistic_write')
       .where('table.id = :id', { id })
       .getOne();
@@ -34,17 +35,9 @@ export class SeatingTablesRepository {
   }
 
   async save(
-    table: Omit<SeatingTable, 'id' | 'user' | 'seats'>,
+    table: Omit<SeatingTable, 'id' | 'createdAt' | 'arrangement' | 'seats'>,
   ): Promise<string> {
     const result = await this.tablesOrmRepository.save(table);
-    return result.id;
-  }
-
-  async saveWithManager(
-    manager: EntityManager,
-    table: Omit<SeatingTable, 'id' | 'user' | 'seats'>,
-  ): Promise<string> {
-    const result = await manager.getRepository(SeatingTable).save(table);
     return result.id;
   }
 

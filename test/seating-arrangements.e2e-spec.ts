@@ -52,28 +52,22 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
     }
   });
 
-  // ─── Default table on registration ────────────────────────────────────────
-
-  it('should create a default table when a new user registers', async () => {
+  it('should create a default seating arrangement when a new user registers', async () => {
     const { accessToken } = await userAccountsTestManager.createUserAndLogin();
 
-    const tables = await seatingTablesTestManager.getAllTables(accessToken);
-    console.log(tables);
-    expect(tables).toHaveLength(1);
-    expect(tables[0]).toEqual(
+    const arrangement =
+      await seatingTablesTestManager.getAllTables(accessToken);
+    expect(arrangement).toEqual(
       expect.objectContaining({
-        id: expect.any(String),
-        name: 'Молодожены',
-        position: { x: 10, y: 0 },
         shape: 'rect',
-        rotation: 0,
-        radius: 70,
-        seats: [],
+        width: 1600,
+        height: 900,
+        max_tables_amount: 20,
+        max_seats_per_table_amount: 8,
+        items: [],
       }),
     );
   });
-
-  // ─── Tables ───────────────────────────────────────────────────────────────
 
   describe('Tables', () => {
     it('should create a table and return it', async () => {
@@ -123,10 +117,11 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       await seatingTablesTestManager.createTable(dto1, accessToken);
       await seatingTablesTestManager.createTable(dto2, accessToken);
 
-      const tables = await seatingTablesTestManager.getAllTables(accessToken);
+      const arrangement =
+        await seatingTablesTestManager.getAllTables(accessToken);
 
-      expect(tables).toHaveLength(3);
-      expect(tables).toEqual(
+      expect(arrangement.items).toHaveLength(2);
+      expect(arrangement.items).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ name: 'Table A' }),
           expect.objectContaining({ name: 'Table B' }),
@@ -145,8 +140,8 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         tokenA,
       );
 
-      const tablesB = await seatingTablesTestManager.getAllTables(tokenB);
-      expect(tablesB).toHaveLength(1);
+      const arrangementB = await seatingTablesTestManager.getAllTables(tokenB);
+      expect(arrangementB.items).toHaveLength(0);
     });
 
     it('should update table name', async () => {
@@ -227,7 +222,10 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         shape: 'pillar',
       });
 
-      const created = await seatingTablesTestManager.createTable(dto, accessToken);
+      const created = await seatingTablesTestManager.createTable(
+        dto,
+        accessToken,
+      );
 
       expect(created.shape).toBe('pillar');
     });
@@ -254,7 +252,10 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         await userAccountsTestManager.createUserAndLogin();
       const dto = seatingTablesTestManager.buildCreateTableDto({ radius: 100 });
 
-      const created = await seatingTablesTestManager.createTable(dto, accessToken);
+      const created = await seatingTablesTestManager.createTable(
+        dto,
+        accessToken,
+      );
 
       expect(created.radius).toBe(100);
     });
@@ -316,8 +317,9 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
 
       await seatingTablesTestManager.deleteTable(created.id, accessToken);
 
-      const tables = await seatingTablesTestManager.getAllTables(accessToken);
-      expect(tables).toHaveLength(1);
+      const arrangement =
+        await seatingTablesTestManager.getAllTables(accessToken);
+      expect(arrangement.items).toHaveLength(0);
     });
 
     it('should return 404 when deleting a non-existing table', async () => {
@@ -362,7 +364,9 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         accessToken,
       );
       const guest = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId, { guest_name: 'JohnDoe' }),
+        guestsTestManager.buildCreateGuestDto(userId, {
+          guest_name: 'JohnDoe',
+        }),
         accessToken,
       );
 
@@ -440,8 +444,9 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
 
       await seatingSeatsTestManager.deleteSeat(table.id, seat.id, accessToken);
 
-      const tables = await seatingTablesTestManager.getAllTables(accessToken);
-      expect(tables[0].seats).toHaveLength(0);
+      const arrangement =
+        await seatingTablesTestManager.getAllTables(accessToken);
+      expect(arrangement.items[0].seats).toHaveLength(0);
     });
 
     it('should return 404 when deleting a non-existing seat', async () => {
@@ -518,8 +523,9 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
 
       await seatingTablesTestManager.deleteTable(table.id, accessToken);
 
-      const tables = await seatingTablesTestManager.getAllTables(accessToken);
-      expect(tables).toHaveLength(1);
+      const arrangement =
+        await seatingTablesTestManager.getAllTables(accessToken);
+      expect(arrangement.items).toHaveLength(0);
     });
 
     it('should cascade delete seat when guest is deleted', async () => {
@@ -541,8 +547,9 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
 
       await guestsTestManager.deleteGuestById(guest.id, accessToken);
 
-      const tables = await seatingTablesTestManager.getAllTables(accessToken);
-      expect(tables[0].seats).toHaveLength(0);
+      const arrangement =
+        await seatingTablesTestManager.getAllTables(accessToken);
+      expect(arrangement.items[0].seats).toHaveLength(0);
     });
   });
 });

@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { SeatingTablesRepository } from '../../infra/seating-tables.repository';
+import { SeatingArrangementsRepository } from '../../infra/seating-arrangements.repository';
 import { CreateSeatingTableInputDto } from '../../api/input-dto/create-seating-table.input-dto';
 
 export class CreateSeatingTableCommand {
@@ -14,17 +15,20 @@ export class CreateSeatingTableUseCase implements ICommandHandler<
   CreateSeatingTableCommand,
   string
 > {
-  constructor(private readonly tablesRepository: SeatingTablesRepository) {}
+  constructor(
+    private readonly tablesRepository: SeatingTablesRepository,
+    private readonly arrangementRepository: SeatingArrangementsRepository,
+  ) {}
 
   async execute({ dto, userId }: CreateSeatingTableCommand): Promise<string> {
-    const newTable = {
-      user_id: userId,
+    const arrangement = await this.arrangementRepository.findByUserIdOrFail(userId);
+    return this.tablesRepository.save({
+      arrangement_id: arrangement.id,
       name: dto.name,
       position: dto.position,
       shape: dto.shape ?? 'circle',
       rotation: dto.rotation ?? 0,
       radius: dto.radius ?? 70,
-    };
-    return this.tablesRepository.save(newTable);
+    });
   }
 }

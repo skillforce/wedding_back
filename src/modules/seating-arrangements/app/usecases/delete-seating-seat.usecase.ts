@@ -26,7 +26,7 @@ export class DeleteSeatingSeatUseCase
   async execute({ seatId, tableId, userId }: DeleteSeatingSeatCommand): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const table = await this.tablesRepository.findByIdForUpdateOrFail(manager, tableId);
-      this.checkTableOwnership(table.user_id, userId);
+      this.checkTableOwnership(table.arrangement!.user_id, userId);
 
       await this.seatsRepository.findByIdAndTableIdForUpdateOrFail(
         manager,

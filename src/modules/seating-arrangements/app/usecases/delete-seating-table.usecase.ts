@@ -23,7 +23,7 @@ export class DeleteSeatingTableUseCase
   async execute({ tableId, userId }: DeleteSeatingTableCommand): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const table = await this.tablesRepository.findByIdForUpdateOrFail(manager, tableId);
-      this.checkTableOwnership(table.user_id, userId);
+      this.checkTableOwnership(table.arrangement!.user_id, userId);
       await this.tablesRepository.deleteByIdWithManager(manager, tableId);
     });
   }
