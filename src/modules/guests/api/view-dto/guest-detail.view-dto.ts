@@ -41,6 +41,9 @@ export class GuestFormViewDto {
   @ApiProperty()
   has_kids_attending: boolean;
 
+  @ApiProperty({ nullable: true })
+  amount_of_kids: number | null;
+
   @ApiProperty({ enum: ['introvert', 'extrovert', 'unknown'] })
   personality_type: string;
 
@@ -58,6 +61,7 @@ export class GuestFormViewDto {
     dto.relationship_to_couple = form.relationship_to_couple;
     dto.age_group = form.age_group;
     dto.has_kids_attending = form.has_kids_attending;
+    dto.amount_of_kids = form.amount_of_kids ?? null;
     dto.personality_type = form.personality_type;
     dto.vip_parents = form.vip_parents;
     dto.vip_grandparents = form.vip_grandparents;

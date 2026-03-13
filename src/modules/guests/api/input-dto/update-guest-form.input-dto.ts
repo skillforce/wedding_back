@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, Max, Min, ValidateIf } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   AGE_GROUPS,
@@ -24,6 +24,14 @@ export class UpdateGuestFormInputDto {
   @IsOptional()
   @IsBoolean()
   has_kids_attending?: boolean;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @ValidateIf((o) => o.has_kids_attending === true)
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  amount_of_kids?: number | null;
 
   @ApiPropertyOptional({ enum: PERSONALITY_TYPES })
   @IsOptional()

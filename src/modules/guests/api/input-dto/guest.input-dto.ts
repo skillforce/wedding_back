@@ -1,4 +1,14 @@
-import { IsBoolean, IsEnum, IsNumber, IsOptional, ValidateNested } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  Max,
+  Min,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsFieldExistAndStringWithTrim } from '../../../../core/decorators/validation/is-field-exist-and-string-with-trim';
@@ -24,6 +34,13 @@ export class GuestFormInputDto {
   @ApiProperty()
   @IsBoolean()
   has_kids_attending: boolean;
+
+  @ApiProperty({ nullable: true })
+  @ValidateIf((o) => o.has_kids_attending === true)
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  amount_of_kids: number | null;
 
   @ApiProperty({ enum: PERSONALITY_TYPES })
   @IsEnum(PERSONALITY_TYPES)
@@ -56,7 +73,10 @@ export class CreateGuestInputDto {
   )
   guest_name: string;
 
-  @ApiProperty({ description: 'ID of the user this guest belongs to', example: 1 })
+  @ApiProperty({
+    description: 'ID of the user this guest belongs to',
+    example: 1,
+  })
   @IsNumber()
   user_id: number;
 

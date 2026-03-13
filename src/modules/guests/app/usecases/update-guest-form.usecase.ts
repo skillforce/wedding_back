@@ -38,6 +38,9 @@ export class UpdateGuestFormUseCase implements ICommandHandler<UpdateGuestFormCo
       if (dto.has_kids_attending !== undefined) {
         form.has_kids_attending = dto.has_kids_attending;
       }
+      if (dto.amount_of_kids !== undefined) {
+        form.amount_of_kids = dto.amount_of_kids;
+      }
       if (dto.personality_type !== undefined) {
         form.personality_type = dto.personality_type;
       }

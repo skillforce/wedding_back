@@ -18,6 +18,7 @@ export class GuestsTestManager {
       relationship_to_couple: overrides.relationship_to_couple ?? 'bride_side',
       age_group: overrides.age_group ?? 'adult',
       has_kids_attending: overrides.has_kids_attending ?? false,
+      amount_of_kids: overrides.amount_of_kids ?? null,
       personality_type: overrides.personality_type ?? 'introvert',
       vip_parents: overrides.vip_parents ?? false,
       vip_grandparents: overrides.vip_grandparents ?? false,

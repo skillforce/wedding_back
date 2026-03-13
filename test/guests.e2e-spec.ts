@@ -84,6 +84,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
             relationship_to_couple: guestForm.relationship_to_couple,
             age_group: guestForm.age_group,
             has_kids_attending: guestForm.has_kids_attending,
+            amount_of_kids: guestForm.amount_of_kids,
             personality_type: guestForm.personality_type,
             vip_parents: guestForm.vip_parents,
             vip_grandparents: guestForm.vip_grandparents,

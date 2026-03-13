@@ -29,6 +29,9 @@ export class GuestForm extends UuidEntity {
   @Column({ nullable: false, default: false })
   has_kids_attending: boolean;
 
+  @Column({ type: 'int', nullable: true, default: null })
+  amount_of_kids: number | null;
+
   @Column({ nullable: false })
   personality_type: PersonalityType;
 
