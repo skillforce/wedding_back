@@ -24,6 +24,7 @@ interface TableBucket {
   position: { x: number; y: number };
   guestIds: string[];
   usedSeats: number;
+  tableGroup: string;
 }
 
 export class AutoSeatGuestsCommand {
@@ -61,16 +62,25 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     );
 
     const sortedUnits = this.sortUnits(units);
-    const tables = this.packIntoTables(
+    const unitsByGuestId = new Map(units.map((u) => [u.guestId, u]));
+
+    const packedTables = this.packIntoTables(
       sortedUnits,
       arrangement.max_seats_per_table_amount,
     );
+    const tables = this.balanceTables(
+      packedTables,
+      unitsByGuestId,
+      arrangement.max_seats_per_table_amount,
+    );
 
-    this.validateTablesCount(tables.length, arrangement.max_tables_amount);
+    const allTables = this.buildFinalTablesArray(arrangement.width, tables);
+
+    this.validateTablesCount(allTables.length, arrangement.max_tables_amount);
 
     this.assignPositions(tables, arrangement.width, arrangement.height);
 
-    await this.saveArrangement(arrangement.id, tables);
+    await this.saveArrangement(arrangement.id, allTables);
   }
 
   private async saveArrangement(
@@ -149,7 +159,8 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     const plusOne = guest.response?.plus_one ? 1 : 0;
     const kidsCount = form.has_kids_attending ? (form.amount_of_kids ?? 0) : 0;
 
-    const isVip = form.vip_parents || form.vip_grandparents || form.vip_relatives;
+    const isVip =
+      form.vip_parents || form.vip_grandparents || form.vip_relatives;
     return {
       guestId: guest.id,
       weight: 1 + plusOne + kidsCount,
@@ -226,7 +237,10 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     if (vipMutual.length < 4) {
       vipMutual.forEach((u, i) => {
         const target = i % 2 === 0 ? mergedVipBride : mergedVipGroom;
-        target.push({ ...u, tableGroup: `vip:${i % 2 === 0 ? RelationshipToCouple.BrideSide : RelationshipToCouple.GroomSide}` });
+        target.push({
+          ...u,
+          tableGroup: `vip:${i % 2 === 0 ? RelationshipToCouple.BrideSide : RelationshipToCouple.GroomSide}`,
+        });
       });
       return [...mergedVipBride, ...mergedVipGroom, ...interleaved];
     }
@@ -264,6 +278,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
       position: { x: 0, y: 0 },
       guestIds: [],
       usedSeats: 0,
+      tableGroup: '',
     };
     let currentGroupKey = '';
 
@@ -277,6 +292,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
           position: { x: 0, y: 0 },
           guestIds: [],
           usedSeats: 0,
+          tableGroup: '',
         };
       }
     };
@@ -290,17 +306,83 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
       }
 
       currentGroupKey = unitGroupKey;
+      current.tableGroup = unitGroupKey;
       current.guestIds.push(unit.guestId);
       current.usedSeats += unit.weight;
     }
 
     closeCurrentTable();
 
-    tables.forEach((t, i) => {
-      t.name = `${i + 1}`;
-    });
-
     return tables;
+  }
+
+  private buildFinalTablesArray(
+    workspaceWidth: number,
+    tables: TableBucket[],
+  ): TableBucket[] {
+    const namedTables = tables.map((t, i) => ({ ...t, name: `${i + 1}` }));
+
+    return [
+      {
+        name: 'Newlyweds',
+        position: { x: Math.round(workspaceWidth / 2), y: 20 },
+        guestIds: [],
+        usedSeats: 0,
+        tableGroup: 'newlyweds',
+      },
+      ...namedTables,
+    ];
+  }
+
+  private balanceTables(
+    tables: TableBucket[],
+    unitsByGuestId: Map<string, SeatableUnit>,
+    maxSeatsPerTable: number,
+  ): TableBucket[] {
+    const groupMap = new Map<string, TableBucket[]>();
+    for (const table of tables) {
+      if (!groupMap.has(table.tableGroup)) groupMap.set(table.tableGroup, []);
+      groupMap.get(table.tableGroup)!.push(table);
+    }
+
+    const result: TableBucket[] = [];
+
+    for (const [group, groupTables] of groupMap) {
+      if (groupTables.length <= 1 || group.startsWith('vip:')) {
+        result.push(...groupTables);
+        continue;
+      }
+
+      const allUnits = groupTables
+        .flatMap((t) => t.guestIds.map((id) => unitsByGuestId.get(id)!))
+        .sort((a, b) => b.weight - a.weight);
+
+      const balanced: TableBucket[] = Array.from(
+        { length: groupTables.length },
+        () => ({
+          name: '',
+          position: { x: 0, y: 0 },
+          guestIds: [],
+          usedSeats: 0,
+          tableGroup: group,
+        }),
+      );
+
+      for (const unit of allUnits) {
+        const target = balanced
+          .filter((t) => t.usedSeats + unit.weight <= maxSeatsPerTable)
+          .sort((a, b) => a.usedSeats - b.usedSeats)[0];
+
+        if (target) {
+          target.guestIds.push(unit.guestId);
+          target.usedSeats += unit.weight;
+        }
+      }
+
+      result.push(...balanced.filter((t) => t.guestIds.length > 0));
+    }
+
+    return result;
   }
 
   private assignPositions(
