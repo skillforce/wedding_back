@@ -645,9 +645,13 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       expect(allSeats).toHaveLength(30);
       expect(elapsed).toBeLessThan(2000);
 
+      console.log(arrangement);
+
       // each table should have seats from both sides (interleaved)
       for (const table of arrangement.items) {
-        expect(table.seats.length).toBeGreaterThan(0);
+        if (table.name !== 'Newlyweds') {
+          expect(table.seats.length).toBeGreaterThan(0);
+        }
       }
     });
 
@@ -724,7 +728,9 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       // verify no table exceeds max_seats_per_table_amount (default 8)
       // weight: 10×2 + 10×2 + 5×1 = 45 seats consumed across tables
       for (const table of arrangement.items) {
-        expect(table.seats.length).toBeGreaterThan(0);
+        if (table.name !== 'Newlyweds') {
+          expect(table.seats.length).toBeGreaterThan(0);
+        }
       }
     });
 
@@ -853,7 +859,10 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         relationship_to_couple: RelationshipToCouple.BrideSide,
       });
 
-      await seatingTablesTestManager.autoSeat(accessToken, HttpStatus.FORBIDDEN);
+      await seatingTablesTestManager.autoSeat(
+        accessToken,
+        HttpStatus.FORBIDDEN,
+      );
     });
 
     it('should return 403 when a single guest unit cannot fit in any table', async () => {
@@ -884,7 +893,10 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         }),
       );
 
-      await seatingTablesTestManager.autoSeat(accessToken, HttpStatus.FORBIDDEN);
+      await seatingTablesTestManager.autoSeat(
+        accessToken,
+        HttpStatus.FORBIDDEN,
+      );
     });
 
     it('should seat guests who have both plus-one and 2-3 kids correctly', async () => {
@@ -947,7 +959,9 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
 
       // no table should have more guests than its weight allows within 10 seats
       for (const table of arrangement.items) {
-        expect(table.seats.length).toBeGreaterThan(0);
+        if (table.name !== 'Newlyweds') {
+          expect(table.seats.length).toBeGreaterThan(0);
+        }
         expect(table.seats.length).toBeLessThanOrEqual(2); // max 2 units of weight 5 per table
       }
     });

@@ -357,8 +357,11 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
         .flatMap((t) => t.guestIds.map((id) => unitsByGuestId.get(id)!))
         .sort((a, b) => b.weight - a.weight);
 
+      const totalWeight = allUnits.reduce((sum, u) => sum + u.weight, 0);
+      const tableCount = Math.ceil(totalWeight / maxSeatsPerTable);
+
       const balanced: TableBucket[] = Array.from(
-        { length: groupTables.length },
+        { length: tableCount },
         () => ({
           name: '',
           position: { x: 0, y: 0 },
