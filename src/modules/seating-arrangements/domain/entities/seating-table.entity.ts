@@ -22,7 +22,12 @@ export class SeatingTable extends UuidEntity {
   @Column({ type: 'jsonb', nullable: false })
   position: TablePosition;
 
-  @Column({ type: 'varchar', length: 16, nullable: false, default: TableShape.Circle })
+  @Column({
+    type: 'varchar',
+    enum: TableShape,
+    nullable: false,
+    default: TableShape.Circle,
+  })
   shape: TableShape;
 
   @Column({ type: 'float', nullable: false, default: 0 })
@@ -31,7 +36,9 @@ export class SeatingTable extends UuidEntity {
   @Column({ type: 'int', nullable: false, default: 70 })
   radius: number;
 
-  @ManyToOne(() => SeatingArrangement, (arrangement) => arrangement.tables, { onDelete: 'CASCADE' })
+  @ManyToOne(() => SeatingArrangement, (arrangement) => arrangement.tables, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'arrangement_id' })
   arrangement?: SeatingArrangement;
 
