@@ -399,17 +399,19 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     width: number,
     height: number,
   ): void {
+    const topOffset = 120;
+    const availableHeight = height - topOffset;
     const count = tables.length;
     const cols = Math.ceil(Math.sqrt(count));
     const spacingX = width / (cols + 1);
-    const spacingY = height / (Math.ceil(count / cols) + 1);
+    const spacingY = availableHeight / (Math.ceil(count / cols) + 1);
 
     tables.forEach((table, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
       table.position = {
         x: Math.round((col + 1) * spacingX),
-        y: Math.round((row + 1) * spacingY),
+        y: Math.round(topOffset + (row + 1) * spacingY),
       };
     });
   }
