@@ -8,6 +8,7 @@ import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { Guest } from '../../../guests/domain/enteties/guest.entity';
 import { RelationshipToCouple } from '../../../guests/domain/enteties/guest-form.entity';
+import { TableShape } from '../../domain/entities/seating-table.entity';
 
 interface SeatableUnit {
   guestId: string;
@@ -22,6 +23,7 @@ interface SeatableUnit {
 interface TableBucket {
   name: string;
   position: { x: number; y: number };
+  shape: TableShape;
   guestIds: string[];
   usedSeats: number;
   tableGroup: string;
@@ -100,7 +102,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
             arrangement_id: arrangementId,
             name: tableData.name,
             position: tableData.position,
-            shape: 'circle',
+            shape: tableData.shape,
             rotation: 0,
             radius: 70,
           },
@@ -276,6 +278,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     let current: TableBucket = {
       name: '',
       position: { x: 0, y: 0 },
+      shape: TableShape.Circle,
       guestIds: [],
       usedSeats: 0,
       tableGroup: '',
@@ -290,6 +293,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
         current = {
           name: '',
           position: { x: 0, y: 0 },
+          shape: TableShape.Circle,
           guestIds: [],
           usedSeats: 0,
           tableGroup: '',
@@ -326,6 +330,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
       {
         name: 'Newlyweds',
         position: { x: Math.round(workspaceWidth / 2), y: 20 },
+        shape: TableShape.Rect,
         guestIds: [],
         usedSeats: 0,
         tableGroup: 'newlyweds',
@@ -365,6 +370,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
         () => ({
           name: '',
           position: { x: 0, y: 0 },
+          shape: TableShape.Circle,
           guestIds: [],
           usedSeats: 0,
           tableGroup: group,

@@ -10,6 +10,7 @@ import { SeatingSeatsTestManager } from './helpers/seating-seats.test-manager';
 import { GuestsTestManager } from './helpers/guests.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
 import { RelationshipToCouple } from '../src/modules/guests/domain/enteties/guest-form.entity';
+import { TableShape } from '../src/modules/seating-arrangements/domain/entities/seating-table.entity';
 
 describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
   let app: INestApplication;
@@ -60,7 +61,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       await seatingTablesTestManager.getAllTables(accessToken);
     expect(arrangement).toEqual(
       expect.objectContaining({
-        shape: 'rect',
+        shape: TableShape.Rect,
         width: 1600,
         height: 900,
         max_tables_amount: 20,
@@ -88,7 +89,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
           id: expect.any(String),
           name: 'Main Table',
           position: dto.position,
-          shape: 'circle',
+          shape: TableShape.Circle,
           rotation: 0,
           radius: 70,
           seats: [],
@@ -202,17 +203,17 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
       const created = await seatingTablesTestManager.createTable(
-        seatingTablesTestManager.buildCreateTableDto({ shape: 'circle' }),
+        seatingTablesTestManager.buildCreateTableDto({ shape: TableShape.Circle }),
         accessToken,
       );
 
       const updated = await seatingTablesTestManager.updateTable(
         created.id,
-        { shape: 'rect' },
+        { shape: TableShape.Rect },
         accessToken,
       );
 
-      expect(updated.shape).toBe('rect');
+      expect(updated.shape).toBe(TableShape.Rect);
     });
 
     it('should create a table with pillar shape', async () => {
@@ -220,7 +221,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         await userAccountsTestManager.createUserAndLogin();
       const dto = seatingTablesTestManager.buildCreateTableDto({
         name: 'Pillar',
-        shape: 'pillar',
+        shape: TableShape.Pillar,
       });
 
       const created = await seatingTablesTestManager.createTable(
@@ -228,24 +229,24 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         accessToken,
       );
 
-      expect(created.shape).toBe('pillar');
+      expect(created.shape).toBe(TableShape.Pillar);
     });
 
     it('should update table shape to pillar', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
       const created = await seatingTablesTestManager.createTable(
-        seatingTablesTestManager.buildCreateTableDto({ shape: 'circle' }),
+        seatingTablesTestManager.buildCreateTableDto({ shape: TableShape.Circle }),
         accessToken,
       );
 
       const updated = await seatingTablesTestManager.updateTable(
         created.id,
-        { shape: 'pillar' },
+        { shape: TableShape.Pillar },
         accessToken,
       );
 
-      expect(updated.shape).toBe('pillar');
+      expect(updated.shape).toBe(TableShape.Pillar);
     });
 
     it('should create a table with custom radius', async () => {

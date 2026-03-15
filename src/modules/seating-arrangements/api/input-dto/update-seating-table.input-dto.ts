@@ -11,6 +11,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { TablePositionDto } from './create-seating-table.input-dto';
+import { TableShape } from '../../domain/entities/seating-table.entity';
 
 export class UpdateSeatingTableInputDto {
   @ApiProperty({ description: 'Name of the table', required: false, example: 'Table 1' })
@@ -27,13 +28,13 @@ export class UpdateSeatingTableInputDto {
 
   @ApiProperty({
     description: 'Shape of the table',
-    enum: ['circle', 'rect', 'pillar'],
+    enum: TableShape,
     required: false,
-    example: 'rect',
+    example: TableShape.Rect,
   })
   @IsOptional()
-  @IsIn(['circle', 'rect', 'pillar'])
-  shape?: string;
+  @IsIn(Object.values(TableShape))
+  shape?: TableShape;
 
   @ApiProperty({
     description: 'Rotation angle of the table in degrees',
