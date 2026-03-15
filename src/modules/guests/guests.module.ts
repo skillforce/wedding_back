@@ -30,6 +30,6 @@ import { User } from '../user-accounts/domain/entities/user.entity';
     CreateGuestResponseUseCase,
     DeleteGuestResponseUseCase,
   ],
-  exports: [],
+  exports: [GuestsRepository],
 })
 export class GuestsModule {}

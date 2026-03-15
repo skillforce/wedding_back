@@ -43,9 +43,10 @@ export class SeatingTablesRepository {
 
   async saveEntityWithManager(
     manager: EntityManager,
-    table: SeatingTable,
-  ): Promise<void> {
-    await manager.getRepository(SeatingTable).save(table);
+    table: SeatingTable | Omit<SeatingTable, 'id' | 'createdAt' | 'arrangement' | 'seats'>,
+  ): Promise<string> {
+    const result = await manager.getRepository(SeatingTable).save(table as SeatingTable);
+    return result.id;
   }
 
   async deleteByIdWithManager(
@@ -53,5 +54,12 @@ export class SeatingTablesRepository {
     id: string,
   ): Promise<void> {
     await manager.getRepository(SeatingTable).delete({ id });
+  }
+
+  async deleteAllByArrangementIdWithManager(
+    manager: EntityManager,
+    arrangementId: string,
+  ): Promise<void> {
+    await manager.getRepository(SeatingTable).delete({ arrangement_id: arrangementId });
   }
 }

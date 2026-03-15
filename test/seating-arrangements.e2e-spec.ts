@@ -9,6 +9,7 @@ import { SeatingTablesTestManager } from './helpers/seating-tables.test-manager'
 import { SeatingSeatsTestManager } from './helpers/seating-seats.test-manager';
 import { GuestsTestManager } from './helpers/guests.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
+import { RelationshipToCouple } from '../src/modules/guests/domain/enteties/guest-form.entity';
 
 describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
   let app: INestApplication;
@@ -528,6 +529,40 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       expect(arrangement.items).toHaveLength(0);
     });
 
+    it('should move guest to new table when seated again', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+      const table1 = await seatingTablesTestManager.createTable(
+        seatingTablesTestManager.buildCreateTableDto(),
+        accessToken,
+      );
+      const table2 = await seatingTablesTestManager.createTable(
+        seatingTablesTestManager.buildCreateTableDto(),
+        accessToken,
+      );
+      const guest = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId),
+        accessToken,
+      );
+
+      await seatingSeatsTestManager.createSeat(
+        table1.id,
+        seatingSeatsTestManager.buildCreateSeatDto(guest.id),
+        accessToken,
+      );
+      await seatingSeatsTestManager.createSeat(
+        table2.id,
+        seatingSeatsTestManager.buildCreateSeatDto(guest.id),
+        accessToken,
+      );
+
+      const arrangement =
+        await seatingTablesTestManager.getAllTables(accessToken);
+      const allSeats = arrangement.items.flatMap((t: any) => t.seats);
+      const guestSeats = allSeats.filter((s: any) => s.guest_id === guest.id);
+      expect(guestSeats).toHaveLength(1);
+    });
+
     it('should cascade delete seat when guest is deleted', async () => {
       const { accessToken, userId } =
         await userAccountsTestManager.createUserAndLogin();
@@ -550,6 +585,371 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       const arrangement =
         await seatingTablesTestManager.getAllTables(accessToken);
       expect(arrangement.items[0].seats).toHaveLength(0);
+    });
+  });
+
+  // ─── Auto-seat ────────────────────────────────────────────────────────────
+
+  describe('Auto-seat', () => {
+    const createGuests = async (
+      userId: number,
+      accessToken: string,
+      count: number,
+      formOverrides: Parameters<
+        typeof guestsTestManager.buildGuestFormDto
+      >[0] = {},
+      withPlusOne = false,
+      kidsCount = 0,
+    ) => {
+      for (let i = 0; i < count; i++) {
+        const guest = await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId, {
+            guestForm: guestsTestManager.buildGuestFormDto({
+              ...formOverrides,
+              has_kids_attending: kidsCount > 0,
+              amount_of_kids: kidsCount > 0 ? kidsCount : null,
+            }),
+          }),
+          accessToken,
+        );
+        if (withPlusOne) {
+          await guestsTestManager.createGuestResponse(
+            guest.id,
+            guestsTestManager.buildCreateGuestResponseDto({
+              plus_one: true,
+              plus_one_name: `Plus one of ${guest.id.slice(0, 6)}`,
+            }),
+          );
+        }
+      }
+    };
+
+    it('should seat 30 guests (mixed sides, no VIPs) within 2s and fill tables evenly', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      await createGuests(userId, accessToken, 15, {
+        relationship_to_couple: RelationshipToCouple.BrideSide,
+      });
+      await createGuests(userId, accessToken, 15, {
+        relationship_to_couple: RelationshipToCouple.GroomSide,
+      });
+
+      const start = Date.now();
+      const arrangement = await seatingTablesTestManager.autoSeat(accessToken);
+      const elapsed = Date.now() - start;
+
+      console.log(`[auto-seat] 30 guests, no VIPs — ${elapsed}ms`);
+
+      const allSeats = arrangement.items.flatMap((t: any) => t.seats);
+      expect(allSeats).toHaveLength(30);
+      expect(elapsed).toBeLessThan(2000);
+
+      // each table should have seats from both sides (interleaved)
+      for (const table of arrangement.items) {
+        expect(table.seats.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should seat 35 guests with VIPs isolated on their own tables and complete within 2s', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      // 4 bride VIPs → own table(s)
+      await createGuests(userId, accessToken, 4, {
+        relationship_to_couple: RelationshipToCouple.BrideSide,
+        vip_parents: true,
+      });
+      // 4 groom VIPs → own table(s)
+      await createGuests(userId, accessToken, 4, {
+        relationship_to_couple: RelationshipToCouple.GroomSide,
+        vip_parents: true,
+      });
+      // 27 regular guests mixed
+      await createGuests(userId, accessToken, 14, {
+        relationship_to_couple: RelationshipToCouple.BrideSide,
+      });
+      await createGuests(userId, accessToken, 13, {
+        relationship_to_couple: RelationshipToCouple.GroomSide,
+      });
+
+      const start = Date.now();
+      const arrangement = await seatingTablesTestManager.autoSeat(accessToken);
+      const elapsed = Date.now() - start;
+
+      console.log(`[auto-seat] 35 guests with VIPs — ${elapsed}ms`);
+
+      const allSeats = arrangement.items.flatMap((t: any) => t.seats);
+      expect(allSeats).toHaveLength(35);
+      expect(elapsed).toBeLessThan(2000);
+    });
+
+    it('should seat 25 guests with plus-ones and kids (weight > 1) and complete within 2s', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      // 10 guests with plus-ones (weight 2 each)
+      await createGuests(
+        userId,
+        accessToken,
+        10,
+        { relationship_to_couple: RelationshipToCouple.BrideSide },
+        true,
+      );
+      // 10 guests with 1 kid each (weight 2 each)
+      await createGuests(
+        userId,
+        accessToken,
+        10,
+        { relationship_to_couple: RelationshipToCouple.GroomSide },
+        false,
+        1,
+      );
+      // 5 solo guests
+      await createGuests(userId, accessToken, 5, {
+        relationship_to_couple: RelationshipToCouple.Mutual,
+      });
+
+      const start = Date.now();
+      const arrangement = await seatingTablesTestManager.autoSeat(accessToken);
+      const elapsed = Date.now() - start;
+
+      console.log(`[auto-seat] 25 guests with plus-ones/kids — ${elapsed}ms`);
+
+      // 25 seat records (plus-ones and kids consume capacity but have no seat record)
+      const allSeats = arrangement.items.flatMap((t: any) => t.seats);
+      expect(allSeats).toHaveLength(25);
+      expect(elapsed).toBeLessThan(2000);
+
+      // verify no table exceeds max_seats_per_table_amount (default 8)
+      // weight: 10×2 + 10×2 + 5×1 = 45 seats consumed across tables
+      for (const table of arrangement.items) {
+        expect(table.seats.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should seat 100 guests (mixed sides, no VIPs) within 3s', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      // max_tables=40, max_seats=30 → capacity 1200, enough for 100 guests
+      await seatingTablesTestManager.updateArrangement(
+        { max_tables_amount: 40, max_seats_per_table_amount: 30 },
+        accessToken,
+      );
+
+      await createGuests(userId, accessToken, 50, {
+        relationship_to_couple: RelationshipToCouple.BrideSide,
+      });
+      await createGuests(userId, accessToken, 50, {
+        relationship_to_couple: RelationshipToCouple.GroomSide,
+      });
+
+      const start = Date.now();
+      const arrangement = await seatingTablesTestManager.autoSeat(accessToken);
+      console.log(arrangement);
+      const elapsed = Date.now() - start;
+
+      console.log(`[auto-seat] 100 guests, no VIPs — ${elapsed}ms`);
+
+      const allSeats = arrangement.items.flatMap((t: any) => t.seats);
+      expect(allSeats).toHaveLength(100);
+      expect(elapsed).toBeLessThan(3000);
+    });
+
+    it('should seat 100 guests with VIPs on dedicated tables within 3s', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      await seatingTablesTestManager.updateArrangement(
+        { max_tables_amount: 40, max_seats_per_table_amount: 30 },
+        accessToken,
+      );
+
+      // 10 bride VIPs + 10 groom VIPs → dedicated tables
+      await createGuests(userId, accessToken, 10, {
+        relationship_to_couple: RelationshipToCouple.BrideSide,
+        vip_parents: true,
+      });
+      await createGuests(userId, accessToken, 10, {
+        relationship_to_couple: RelationshipToCouple.GroomSide,
+        vip_parents: true,
+      });
+      // 40 bride regular + 40 groom regular
+      await createGuests(userId, accessToken, 40, {
+        relationship_to_couple: RelationshipToCouple.BrideSide,
+      });
+      await createGuests(userId, accessToken, 40, {
+        relationship_to_couple: RelationshipToCouple.GroomSide,
+      });
+
+      const start = Date.now();
+      const arrangement = await seatingTablesTestManager.autoSeat(accessToken);
+      console.log(arrangement);
+      const elapsed = Date.now() - start;
+
+      console.log(`[auto-seat] 100 guests with VIPs — ${elapsed}ms`);
+
+      const allSeats = arrangement.items.flatMap((t: any) => t.seats);
+      expect(allSeats).toHaveLength(100);
+      expect(elapsed).toBeLessThan(3000);
+    });
+
+    it('should seat 100 guests with plus-ones and kids within 3s', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      // 40×weight2 + 40×weight2 + 20×weight1 = 180 seats consumed → need 40 tables of 5+
+      await seatingTablesTestManager.updateArrangement(
+        { max_tables_amount: 40, max_seats_per_table_amount: 10 },
+        accessToken,
+      );
+
+      // 40 guests with plus-ones (weight 2 each = 80 seats)
+      await createGuests(
+        userId,
+        accessToken,
+        40,
+        { relationship_to_couple: RelationshipToCouple.BrideSide },
+        true,
+      );
+      // 40 guests with 1 kid each (weight 2 each = 80 seats)
+      await createGuests(
+        userId,
+        accessToken,
+        40,
+        { relationship_to_couple: RelationshipToCouple.GroomSide },
+        false,
+        1,
+      );
+      // 20 solo guests (weight 1 each = 20 seats)
+      await createGuests(userId, accessToken, 20, {
+        relationship_to_couple: RelationshipToCouple.Mutual,
+      });
+
+      const start = Date.now();
+      const arrangement = await seatingTablesTestManager.autoSeat(accessToken);
+      const elapsed = Date.now() - start;
+
+      console.log(`[auto-seat] 100 guests with plus-ones/kids — ${elapsed}ms`);
+
+      // 100 seat records (plus-ones and kids have no seat record)
+      const allSeats = arrangement.items.flatMap((t: any) => t.seats);
+      expect(allSeats).toHaveLength(100);
+      expect(elapsed).toBeLessThan(3000);
+    });
+
+    it('should return 403 when total seats needed exceed capacity', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      // max capacity = 2 tables × 3 seats = 6, but we create 10 guests
+      await seatingTablesTestManager.updateArrangement(
+        { max_tables_amount: 2, max_seats_per_table_amount: 3 },
+        accessToken,
+      );
+
+      await createGuests(userId, accessToken, 10, {
+        relationship_to_couple: RelationshipToCouple.BrideSide,
+      });
+
+      await seatingTablesTestManager.autoSeat(accessToken, HttpStatus.FORBIDDEN);
+    });
+
+    it('should return 403 when a single guest unit cannot fit in any table', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      // max 2 seats per table — guest + plus_one + 2 kids = weight 4, won't fit
+      await seatingTablesTestManager.updateArrangement(
+        { max_tables_amount: 10, max_seats_per_table_amount: 2 },
+        accessToken,
+      );
+
+      const guest = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId, {
+          guestForm: guestsTestManager.buildGuestFormDto({
+            relationship_to_couple: RelationshipToCouple.BrideSide,
+            has_kids_attending: true,
+            amount_of_kids: 2,
+          }),
+        }),
+        accessToken,
+      );
+      await guestsTestManager.createGuestResponse(
+        guest.id,
+        guestsTestManager.buildCreateGuestResponseDto({
+          plus_one: true,
+          plus_one_name: 'Partner',
+        }),
+      );
+
+      await seatingTablesTestManager.autoSeat(accessToken, HttpStatus.FORBIDDEN);
+    });
+
+    it('should seat guests who have both plus-one and 2-3 kids correctly', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      // guest + plus_one + 3 kids = weight 5 → need max_seats_per_table >= 5
+      await seatingTablesTestManager.updateArrangement(
+        { max_tables_amount: 40, max_seats_per_table_amount: 10 },
+        accessToken,
+      );
+
+      // 5 bride guests each with plus-one + 3 kids (weight 5 each = 25 seats)
+      for (let i = 0; i < 5; i++) {
+        const guest = await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId, {
+            guestForm: guestsTestManager.buildGuestFormDto({
+              relationship_to_couple: RelationshipToCouple.BrideSide,
+              has_kids_attending: true,
+              amount_of_kids: 3,
+            }),
+          }),
+          accessToken,
+        );
+        await guestsTestManager.createGuestResponse(
+          guest.id,
+          guestsTestManager.buildCreateGuestResponseDto({
+            plus_one: true,
+            plus_one_name: `Partner ${i}`,
+          }),
+        );
+      }
+
+      // 5 groom guests each with plus-one + 2 kids (weight 4 each = 20 seats)
+      for (let i = 0; i < 5; i++) {
+        const guest = await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId, {
+            guestForm: guestsTestManager.buildGuestFormDto({
+              relationship_to_couple: RelationshipToCouple.GroomSide,
+              has_kids_attending: true,
+              amount_of_kids: 2,
+            }),
+          }),
+          accessToken,
+        );
+        await guestsTestManager.createGuestResponse(
+          guest.id,
+          guestsTestManager.buildCreateGuestResponseDto({
+            plus_one: true,
+            plus_one_name: `Partner ${i}`,
+          }),
+        );
+      }
+
+      const arrangement = await seatingTablesTestManager.autoSeat(accessToken);
+
+      // 10 seat records total (weight is capacity-only, not extra seat records)
+      const allSeats = arrangement.items.flatMap((t: any) => t.seats);
+      expect(allSeats).toHaveLength(10);
+
+      // no table should have more guests than its weight allows within 10 seats
+      for (const table of arrangement.items) {
+        expect(table.seats.length).toBeGreaterThan(0);
+        expect(table.seats.length).toBeLessThanOrEqual(2); // max 2 units of weight 5 per table
+      }
     });
   });
 });

@@ -2,6 +2,7 @@ import { HttpStatus, INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { CreateGuestInputDto, GuestFormInputDto } from '../../src/modules/guests/api/input-dto/guest.input-dto';
+import { RelationshipToCouple } from '../../src/modules/guests/domain/enteties/guest-form.entity';
 import { CreateGuestResponseInputDto } from '../../src/modules/guests/api/input-dto/guest-response.input-dto';
 import { UpdateGuestFormInputDto } from '../../src/modules/guests/api/input-dto/update-guest-form.input-dto';
 
@@ -15,7 +16,7 @@ export class GuestsTestManager {
 
   buildGuestFormDto(overrides: Partial<GuestFormInputDto> = {}): GuestFormInputDto {
     return {
-      relationship_to_couple: overrides.relationship_to_couple ?? 'bride_side',
+      relationship_to_couple: overrides.relationship_to_couple ?? RelationshipToCouple.BrideSide,
       age_group: overrides.age_group ?? 'adult',
       has_kids_attending: overrides.has_kids_attending ?? false,
       amount_of_kids: overrides.amount_of_kids ?? null,

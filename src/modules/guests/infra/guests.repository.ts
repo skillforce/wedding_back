@@ -56,4 +56,11 @@ export class GuestsRepository {
   async deleteGuestByIdOrFail(id: string): Promise<void> {
     await this.guestsOrmRepository.delete(id);
   }
+
+  async findAllWithRelationsByUserId(userId: number): Promise<Guest[]> {
+    return this.guestsOrmRepository.find({
+      where: { user_id: userId },
+      relations: ['response', 'guestForm'],
+    });
+  }
 }

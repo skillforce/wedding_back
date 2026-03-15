@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -21,6 +22,7 @@ import { SeatingArrangementsQueryRepository } from '../infra/query/seating-arran
 import { SeatingArrangementViewDto } from './view-dto/seating-arrangement.view-dto';
 import { UpdateSeatingArrangementInputDto } from './input-dto/update-seating-arrangement.input-dto';
 import { UpdateSeatingArrangementCommand } from '../app/usecases/update-seating-arrangement.usecase';
+import { AutoSeatGuestsCommand } from '../app/usecases/auto-seat-guests.usecase';
 
 @ApiTags('Seating arrangements')
 @ApiBearerAuth()
@@ -49,6 +51,25 @@ export class SeatingArrangementsController {
   ): Promise<SeatingArrangementViewDto> {
     await this.commandBus.execute<UpdateSeatingArrangementCommand, void>(
       new UpdateSeatingArrangementCommand(dto, user.id),
+    );
+    return this.queryRepository.findByUserId(user.id);
+  }
+
+  @Post('auto-seat')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Auto-assign all guests to tables' })
+  @ApiResponse({
+    status: 200,
+    description: 'Guests seated successfully',
+    type: SeatingArrangementViewDto,
+  })
+  @ApiResponse({ status: 400, description: 'Capacity exceeded or invalid state' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async autoSeat(
+    @ExtractUserFromRequest() user: UserContextDto,
+  ): Promise<SeatingArrangementViewDto> {
+    await this.commandBus.execute<AutoSeatGuestsCommand, void>(
+      new AutoSeatGuestsCommand(user.id),
     );
     return this.queryRepository.findByUserId(user.id);
   }

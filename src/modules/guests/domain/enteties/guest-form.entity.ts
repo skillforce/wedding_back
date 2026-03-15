@@ -2,16 +2,20 @@ import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 import { UuidEntity } from '../../../common/domain/base.entity';
 import { Guest } from './guest.entity';
 
+export enum RelationshipToCouple {
+  BrideSide = 'bride_side',
+  GroomSide = 'groom_side',
+  Mutual = 'mutual',
+}
+
 export const RELATIONSHIP_TO_COUPLE_VALUES = [
-  'bride_side',
-  'groom_side',
-  'mutual',
+  RelationshipToCouple.BrideSide,
+  RelationshipToCouple.GroomSide,
+  RelationshipToCouple.Mutual,
 ] as const;
 export const AGE_GROUPS = ['child', 'young', 'adult', 'old'] as const;
 export const PERSONALITY_TYPES = ['introvert', 'extrovert', 'unknown'] as const;
 
-export type RelationshipToCouple =
-  (typeof RELATIONSHIP_TO_COUPLE_VALUES)[number];
 export type AgeGroup = (typeof AGE_GROUPS)[number];
 export type PersonalityType = (typeof PERSONALITY_TYPES)[number];
 

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { GuestsModule } from '../guests/guests.module';
 import { SeatingTable } from './domain/entities/seating-table.entity';
 import { SeatingSeat } from './domain/entities/seating-seat.entity';
 import { SeatingArrangement } from './domain/entities/seating-arrangement.entity';
@@ -19,9 +20,10 @@ import { CreateSeatingSeatUseCase } from './app/usecases/create-seating-seat.use
 import { DeleteSeatingSeatUseCase } from './app/usecases/delete-seating-seat.usecase';
 import { CreateDefaultSeatingArrangementUseCase } from './app/usecases/create-default-seating-arrangement.usecase';
 import { UpdateSeatingArrangementUseCase } from './app/usecases/update-seating-arrangement.usecase';
+import { AutoSeatGuestsUseCase } from './app/usecases/auto-seat-guests.usecase';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SeatingTable, SeatingSeat, SeatingArrangement])],
+  imports: [TypeOrmModule.forFeature([SeatingTable, SeatingSeat, SeatingArrangement]), GuestsModule],
   controllers: [SeatingArrangementsController, SeatingTablesController, SeatingSeatsController],
   providers: [
     SeatingTablesRepository,
@@ -37,6 +39,7 @@ import { UpdateSeatingArrangementUseCase } from './app/usecases/update-seating-a
     DeleteSeatingSeatUseCase,
     CreateDefaultSeatingArrangementUseCase,
     UpdateSeatingArrangementUseCase,
+    AutoSeatGuestsUseCase,
   ],
   exports: [],
 })
