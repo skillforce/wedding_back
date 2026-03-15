@@ -80,7 +80,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
 
     this.validateTablesCount(allTables.length, arrangement.max_tables_amount);
 
-    this.assignPositions(tables, arrangement.width, arrangement.height);
+    this.assignPositions(allTables, arrangement.width, arrangement.height);
 
     await this.saveArrangement(arrangement.id, allTables);
   }
