@@ -599,11 +599,10 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       formOverrides: Parameters<
         typeof guestsTestManager.buildGuestFormDto
       >[0] = {},
-      withPlusOne = false,
       kidsCount = 0,
     ) => {
       for (let i = 0; i < count; i++) {
-        const guest = await guestsTestManager.createGuest(
+        await guestsTestManager.createGuest(
           guestsTestManager.buildCreateGuestDto(userId, {
             guestForm: guestsTestManager.buildGuestFormDto({
               ...formOverrides,
@@ -613,15 +612,6 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
           }),
           accessToken,
         );
-        if (withPlusOne) {
-          await guestsTestManager.createGuestResponse(
-            guest.id,
-            guestsTestManager.buildCreateGuestResponseDto({
-              plus_one: true,
-              plus_one_name: `Plus one of ${guest.id.slice(0, 6)}`,
-            }),
-          );
-        }
       }
     };
 
@@ -693,13 +683,15 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       const { accessToken, userId } =
         await userAccountsTestManager.createUserAndLogin();
 
-      // 10 guests with plus-ones (weight 2 each)
+      // 10 guests with unlisted partner (weight 2 each)
       await createGuests(
         userId,
         accessToken,
         10,
-        { relationship_to_couple: RelationshipToCouple.BrideSide },
-        true,
+        {
+          relationship_to_couple: RelationshipToCouple.BrideSide,
+          ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: true }),
+        },
       );
       // 10 guests with 1 kid each (weight 2 each)
       await createGuests(
@@ -707,7 +699,6 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         accessToken,
         10,
         { relationship_to_couple: RelationshipToCouple.GroomSide },
-        false,
         1,
       );
       // 5 solo guests
@@ -812,13 +803,15 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         accessToken,
       );
 
-      // 40 guests with plus-ones (weight 2 each = 80 seats)
+      // 40 guests with unlisted partner (weight 2 each = 80 seats)
       await createGuests(
         userId,
         accessToken,
         40,
-        { relationship_to_couple: RelationshipToCouple.BrideSide },
-        true,
+        {
+          relationship_to_couple: RelationshipToCouple.BrideSide,
+          ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: true }),
+        },
       );
       // 40 guests with 1 kid each (weight 2 each = 80 seats)
       await createGuests(
@@ -826,7 +819,6 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         accessToken,
         40,
         { relationship_to_couple: RelationshipToCouple.GroomSide },
-        false,
         1,
       );
       // 20 solo guests (weight 1 each = 20 seats)
@@ -870,28 +862,22 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       const { accessToken, userId } =
         await userAccountsTestManager.createUserAndLogin();
 
-      // max 2 seats per table — guest + plus_one + 2 kids = weight 4, won't fit
+      // max 2 seats per table — guest + unlisted partner + 2 kids = weight 4, won't fit
       await seatingTablesTestManager.updateArrangement(
         { max_tables_amount: 10, max_seats_per_table_amount: 2 },
         accessToken,
       );
 
-      const guest = await guestsTestManager.createGuest(
+      await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userId, {
           guestForm: guestsTestManager.buildGuestFormDto({
             relationship_to_couple: RelationshipToCouple.BrideSide,
             has_kids_attending: true,
             amount_of_kids: 2,
+            ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: true }),
           }),
         }),
         accessToken,
-      );
-      await guestsTestManager.createGuestResponse(
-        guest.id,
-        guestsTestManager.buildCreateGuestResponseDto({
-          plus_one: true,
-          plus_one_name: 'Partner',
-        }),
       );
 
       await seatingTablesTestManager.autoSeat(
@@ -910,60 +896,42 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         accessToken,
       );
 
-      // 5 bride guests each with plus-one + 3 kids (weight 5 each = 25 seats)
-      for (let i = 0; i < 5; i++) {
-        const guest = await guestsTestManager.createGuest(
-          guestsTestManager.buildCreateGuestDto(userId, {
-            guestForm: guestsTestManager.buildGuestFormDto({
-              relationship_to_couple: RelationshipToCouple.BrideSide,
-              has_kids_attending: true,
-              amount_of_kids: 3,
-            }),
-          }),
-          accessToken,
-        );
-        await guestsTestManager.createGuestResponse(
-          guest.id,
-          guestsTestManager.buildCreateGuestResponseDto({
-            plus_one: true,
-            plus_one_name: `Partner ${i}`,
-          }),
-        );
-      }
+      // 5 bride guests each with unlisted partner + 3 kids (weight 5 each = 25 seats)
+      await createGuests(
+        userId,
+        accessToken,
+        5,
+        {
+          relationship_to_couple: RelationshipToCouple.BrideSide,
+          ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: true }),
+        },
+        3,
+      );
 
-      // 5 groom guests each with plus-one + 2 kids (weight 4 each = 20 seats)
-      for (let i = 0; i < 5; i++) {
-        const guest = await guestsTestManager.createGuest(
-          guestsTestManager.buildCreateGuestDto(userId, {
-            guestForm: guestsTestManager.buildGuestFormDto({
-              relationship_to_couple: RelationshipToCouple.GroomSide,
-              has_kids_attending: true,
-              amount_of_kids: 2,
-            }),
-          }),
-          accessToken,
-        );
-        await guestsTestManager.createGuestResponse(
-          guest.id,
-          guestsTestManager.buildCreateGuestResponseDto({
-            plus_one: true,
-            plus_one_name: `Partner ${i}`,
-          }),
-        );
-      }
+      // 5 groom guests each with unlisted partner + 2 kids (weight 4 each = 20 seats)
+      await createGuests(
+        userId,
+        accessToken,
+        5,
+        {
+          relationship_to_couple: RelationshipToCouple.GroomSide,
+          ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: true }),
+        },
+        2,
+      );
 
       const arrangement = await seatingTablesTestManager.autoSeat(accessToken);
 
-      // 10 seat records total (weight is capacity-only, not extra seat records)
+      // 10 seat records total (unlisted partner and kids consume capacity, no seat record)
       const allSeats = arrangement.items.flatMap((t: any) => t.seats);
       expect(allSeats).toHaveLength(10);
 
-      // no table should have more guests than its weight allows within 10 seats
+      // weight 5: max 2 per table (2×5=10); weight 4: max 2 per table (3×4=12 > 10)
       for (const table of arrangement.items) {
         if (table.name !== 'Newlyweds') {
           expect(table.seats.length).toBeGreaterThan(0);
         }
-        expect(table.seats.length).toBeLessThanOrEqual(2); // max 2 units of weight 5 per table
+        expect(table.seats.length).toBeLessThanOrEqual(2);
       }
     });
   });
