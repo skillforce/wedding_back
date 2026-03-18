@@ -158,7 +158,6 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
 
   private buildSeatableUnit(guest: Guest): SeatableUnit {
     const form = guest.guestForm!;
-    // +1 only when the couple is attending but is NOT a registered guest
     const unlistedCoupleExtra =
       form.if_with_couple_response && !form.if_with_couple_couple_id ? 1 : 0;
     const kidsCount = form.has_kids_attending ? (form.amount_of_kids ?? 0) : 0;
