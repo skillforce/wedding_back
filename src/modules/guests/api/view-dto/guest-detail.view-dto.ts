@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { GuestsViewDto } from './guests.view-dto';
 import { Guest } from '../../domain/enteties/guest.entity';
 import { GuestResponse } from '../../domain/enteties/guest-response.entity';
@@ -31,6 +31,14 @@ export class GuestResponseViewDto {
   }
 }
 
+export class GuestCoupleStatusViewDto {
+  @ApiProperty()
+  response: boolean;
+
+  @ApiPropertyOptional()
+  coupleId?: string;
+}
+
 export class GuestFormViewDto {
   @ApiProperty({ enum: ['bride_side', 'groom_side', 'mutual'] })
   relationship_to_couple: string;
@@ -56,6 +64,9 @@ export class GuestFormViewDto {
   @ApiProperty()
   vip_relatives: boolean;
 
+  @ApiProperty({ type: GuestCoupleStatusViewDto })
+  ifWithCouple: GuestCoupleStatusViewDto;
+
   static mapToViewDto(form: GuestForm): GuestFormViewDto {
     const dto = new GuestFormViewDto();
     dto.relationship_to_couple = form.relationship_to_couple;
@@ -66,6 +77,10 @@ export class GuestFormViewDto {
     dto.vip_parents = form.vip_parents;
     dto.vip_grandparents = form.vip_grandparents;
     dto.vip_relatives = form.vip_relatives;
+    dto.ifWithCouple = { response: form.if_with_couple_response };
+    if (form.if_with_couple_couple_id) {
+      dto.ifWithCouple.coupleId = form.if_with_couple_couple_id;
+    }
     return dto;
   }
 }

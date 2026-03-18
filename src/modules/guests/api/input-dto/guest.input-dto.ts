@@ -4,6 +4,8 @@ import {
   IsInt,
   IsNumber,
   IsOptional,
+  IsString,
+  IsUUID,
   Max,
   Min,
   ValidateIf,
@@ -21,6 +23,18 @@ import {
   RELATIONSHIP_TO_COUPLE_VALUES,
   RelationshipToCouple,
 } from '../../domain/enteties/guest-form.entity';
+
+export class GuestCoupleStatusInputDto {
+  @ApiProperty()
+  @IsBoolean()
+  response: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @IsUUID()
+  coupleId?: string;
+}
 
 export class GuestFormInputDto {
   @ApiProperty({ enum: RELATIONSHIP_TO_COUPLE_VALUES })
@@ -57,6 +71,12 @@ export class GuestFormInputDto {
   @ApiProperty()
   @IsBoolean()
   vip_relatives: boolean;
+
+  @ApiPropertyOptional({ type: GuestCoupleStatusInputDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => GuestCoupleStatusInputDto)
+  ifWithCouple?: GuestCoupleStatusInputDto;
 }
 
 export class CreateGuestInputDto {

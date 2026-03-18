@@ -14,7 +14,13 @@ export class GuestFormRepository {
   ) {}
 
   async save(guestId: string, dto: GuestFormInputDto): Promise<void> {
-    await this.guestFormOrmRepository.save({ ...dto, guest_id: guestId });
+    const { ifWithCouple, ...rest } = dto;
+    await this.guestFormOrmRepository.save({
+      ...rest,
+      guest_id: guestId,
+      if_with_couple_response: ifWithCouple?.response ?? false,
+      if_with_couple_couple_id: ifWithCouple?.coupleId ?? null,
+    });
   }
 
   async findByGuestIdForUpdateOrFail(

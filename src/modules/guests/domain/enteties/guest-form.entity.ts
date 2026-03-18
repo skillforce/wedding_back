@@ -48,6 +48,12 @@ export class GuestForm extends UuidEntity {
   @Column({ nullable: false, default: false })
   vip_relatives: boolean;
 
+  @Column({ nullable: false, default: false })
+  if_with_couple_response: boolean;
+
+  @Column({ type: 'varchar', nullable: true, default: null })
+  if_with_couple_couple_id: string | null;
+
   @OneToOne(() => Guest, (guest) => guest.guestForm, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'guest_id' })
   guest?: Guest;

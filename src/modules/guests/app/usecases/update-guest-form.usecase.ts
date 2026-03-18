@@ -53,6 +53,10 @@ export class UpdateGuestFormUseCase implements ICommandHandler<UpdateGuestFormCo
       if (dto.vip_relatives !== undefined) {
         form.vip_relatives = dto.vip_relatives;
       }
+      if (dto.ifWithCouple !== undefined) {
+        form.if_with_couple_response = dto.ifWithCouple.response;
+        form.if_with_couple_couple_id = dto.ifWithCouple.coupleId ?? null;
+      }
 
       await this.guestFormRepository.saveEntityWithManager(manager, form);
     });

@@ -297,6 +297,94 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       );
     });
 
+    it('should create guest with ifWithCouple response false and return it', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto({
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: false }),
+      });
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      expect(created.guestForm.ifWithCouple).toEqual({ response: false });
+    });
+
+    it('should create guest with ifWithCouple response true and no coupleId', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto({
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: true }),
+      });
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      expect(created.guestForm.ifWithCouple).toEqual({ response: true });
+    });
+
+    it('should create guest with ifWithCouple response true and coupleId pointing to another guest', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const partner = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId),
+        accessToken,
+      );
+
+      const guestForm = guestsTestManager.buildGuestFormDto({
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
+          response: true,
+          coupleId: partner.id,
+        }),
+      });
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      expect(created.guestForm.ifWithCouple).toEqual({
+        response: true,
+        coupleId: partner.id,
+      });
+    });
+
+    it('should update ifWithCouple field via PATCH form', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto({
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: false }),
+      });
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      const partner = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId),
+        accessToken,
+      );
+
+      const updated = await guestsTestManager.updateGuestForm(
+        created.id,
+        { ifWithCouple: { response: true, coupleId: partner.id } },
+        accessToken,
+      );
+
+      expect(updated.guestForm.ifWithCouple).toEqual({
+        response: true,
+        coupleId: partner.id,
+      });
+    });
+
+    it('should default ifWithCouple response to false when guestForm has no ifWithCouple', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto();
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const created = await guestsTestManager.createGuest(dto, accessToken);
+
+      expect(created.guestForm.ifWithCouple).toEqual({ response: false });
+    });
+
     it('should return 400 for invalid enum value in update', async () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();

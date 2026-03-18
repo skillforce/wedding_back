@@ -1,5 +1,6 @@
-import { IsBoolean, IsEnum, IsInt, IsOptional, Max, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, Max, Min, ValidateIf, ValidateNested } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   AGE_GROUPS,
   AgeGroup,
@@ -8,6 +9,7 @@ import {
   RELATIONSHIP_TO_COUPLE_VALUES,
   RelationshipToCouple,
 } from '../../domain/enteties/guest-form.entity';
+import { GuestCoupleStatusInputDto } from './guest.input-dto';
 
 export class UpdateGuestFormInputDto {
   @ApiPropertyOptional({ enum: RELATIONSHIP_TO_COUPLE_VALUES })
@@ -52,4 +54,10 @@ export class UpdateGuestFormInputDto {
   @IsOptional()
   @IsBoolean()
   vip_relatives?: boolean;
+
+  @ApiPropertyOptional({ type: GuestCoupleStatusInputDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => GuestCoupleStatusInputDto)
+  ifWithCouple?: GuestCoupleStatusInputDto;
 }

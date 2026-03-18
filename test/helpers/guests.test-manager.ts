@@ -1,7 +1,7 @@
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { CreateGuestInputDto, GuestFormInputDto } from '../../src/modules/guests/api/input-dto/guest.input-dto';
+import { CreateGuestInputDto, GuestCoupleStatusInputDto, GuestFormInputDto } from '../../src/modules/guests/api/input-dto/guest.input-dto';
 import { RelationshipToCouple } from '../../src/modules/guests/domain/enteties/guest-form.entity';
 import { CreateGuestResponseInputDto } from '../../src/modules/guests/api/input-dto/guest-response.input-dto';
 import { UpdateGuestFormInputDto } from '../../src/modules/guests/api/input-dto/update-guest-form.input-dto';
@@ -24,6 +24,14 @@ export class GuestsTestManager {
       vip_parents: overrides.vip_parents ?? false,
       vip_grandparents: overrides.vip_grandparents ?? false,
       vip_relatives: overrides.vip_relatives ?? false,
+      ifWithCouple: overrides.ifWithCouple,
+    };
+  }
+
+  buildGuestCoupleStatusDto(overrides: Partial<GuestCoupleStatusInputDto> = {}): GuestCoupleStatusInputDto {
+    return {
+      response: overrides.response ?? false,
+      coupleId: overrides.coupleId,
     };
   }
 
