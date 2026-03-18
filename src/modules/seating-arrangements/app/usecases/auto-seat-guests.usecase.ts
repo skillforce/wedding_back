@@ -11,20 +11,21 @@ import { RelationshipToCouple } from '../../../guests/domain/enteties/guest-form
 import { TableShape } from '../../domain/entities/seating-table.entity';
 
 interface SeatableUnit {
-  guestId: string;
+  guestIds: string[];
   weight: number;
   relationshipToCouple: RelationshipToCouple;
   tableGroup: string;
   isVip: boolean;
   hasKids: boolean;
   personalityType: string;
+  couplePartnerId?: string;
 }
 
 interface TableBucket {
   name: string;
   position: { x: number; y: number };
   shape: TableShape;
-  guestIds: string[];
+  units: SeatableUnit[];
   usedSeats: number;
   tableGroup: string;
 }
@@ -54,7 +55,8 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
 
     if (!guests.length) return;
 
-    const units = guests.map((g) => this.buildSeatableUnit(g));
+    const rawUnits = guests.map((g) => this.buildSeatableUnit(g));
+    const units = this.mergeCouplePairs(rawUnits);
 
     this.validateUnitsFitInTable(units, arrangement.max_seats_per_table_amount);
     this.validateTotalCapacity(
@@ -64,7 +66,6 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     );
 
     const sortedUnits = this.sortUnits(units);
-    const unitsByGuestId = new Map(units.map((u) => [u.guestId, u]));
 
     const packedTables = this.packIntoTables(
       sortedUnits,
@@ -72,7 +73,6 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     );
     const tables = this.balanceTables(
       packedTables,
-      unitsByGuestId,
       arrangement.max_seats_per_table_amount,
     );
 
@@ -108,7 +108,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
           },
         );
 
-        for (const guestId of tableData.guestIds) {
+        for (const guestId of tableData.units.flatMap((u) => u.guestIds)) {
           await this.seatsRepository.saveWithManager(manager, {
             table_id: tableId,
             guest_id: guestId,
@@ -158,20 +158,54 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
 
   private buildSeatableUnit(guest: Guest): SeatableUnit {
     const form = guest.guestForm!;
-    const plusOne = guest.response?.plus_one ? 1 : 0;
+    // +1 only when the couple is attending but is NOT a registered guest
+    const unlistedCoupleExtra =
+      form.if_with_couple_response && !form.if_with_couple_couple_id ? 1 : 0;
     const kidsCount = form.has_kids_attending ? (form.amount_of_kids ?? 0) : 0;
 
     const isVip =
       form.vip_parents || form.vip_grandparents || form.vip_relatives;
     return {
-      guestId: guest.id,
-      weight: 1 + plusOne + kidsCount,
+      guestIds: [guest.id],
+      weight: 1 + unlistedCoupleExtra + kidsCount,
       relationshipToCouple: form.relationship_to_couple,
       tableGroup: isVip ? `vip:${form.relationship_to_couple}` : 'regular',
       isVip,
       hasKids: form.has_kids_attending && kidsCount > 0,
       personalityType: form.personality_type,
+      couplePartnerId: form.if_with_couple_couple_id ?? undefined,
     };
+  }
+  private mergeCouplePairs(units: SeatableUnit[]): SeatableUnit[] {
+    const byGuestId = new Map(units.map((u) => [u.guestIds[0], u]));
+    const consumed = new Set<string>();
+    const result: SeatableUnit[] = [];
+
+    for (const unit of units) {
+      const primaryId = unit.guestIds[0];
+      if (consumed.has(primaryId)) continue;
+
+      const partnerId = unit.couplePartnerId;
+      if (partnerId && byGuestId.has(partnerId) && !consumed.has(partnerId)) {
+        const partner = byGuestId.get(partnerId)!;
+        result.push({
+          guestIds: [primaryId, partnerId],
+          weight: unit.weight + partner.weight,
+          relationshipToCouple: unit.relationshipToCouple,
+          tableGroup: unit.tableGroup,
+          isVip: unit.isVip || partner.isVip,
+          hasKids: unit.hasKids || partner.hasKids,
+          personalityType: unit.personalityType,
+        });
+        consumed.add(primaryId);
+        consumed.add(partnerId);
+      } else {
+        result.push({ ...unit, couplePartnerId: undefined });
+        consumed.add(primaryId);
+      }
+    }
+
+    return result;
   }
 
   private sortUnits(units: SeatableUnit[]): SeatableUnit[] {
@@ -270,39 +304,34 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     return result;
   }
 
+  private emptyBucket(tableGroup = ''): TableBucket {
+    return {
+      name: '',
+      position: { x: 0, y: 0 },
+      shape: TableShape.Circle,
+      units: [],
+      usedSeats: 0,
+      tableGroup,
+    };
+  }
+
   private packIntoTables(
     units: SeatableUnit[],
     maxSeatsPerTable: number,
   ): TableBucket[] {
     const tables: TableBucket[] = [];
-    let current: TableBucket = {
-      name: '',
-      position: { x: 0, y: 0 },
-      shape: TableShape.Circle,
-      guestIds: [],
-      usedSeats: 0,
-      tableGroup: '',
-    };
+    let current: TableBucket = this.emptyBucket();
     let currentGroupKey = '';
 
-    const groupKey = (unit: SeatableUnit) => unit.tableGroup;
-
     const closeCurrentTable = () => {
-      if (current.guestIds.length > 0) {
+      if (current.units.length > 0) {
         tables.push(current);
-        current = {
-          name: '',
-          position: { x: 0, y: 0 },
-          shape: TableShape.Circle,
-          guestIds: [],
-          usedSeats: 0,
-          tableGroup: '',
-        };
+        current = this.emptyBucket();
       }
     };
 
     for (const unit of units) {
-      const unitGroupKey = groupKey(unit);
+      const unitGroupKey = unit.tableGroup;
       const groupChanged = currentGroupKey && unitGroupKey !== currentGroupKey;
 
       if (groupChanged || current.usedSeats + unit.weight > maxSeatsPerTable) {
@@ -311,7 +340,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
 
       currentGroupKey = unitGroupKey;
       current.tableGroup = unitGroupKey;
-      current.guestIds.push(unit.guestId);
+      current.units.push(unit);
       current.usedSeats += unit.weight;
     }
 
@@ -331,7 +360,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
         name: 'Newlyweds',
         position: { x: Math.round(workspaceWidth / 2), y: 20 },
         shape: TableShape.Rect,
-        guestIds: [],
+        units: [],
         usedSeats: 0,
         tableGroup: 'newlyweds',
       },
@@ -341,7 +370,6 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
 
   private balanceTables(
     tables: TableBucket[],
-    unitsByGuestId: Map<string, SeatableUnit>,
     maxSeatsPerTable: number,
   ): TableBucket[] {
     const groupMap = new Map<string, TableBucket[]>();
@@ -359,22 +387,14 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
       }
 
       const allUnits = groupTables
-        .flatMap((t) => t.guestIds.map((id) => unitsByGuestId.get(id)!))
+        .flatMap((t) => t.units)
         .sort((a, b) => b.weight - a.weight);
 
       const totalWeight = allUnits.reduce((sum, u) => sum + u.weight, 0);
       const tableCount = Math.ceil(totalWeight / maxSeatsPerTable);
 
-      const balanced: TableBucket[] = Array.from(
-        { length: tableCount },
-        () => ({
-          name: '',
-          position: { x: 0, y: 0 },
-          shape: TableShape.Circle,
-          guestIds: [],
-          usedSeats: 0,
-          tableGroup: group,
-        }),
+      const balanced: TableBucket[] = Array.from({ length: tableCount }, () =>
+        this.emptyBucket(group),
       );
 
       for (const unit of allUnits) {
@@ -383,12 +403,12 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
           .sort((a, b) => a.usedSeats - b.usedSeats)[0];
 
         if (target) {
-          target.guestIds.push(unit.guestId);
+          target.units.push(unit);
           target.usedSeats += unit.weight;
         }
       }
 
-      result.push(...balanced.filter((t) => t.guestIds.length > 0));
+      result.push(...balanced.filter((t) => t.units.length > 0));
     }
 
     return result;
