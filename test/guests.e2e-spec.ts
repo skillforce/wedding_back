@@ -46,8 +46,6 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
     }
   });
 
-  // ─── Guests ────────────────────────────────────────────────────────────────
-
   describe('Guests', () => {
     it('should create a guest without guestForm and return null guestForm', async () => {
       const { userId, accessToken } =
@@ -99,7 +97,9 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
-      const guestForm = guestsTestManager.buildGuestFormDto({ age_group: 'young' });
+      const guestForm = guestsTestManager.buildGuestFormDto({
+        age_group: 'young',
+      });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
       const created = await guestsTestManager.createGuest(dto, accessToken);
 
@@ -302,7 +302,9 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         await userAccountsTestManager.createUserAndLogin();
 
       const guestForm = guestsTestManager.buildGuestFormDto({
-        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: false }),
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
+          response: false,
+        }),
       });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
       const created = await guestsTestManager.createGuest(dto, accessToken);
@@ -315,7 +317,9 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         await userAccountsTestManager.createUserAndLogin();
 
       const guestForm = guestsTestManager.buildGuestFormDto({
-        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: true }),
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
+          response: true,
+        }),
       });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
       const created = await guestsTestManager.createGuest(dto, accessToken);
@@ -352,7 +356,9 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         await userAccountsTestManager.createUserAndLogin();
 
       const guestForm = guestsTestManager.buildGuestFormDto({
-        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({ response: false }),
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
+          response: false,
+        }),
       });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
       const created = await guestsTestManager.createGuest(dto, accessToken);
