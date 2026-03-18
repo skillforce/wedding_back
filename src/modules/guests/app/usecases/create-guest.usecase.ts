@@ -1,9 +1,10 @@
 import { CreateGuestInputDto } from '../../api/input-dto/guest.input-dto';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { GuestsRepository } from '../../infra/guests.repository';
 import { GuestFormRepository } from '../../infra/guest-form.repository';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
+import { SyncCoupleLinkCommand } from './sync-couple-link.usecase';
 
 export class CreateGuestCommand {
   constructor(public dto: CreateGuestInputDto) {}
@@ -15,6 +16,7 @@ export class CreateGuestUseCase implements ICommandHandler<
   string
 > {
   constructor(
+    private readonly commandBus: CommandBus,
     private guestsRepository: GuestsRepository,
     private guestFormRepository: GuestFormRepository,
   ) {}
@@ -38,8 +40,23 @@ export class CreateGuestUseCase implements ICommandHandler<
 
     if (dto.guestForm) {
       await this.guestFormRepository.save(guestId, dto.guestForm);
+
+      const coupleId = dto.guestForm.ifWithCouple?.coupleId ?? null;
+      if (coupleId) {
+        await this.syncCoupleLink(guestId, coupleId, null);
+      }
     }
 
     return guestId;
+  }
+
+  private async syncCoupleLink(
+    guestId: string,
+    newCoupleId: string | null,
+    previousCoupleId: string | null,
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new SyncCoupleLinkCommand(guestId, newCoupleId, previousCoupleId),
+    );
   }
 }

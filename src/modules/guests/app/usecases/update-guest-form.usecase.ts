@@ -1,9 +1,10 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { GuestFormRepository } from '../../infra/guest-form.repository';
 import { UpdateGuestFormInputDto } from '../../api/input-dto/update-guest-form.input-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { SyncCoupleLinkCommand } from './sync-couple-link.usecase';
 
 export class UpdateGuestFormCommand {
   constructor(
@@ -14,13 +15,21 @@ export class UpdateGuestFormCommand {
 }
 
 @CommandHandler(UpdateGuestFormCommand)
-export class UpdateGuestFormUseCase implements ICommandHandler<UpdateGuestFormCommand, void> {
+export class UpdateGuestFormUseCase implements ICommandHandler<
+  UpdateGuestFormCommand,
+  void
+> {
   constructor(
     private readonly dataSource: DataSource,
+    private readonly commandBus: CommandBus,
     private readonly guestFormRepository: GuestFormRepository,
   ) {}
 
-  async execute({ guestId, dto, userId }: UpdateGuestFormCommand): Promise<void> {
+  async execute({
+    guestId,
+    dto,
+    userId,
+  }: UpdateGuestFormCommand): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const form = await this.guestFormRepository.findByGuestIdForUpdateOrFail(
         manager,
@@ -28,6 +37,8 @@ export class UpdateGuestFormUseCase implements ICommandHandler<UpdateGuestFormCo
       );
 
       this.checkOwnership(form.guest?.user_id, userId);
+
+      const previousCoupleId = form.if_with_couple_couple_id;
 
       if (dto.relationship_to_couple !== undefined) {
         form.relationship_to_couple = dto.relationship_to_couple;
@@ -59,10 +70,31 @@ export class UpdateGuestFormUseCase implements ICommandHandler<UpdateGuestFormCo
       }
 
       await this.guestFormRepository.saveEntityWithManager(manager, form);
+
+      if (dto.ifWithCouple !== undefined) {
+        await this.syncCoupleLink(
+          guestId,
+          dto.ifWithCouple.coupleId ?? null,
+          previousCoupleId,
+        );
+      }
     });
   }
 
-  private checkOwnership(ownerUserId: number | undefined, userId: number): void {
+  private async syncCoupleLink(
+    guestId: string,
+    newCoupleId: string | null,
+    previousCoupleId: string | null,
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new SyncCoupleLinkCommand(guestId, newCoupleId, previousCoupleId),
+    );
+  }
+
+  private checkOwnership(
+    ownerUserId: number | undefined,
+    userId: number,
+  ): void {
     if (ownerUserId !== userId) {
       throw new DomainException({
         code: DomainExceptionCode.Forbidden,

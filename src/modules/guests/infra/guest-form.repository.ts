@@ -51,4 +51,11 @@ export class GuestFormRepository {
   ): Promise<void> {
     await manager.getRepository(GuestForm).save(form);
   }
+
+  async findByGuestIdNullableWithManager(
+    manager: EntityManager,
+    guestId: string,
+  ): Promise<GuestForm | null> {
+    return manager.getRepository(GuestForm).findOneBy({ guest_id: guestId });
+  }
 }

@@ -14,6 +14,7 @@ import { DeleteGuestUseCase } from './app/usecases/delete-guest.usecase';
 import { UpdateGuestFormUseCase } from './app/usecases/update-guest-form.usecase';
 import { CreateGuestResponseUseCase } from './app/usecases/create-guest-response.usecase';
 import { DeleteGuestResponseUseCase } from './app/usecases/delete-guest-response.usecase';
+import { SyncCoupleLinkUseCase } from './app/usecases/sync-couple-link.usecase';
 import { User } from '../user-accounts/domain/entities/user.entity';
 
 @Module({
@@ -29,6 +30,7 @@ import { User } from '../user-accounts/domain/entities/user.entity';
     UpdateGuestFormUseCase,
     CreateGuestResponseUseCase,
     DeleteGuestResponseUseCase,
+    SyncCoupleLinkUseCase,
   ],
   exports: [GuestsRepository],
 })
