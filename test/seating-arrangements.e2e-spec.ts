@@ -365,7 +365,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
       );
-      const guest = await guestsTestManager.createGuest(
+      const [guest] = await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userId, {
           guest_name: 'JohnDoe',
         }),
@@ -391,7 +391,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       const { accessToken, userId } =
         await userAccountsTestManager.createUserAndLogin();
       const nonExistingTableId = '00000000-0000-0000-0000-000000000000';
-      const guest = await guestsTestManager.createGuest(
+      const [guest] = await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userId),
         accessToken,
       );
@@ -414,7 +414,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         seatingTablesTestManager.buildCreateTableDto(),
         tokenA,
       );
-      const guest = await guestsTestManager.createGuest(
+      const [guest] = await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userIdB),
         tokenB,
       );
@@ -434,7 +434,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
       );
-      const guest = await guestsTestManager.createGuest(
+      const [guest] = await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userId),
         accessToken,
       );
@@ -478,7 +478,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         seatingTablesTestManager.buildCreateTableDto(),
         tokenA,
       );
-      const guest = await guestsTestManager.createGuest(
+      const [guest] = await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userIdA),
         tokenA,
       );
@@ -503,11 +503,11 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
       );
-      const guest1 = await guestsTestManager.createGuest(
+      const [guest1] = await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userId),
         accessToken,
       );
-      const guest2 = await guestsTestManager.createGuest(
+      const [guest2] = await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userId),
         accessToken,
       );
@@ -541,7 +541,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
       );
-      const guest = await guestsTestManager.createGuest(
+      const [guest] = await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userId),
         accessToken,
       );
@@ -571,7 +571,7 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
         seatingTablesTestManager.buildCreateTableDto(),
         accessToken,
       );
-      const guest = await guestsTestManager.createGuest(
+      const [guest] = await guestsTestManager.createGuest(
         guestsTestManager.buildCreateGuestDto(userId),
         accessToken,
       );
