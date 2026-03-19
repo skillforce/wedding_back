@@ -5,6 +5,7 @@ import { CreateGuestInputDto, GuestCoupleStatusInputDto, GuestFormInputDto } fro
 import { RelationshipToCouple } from '../../src/modules/guests/domain/enteties/guest-form.entity';
 import { CreateGuestResponseInputDto } from '../../src/modules/guests/api/input-dto/guest-response.input-dto';
 import { UpdateGuestFormInputDto } from '../../src/modules/guests/api/input-dto/update-guest-form.input-dto';
+import { GuestDetailViewDto } from '../../src/modules/guests/api/view-dto/guest-detail.view-dto';
 
 export class GuestsTestManager {
   private readonly httpServer: App;
@@ -61,7 +62,7 @@ export class GuestsTestManager {
     dto: CreateGuestInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
-  ) {
+  ): Promise<GuestDetailViewDto[]> {
     const response = await request(this.httpServer)
       .post('/api/guests/')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -111,7 +112,7 @@ export class GuestsTestManager {
     dto: UpdateGuestFormInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
-  ) {
+  ): Promise<GuestDetailViewDto[]> {
     const response = await request(this.httpServer)
       .patch(`/api/guests/${guestId}/form`)
       .set('Authorization', `Bearer ${accessToken}`)

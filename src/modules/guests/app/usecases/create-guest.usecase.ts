@@ -13,7 +13,7 @@ export class CreateGuestCommand {
 @CommandHandler(CreateGuestCommand)
 export class CreateGuestUseCase implements ICommandHandler<
   CreateGuestCommand,
-  string
+  string[]
 > {
   constructor(
     private readonly commandBus: CommandBus,
@@ -21,7 +21,7 @@ export class CreateGuestUseCase implements ICommandHandler<
     private guestFormRepository: GuestFormRepository,
   ) {}
 
-  async execute({ dto }: CreateGuestCommand): Promise<string> {
+  async execute({ dto }: CreateGuestCommand): Promise<string[]> {
     const userWithSameName = await this.guestsRepository.findGuestByName(
       dto.guest_name,
       dto.user_id,
@@ -38,24 +38,31 @@ export class CreateGuestUseCase implements ICommandHandler<
       user_id: dto.user_id,
     });
 
+    const affectedIds: string[] = [guestId];
+
     if (dto.guestForm) {
       await this.guestFormRepository.save(guestId, dto.guestForm);
 
       const coupleId = dto.guestForm.ifWithCouple?.coupleId ?? null;
       if (coupleId) {
-        await this.syncCoupleLink(guestId, coupleId, null);
+        const syncAffectedIds = await this.syncCoupleLink(
+          guestId,
+          coupleId,
+          null,
+        );
+        affectedIds.push(...syncAffectedIds);
       }
     }
 
-    return guestId;
+    return affectedIds;
   }
 
   private async syncCoupleLink(
     guestId: string,
     newCoupleId: string | null,
     previousCoupleId: string | null,
-  ): Promise<void> {
-    await this.commandBus.execute(
+  ): Promise<string[]> {
+    return this.commandBus.execute(
       new SyncCoupleLinkCommand(guestId, newCoupleId, previousCoupleId),
     );
   }

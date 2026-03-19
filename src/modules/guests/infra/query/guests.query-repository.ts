@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Guest } from '../../domain/enteties/guest.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { GuestsViewDto } from '../../api/view-dto/guests.view-dto';
 import { GuestDetailViewDto } from '../../api/view-dto/guest-detail.view-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
@@ -49,5 +49,13 @@ export class GuestsQueryRepository {
   async findGuestDetailById(guestId: string): Promise<GuestDetailViewDto> {
     const guest = await this.findOneByIdOrFail(guestId);
     return GuestDetailViewDto.mapToDetailViewDto(guest);
+  }
+
+  async findGuestDetailsByIds(ids: string[]): Promise<GuestDetailViewDto[]> {
+    const guests = await this.guestsOrmRepository.find({
+      where: { id: In(ids) },
+      relations: ['response', 'guestForm'],
+    });
+    return guests.map(GuestDetailViewDto.mapToDetailViewDto);
   }
 }

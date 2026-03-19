@@ -7,6 +7,7 @@ import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { GuestsTestManager } from './helpers/guests.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
+import { GuestDetailViewDto } from '../src/modules/guests/api/view-dto/guest-detail.view-dto';
 
 describe('GuestsController & GuestResponsesController (e2e)', () => {
   let app: INestApplication;
@@ -46,13 +47,21 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
     }
   });
 
+  function findById(
+    affected: GuestDetailViewDto[],
+    id: string,
+  ): GuestDetailViewDto {
+    return affected.find((g) => g.id === id)!;
+  }
+
   describe('Guests', () => {
     it('should create a guest without guestForm and return null guestForm', async () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
       const dto = guestsTestManager.buildCreateGuestDto(userId);
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const affected = await guestsTestManager.createGuest(dto, accessToken);
+      const created = affected[0];
 
       expect(created).toEqual(
         expect.objectContaining({
@@ -71,7 +80,8 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       const guestForm = guestsTestManager.buildGuestFormDto();
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const affected = await guestsTestManager.createGuest(dto, accessToken);
+      const created = affected[0];
 
       expect(created).toEqual(
         expect.objectContaining({
@@ -101,7 +111,8 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         age_group: 'young',
       });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const affected = await guestsTestManager.createGuest(dto, accessToken);
+      const created = affected[0];
 
       const list = await guestsTestManager.getAllGuests(accessToken);
       expect(list).toEqual([
@@ -120,7 +131,8 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         await userAccountsTestManager.createUserAndLogin();
 
       const dto = guestsTestManager.buildCreateGuestDto(userId);
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const affected = await guestsTestManager.createGuest(dto, accessToken);
+      const created = affected[0];
 
       const found = await guestsTestManager.getGuestById(created.id);
       expect(found).toEqual(
@@ -146,7 +158,8 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         await userAccountsTestManager.createUserAndLogin();
 
       const dto = guestsTestManager.buildCreateGuestDto(userId);
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const affected = await guestsTestManager.createGuest(dto, accessToken);
+      const created = affected[0];
 
       await guestsTestManager.deleteGuestById(created.id, accessToken);
 
@@ -198,13 +211,16 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       const guestForm = guestsTestManager.buildGuestFormDto();
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const created = (
+        await guestsTestManager.createGuest(dto, accessToken)
+      )[0];
 
-      const updated = await guestsTestManager.updateGuestForm(
+      const affected = await guestsTestManager.updateGuestForm(
         created.id,
         { age_group: 'old', vip_relatives: true },
         accessToken,
       );
+      const updated = findById(affected, created.id);
 
       expect(updated.guestForm).toEqual(
         expect.objectContaining({
@@ -225,7 +241,9 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         vip_parents: true,
       });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const created = (
+        await guestsTestManager.createGuest(dto, accessToken)
+      )[0];
 
       await guestsTestManager.updateGuestForm(
         created.id,
@@ -248,7 +266,9 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         await userAccountsTestManager.createUserAndLogin();
 
       const dto = guestsTestManager.buildCreateGuestDto(userId);
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const created = (
+        await guestsTestManager.createGuest(dto, accessToken)
+      )[0];
 
       await guestsTestManager.updateGuestForm(
         created.id,
@@ -278,7 +298,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       const guestForm = guestsTestManager.buildGuestFormDto();
       const dto = guestsTestManager.buildCreateGuestDto(userId1, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, token1);
+      const created = (await guestsTestManager.createGuest(dto, token1))[0];
 
       await guestsTestManager.updateGuestForm(
         created.id,
@@ -307,9 +327,11 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         }),
       });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const created = (
+        await guestsTestManager.createGuest(dto, accessToken)
+      )[0];
 
-      expect(created.guestForm.ifWithCouple).toEqual({ response: false });
+      expect(created.guestForm?.ifWithCouple).toEqual({ response: false });
     });
 
     it('should create guest with ifWithCouple response true and no coupleId', async () => {
@@ -322,19 +344,23 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         }),
       });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const created = (
+        await guestsTestManager.createGuest(dto, accessToken)
+      )[0];
 
-      expect(created.guestForm.ifWithCouple).toEqual({ response: true });
+      expect(created.guestForm?.ifWithCouple).toEqual({ response: true });
     });
 
-    it('should create guest with ifWithCouple response true and coupleId pointing to another guest', async () => {
+    it('should create guest with ifWithCouple coupleId and return only primary when partner has no form', async () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
-      const partner = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId),
-        accessToken,
-      );
+      const partner = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId),
+          accessToken,
+        )
+      )[0];
 
       const guestForm = guestsTestManager.buildGuestFormDto({
         ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
@@ -343,15 +369,95 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         }),
       });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const affected = await guestsTestManager.createGuest(dto, accessToken);
+      const created = findById(
+        affected,
+        affected.find((g) => g.name === dto.guest_name)!.id,
+      );
 
-      expect(created.guestForm.ifWithCouple).toEqual({
+      expect(affected).toHaveLength(1);
+      expect(created.guestForm?.ifWithCouple).toEqual({
         response: true,
         coupleId: partner.id,
       });
     });
 
-    it('should update ifWithCouple field via PATCH form', async () => {
+    it('should create guest with coupleId and sync partner form when partner has a form', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const partnerForm = guestsTestManager.buildGuestFormDto();
+      const partnerDto = guestsTestManager.buildCreateGuestDto(userId, {
+        guestForm: partnerForm,
+      });
+      const partner = (
+        await guestsTestManager.createGuest(partnerDto, accessToken)
+      )[0];
+
+      const guestForm = guestsTestManager.buildGuestFormDto({
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
+          response: true,
+          coupleId: partner.id,
+        }),
+      });
+      const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
+      const affected = await guestsTestManager.createGuest(dto, accessToken);
+
+      expect(affected).toHaveLength(2);
+
+      const createdGuest = affected.find((g) => g.name === dto.guest_name)!;
+      const updatedPartner = findById(affected, partner.id);
+
+      expect(createdGuest.guestForm?.ifWithCouple).toEqual({
+        response: true,
+        coupleId: partner.id,
+      });
+      expect(updatedPartner.guestForm?.ifWithCouple).toEqual({
+        response: true,
+        coupleId: createdGuest.id,
+      });
+    });
+
+    it('should return 409 when assigning coupleId to a guest already linked to another', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const partnerForm = guestsTestManager.buildGuestFormDto();
+      const partnerDto = guestsTestManager.buildCreateGuestDto(userId, {
+        guestForm: partnerForm,
+      });
+      const partner = (
+        await guestsTestManager.createGuest(partnerDto, accessToken)
+      )[0];
+
+      const occupierForm = guestsTestManager.buildGuestFormDto({
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
+          response: true,
+          coupleId: partner.id,
+        }),
+      });
+      const occupierDto = guestsTestManager.buildCreateGuestDto(userId, {
+        guestForm: occupierForm,
+      });
+      await guestsTestManager.createGuest(occupierDto, accessToken);
+
+      const intruderForm = guestsTestManager.buildGuestFormDto({
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
+          response: true,
+          coupleId: partner.id,
+        }),
+      });
+      const intruderDto = guestsTestManager.buildCreateGuestDto(userId, {
+        guestForm: intruderForm,
+      });
+      await guestsTestManager.createGuest(
+        intruderDto,
+        accessToken,
+        HttpStatus.CONFLICT,
+      );
+    });
+
+    it('should update ifWithCouple field via PATCH form and return only primary when partner has no form', async () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
@@ -361,22 +467,137 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
         }),
       });
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const created = (
+        await guestsTestManager.createGuest(dto, accessToken)
+      )[0];
 
-      const partner = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId),
-        accessToken,
-      );
+      const partner = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId),
+          accessToken,
+        )
+      )[0];
 
-      const updated = await guestsTestManager.updateGuestForm(
+      const affected = await guestsTestManager.updateGuestForm(
         created.id,
         { ifWithCouple: { response: true, coupleId: partner.id } },
         accessToken,
       );
 
-      expect(updated.guestForm.ifWithCouple).toEqual({
+      expect(affected).toHaveLength(1);
+      const updated = findById(affected, created.id);
+      expect(updated.guestForm?.ifWithCouple).toEqual({
         response: true,
         coupleId: partner.id,
+      });
+    });
+
+    it('should update ifWithCouple via PATCH and sync partner form when partner has a form', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const guestForm = guestsTestManager.buildGuestFormDto({
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
+          response: false,
+        }),
+      });
+      const created = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId, { guestForm }),
+          accessToken,
+        )
+      )[0];
+
+      const partnerForm = guestsTestManager.buildGuestFormDto();
+      const partner = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId, {
+            guestForm: partnerForm,
+          }),
+          accessToken,
+        )
+      )[0];
+
+      const affected = await guestsTestManager.updateGuestForm(
+        created.id,
+        { ifWithCouple: { response: true, coupleId: partner.id } },
+        accessToken,
+      );
+
+      expect(affected).toHaveLength(2);
+      const updatedGuest = findById(affected, created.id);
+      const updatedPartner = findById(affected, partner.id);
+
+      expect(updatedGuest.guestForm?.ifWithCouple).toEqual({
+        response: true,
+        coupleId: partner.id,
+      });
+      expect(updatedPartner.guestForm?.ifWithCouple).toEqual({
+        response: true,
+        coupleId: created.id,
+      });
+    });
+
+    it('should unlink old partner and link new one on PATCH, returning all affected', async () => {
+      const { userId, accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const oldPartnerForm = guestsTestManager.buildGuestFormDto();
+      const oldPartner = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId, {
+            guestForm: oldPartnerForm,
+          }),
+          accessToken,
+        )
+      )[0];
+
+      const newPartnerForm = guestsTestManager.buildGuestFormDto();
+      const newPartner = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId, {
+            guestForm: newPartnerForm,
+          }),
+          accessToken,
+        )
+      )[0];
+
+      const guestForm = guestsTestManager.buildGuestFormDto({
+        ifWithCouple: guestsTestManager.buildGuestCoupleStatusDto({
+          response: true,
+          coupleId: oldPartner.id,
+        }),
+      });
+      const guestAffected = await guestsTestManager.createGuest(
+        guestsTestManager.buildCreateGuestDto(userId, { guestForm }),
+        accessToken,
+      );
+      const guest = guestAffected.find(
+        (g) => g.name !== oldPartner.name && g.name !== newPartner.name,
+      )!;
+
+      const affected = await guestsTestManager.updateGuestForm(
+        guest.id,
+        { ifWithCouple: { response: true, coupleId: newPartner.id } },
+        accessToken,
+      );
+
+      expect(affected).toHaveLength(3);
+
+      const updatedGuest = findById(affected, guest.id);
+      const updatedOldPartner = findById(affected, oldPartner.id);
+      const updatedNewPartner = findById(affected, newPartner.id);
+
+      expect(updatedGuest.guestForm?.ifWithCouple).toEqual({
+        response: true,
+        coupleId: newPartner.id,
+      });
+      expect(updatedOldPartner.guestForm?.ifWithCouple).toEqual({
+        response: false,
+      });
+      expect(updatedNewPartner.guestForm?.ifWithCouple).toEqual({
+        response: true,
+        coupleId: guest.id,
       });
     });
 
@@ -386,9 +607,11 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       const guestForm = guestsTestManager.buildGuestFormDto();
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const created = (
+        await guestsTestManager.createGuest(dto, accessToken)
+      )[0];
 
-      expect(created.guestForm.ifWithCouple).toEqual({ response: false });
+      expect(created.guestForm?.ifWithCouple).toEqual({ response: false });
     });
 
     it('should return 400 for invalid enum value in update', async () => {
@@ -397,7 +620,9 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
 
       const guestForm = guestsTestManager.buildGuestFormDto();
       const dto = guestsTestManager.buildCreateGuestDto(userId, { guestForm });
-      const created = await guestsTestManager.createGuest(dto, accessToken);
+      const created = (
+        await guestsTestManager.createGuest(dto, accessToken)
+      )[0];
 
       await guestsTestManager.updateGuestForm(
         created.id,
@@ -415,10 +640,12 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
-      const guest = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId),
-        accessToken,
-      );
+      const guest = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId),
+          accessToken,
+        )
+      )[0];
 
       const responseDto = guestsTestManager.buildCreateGuestResponseDto({
         preferred_drinks: ['wine', 'juice'],
@@ -454,10 +681,12 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
-      const guest = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId),
-        accessToken,
-      );
+      const guest = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId),
+          accessToken,
+        )
+      )[0];
 
       const responseDto = guestsTestManager.buildCreateGuestResponseDto();
       await guestsTestManager.createGuestResponse(guest.id, responseDto);
@@ -472,10 +701,12 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
-      const guest = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId),
-        accessToken,
-      );
+      const guest = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId),
+          accessToken,
+        )
+      )[0];
 
       const responseDto = guestsTestManager.buildCreateGuestResponseDto({
         plus_one: true,
@@ -493,10 +724,12 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
-      const guest = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId),
-        accessToken,
-      );
+      const guest = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId),
+          accessToken,
+        )
+      )[0];
 
       const responseDto = guestsTestManager.buildCreateGuestResponseDto({
         plus_one: true,
@@ -513,10 +746,12 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
-      const guest = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId),
-        accessToken,
-      );
+      const guest = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId),
+          accessToken,
+        )
+      )[0];
 
       await guestsTestManager.createGuestResponse(
         guest.id,
@@ -544,10 +779,12 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       const { accessToken: token2 } =
         await userAccountsTestManager.createUserAndLogin();
 
-      const guest = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId1),
-        token1,
-      );
+      const guest = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId1),
+          token1,
+        )
+      )[0];
 
       await guestsTestManager.createGuestResponse(
         guest.id,
@@ -565,10 +802,12 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       const { userId, accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
-      const guest = await guestsTestManager.createGuest(
-        guestsTestManager.buildCreateGuestDto(userId),
-        accessToken,
-      );
+      const guest = (
+        await guestsTestManager.createGuest(
+          guestsTestManager.buildCreateGuestDto(userId),
+          accessToken,
+        )
+      )[0];
 
       await guestsTestManager.deleteGuestResponse(
         guest.id,

@@ -75,17 +75,17 @@ export class GuestsController {
   @ApiOperation({ summary: 'Create a new guest' })
   @ApiResponse({
     status: 201,
-    description: 'Guest created successfully',
-    type: GuestDetailViewDto,
+    description: 'Guest created successfully. Returns all affected guests (created guest + any partner whose couple link was updated).',
+    type: [GuestDetailViewDto],
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async createGuest(@Body() dto: CreateGuestInputDto): Promise<GuestDetailViewDto> {
-    const newGuestId = await this.commandBus.execute<
-      CreateGuestCommand,
-      string
-    >(new CreateGuestCommand(dto));
-    return this.guestsQueryRepository.findGuestDetailById(newGuestId);
+  @ApiResponse({ status: 409, description: 'Target guest already has a couple assigned' })
+  async createGuest(@Body() dto: CreateGuestInputDto): Promise<GuestDetailViewDto[]> {
+    const affectedIds = await this.commandBus.execute<CreateGuestCommand, string[]>(
+      new CreateGuestCommand(dto),
+    );
+    return this.guestsQueryRepository.findGuestDetailsByIds(affectedIds);
   }
 
   @Patch(':id/form')
@@ -94,22 +94,23 @@ export class GuestsController {
   @ApiParam({ name: 'id', description: 'Guest UUID' })
   @ApiResponse({
     status: 200,
-    description: 'Guest form updated',
-    type: GuestDetailViewDto,
+    description: 'Guest form updated. Returns all affected guests (updated guest + any partners whose couple link changed).',
+    type: [GuestDetailViewDto],
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - guest does not belong to user' })
   @ApiResponse({ status: 404, description: 'Guest or guest form not found' })
+  @ApiResponse({ status: 409, description: 'Target guest already has a couple assigned' })
   async updateGuestForm(
     @Param() { id }: IdUuidParamDto,
     @Body() dto: UpdateGuestFormInputDto,
     @ExtractUserFromRequest() user: UserContextDto,
-  ): Promise<GuestDetailViewDto> {
-    await this.commandBus.execute<UpdateGuestFormCommand, void>(
+  ): Promise<GuestDetailViewDto[]> {
+    const affectedIds = await this.commandBus.execute<UpdateGuestFormCommand, string[]>(
       new UpdateGuestFormCommand(id, dto, user.id),
     );
-    return this.guestsQueryRepository.findGuestDetailById(id);
+    return this.guestsQueryRepository.findGuestDetailsByIds(affectedIds);
   }
 
   @Delete(':id')

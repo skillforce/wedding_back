@@ -17,7 +17,7 @@ export class UpdateGuestFormCommand {
 @CommandHandler(UpdateGuestFormCommand)
 export class UpdateGuestFormUseCase implements ICommandHandler<
   UpdateGuestFormCommand,
-  void
+  string[]
 > {
   constructor(
     private readonly dataSource: DataSource,
@@ -29,7 +29,9 @@ export class UpdateGuestFormUseCase implements ICommandHandler<
     guestId,
     dto,
     userId,
-  }: UpdateGuestFormCommand): Promise<void> {
+  }: UpdateGuestFormCommand): Promise<string[]> {
+    const affectedPartnerIds: string[] = [];
+
     await this.dataSource.transaction(async (manager) => {
       const form = await this.guestFormRepository.findByGuestIdForUpdateOrFail(
         manager,
@@ -72,21 +74,24 @@ export class UpdateGuestFormUseCase implements ICommandHandler<
       await this.guestFormRepository.saveEntityWithManager(manager, form);
 
       if (dto.ifWithCouple !== undefined) {
-        await this.syncCoupleLink(
+        const syncAffectedIds = await this.syncCoupleLink(
           guestId,
           dto.ifWithCouple.coupleId ?? null,
           previousCoupleId,
         );
+        affectedPartnerIds.push(...syncAffectedIds);
       }
     });
+
+    return [guestId, ...affectedPartnerIds];
   }
 
   private async syncCoupleLink(
     guestId: string,
     newCoupleId: string | null,
     previousCoupleId: string | null,
-  ): Promise<void> {
-    await this.commandBus.execute(
+  ): Promise<string[]> {
+    return this.commandBus.execute(
       new SyncCoupleLinkCommand(guestId, newCoupleId, previousCoupleId),
     );
   }
