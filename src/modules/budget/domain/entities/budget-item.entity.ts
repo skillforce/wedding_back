@@ -22,6 +22,9 @@ export class BudgetItem extends NumericIdEntity {
   @Column({ type: 'int', nullable: true })
   actualCost: number | null;
 
+  @Column({ type: 'int', nullable: true })
+  deposit: number | null;
+
   @Column({
     type: 'enum',
     enum: BudgetItemPriority,

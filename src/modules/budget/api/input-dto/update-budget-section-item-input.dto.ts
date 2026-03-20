@@ -47,6 +47,18 @@ export class UpdateBudgetSectionItemInputDto {
   actualCost?: number | null;
 
   @ApiProperty({
+    description: 'Deposit amount (send null to clear)',
+    example: 10000,
+    required: false,
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((o) => o.deposit !== null)
+  @IsInt()
+  @Min(0)
+  deposit?: number | null;
+
+  @ApiProperty({
     description: 'Item priority',
     enum: BudgetItemPriority,
     required: false,

@@ -38,6 +38,7 @@ export class CreateItemUseCase implements ICommandHandler<
       actualCost: null,
       priority: dto.priority ?? BudgetItemPriority.MUST,
       paid: false,
+      deposit: dto.deposit ?? null,
     });
 
     return item.id;

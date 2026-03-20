@@ -6,6 +6,7 @@ import {
   IsString,
   Length,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { Trim } from '../../../../core/decorators/transform/trim';
 import { BudgetItemPriority } from '../../domain/entities/budget-item.entity';
@@ -30,6 +31,18 @@ export class CreateBudgetSectionItemInputDto {
   @IsInt()
   @Min(0)
   estimatedCost?: number;
+
+  @ApiProperty({
+    description: 'Deposit amount',
+    example: 10000,
+    required: false,
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((o) => o.deposit !== null)
+  @IsInt()
+  @Min(0)
+  deposit?: number | null;
 
   @ApiProperty({
     description: 'Item priority',

@@ -272,6 +272,7 @@ describe('Budget (e2e)', () => {
           name: 'Аренда зала',
           estimatedCost: 0,
           actualCost: null,
+          deposit: null,
           priority: 'must',
           paid: false,
         }),
@@ -369,6 +370,86 @@ describe('Budget (e2e)', () => {
       );
 
       expect(cleared.sections[0].items[0].actualCost).toBeNull();
+    });
+
+    it('should update deposit on an item', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const withSection = await budgetSectionsTestManager.createSection(
+        { name: 'Test' },
+        accessToken,
+      );
+      const sectionId = withSection.sections[0].id;
+
+      const created = await budgetItemsTestManager.createItem(
+        budgetItemsTestManager.buildCreateItemDto(sectionId),
+        accessToken,
+      );
+      const itemId = created.sections[0].items[0].id;
+
+      const updated = await budgetItemsTestManager.updateItem(
+        itemId,
+        { deposit: 15000 },
+        accessToken,
+      );
+
+      expect(updated.sections[0].items[0].deposit).toBe(15000);
+    });
+
+    it('should set deposit to null', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const withSection = await budgetSectionsTestManager.createSection(
+        { name: 'Test' },
+        accessToken,
+      );
+      const sectionId = withSection.sections[0].id;
+
+      const created = await budgetItemsTestManager.createItem(
+        budgetItemsTestManager.buildCreateItemDto(sectionId),
+        accessToken,
+      );
+      const itemId = created.sections[0].items[0].id;
+
+      await budgetItemsTestManager.updateItem(
+        itemId,
+        { deposit: 15000 },
+        accessToken,
+      );
+
+      const cleared = await budgetItemsTestManager.updateItem(
+        itemId,
+        { deposit: null },
+        accessToken,
+      );
+
+      expect(cleared.sections[0].items[0].deposit).toBeNull();
+    });
+
+    it('should return 400 when deposit is not an integer', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const withSection = await budgetSectionsTestManager.createSection(
+        { name: 'Test' },
+        accessToken,
+      );
+      const sectionId = withSection.sections[0].id;
+
+      const created = await budgetItemsTestManager.createItem(
+        budgetItemsTestManager.buildCreateItemDto(sectionId),
+        accessToken,
+      );
+      const itemId = created.sections[0].items[0].id;
+
+      await budgetItemsTestManager.updateItem(
+        itemId,
+        { deposit: 'not-a-number' as any },
+        accessToken,
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
     });
 
     it('should delete an item', async () => {
