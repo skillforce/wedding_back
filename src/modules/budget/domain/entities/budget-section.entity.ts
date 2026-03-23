@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -12,12 +13,19 @@ import { BudgetItem } from './budget-item.entity';
 
 @Entity('budget_sections')
 @Unique(['budgetId', 'name'])
+@Unique('UQ_budget_sections_budget_id_sort_order', ['budgetId', 'sortOrder'], {
+  deferrable: 'INITIALLY DEFERRED',
+})
+@Index('idx_budget_sections_budget_id', ['budgetId'])
 export class BudgetSection extends NumericIdEntity {
   @Column({ nullable: false })
   budgetId: number;
 
   @Column({ type: 'varchar', length: 50, nullable: false })
   name: string;
+
+  @Column({ type: 'int', nullable: false, default: 0 })
+  sortOrder: number;
 
   @ManyToOne(() => Budget, (budget) => budget.sections, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'budgetId' })

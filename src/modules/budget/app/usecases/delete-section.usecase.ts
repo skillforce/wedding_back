@@ -1,9 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { BudgetRepository } from '../../infra/budget.repository';
+import { DataSource } from 'typeorm';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { Budget } from '../../domain/entities/budget.entity';
 
 export class DeleteSectionCommand {
   constructor(
@@ -17,30 +16,44 @@ export class DeleteSectionUseCase
   implements ICommandHandler<DeleteSectionCommand, void>
 {
   constructor(
-    private readonly budgetRepository: BudgetRepository,
+    private readonly dataSource: DataSource,
     private readonly sectionsRepository: BudgetSectionsRepository,
   ) {}
 
   async execute({ sectionId, userId }: DeleteSectionCommand): Promise<void> {
-    const budget = await this.findBudgetByUserIdOrFail(userId);
-    await this.findSectionAndCheckOwnership(sectionId, budget.id);
-    await this.sectionsRepository.deleteByIdOrFail(sectionId);
-  }
+    await this.dataSource.transaction(async (manager) => {
+      const section = await this.sectionsRepository.findByIdForUpdateOrFail(
+        manager,
+        sectionId,
+      );
+      this.checkOwnership(section.budget?.userId, userId);
 
-  private async findBudgetByUserIdOrFail(userId: number): Promise<Budget> {
-    const budget = await this.budgetRepository.findByUserId(userId);
-    if (!budget) {
-      throw new DomainException({
-        code: DomainExceptionCode.NotFound,
-        message: 'Budget not found',
+      const remainingSections =
+        await this.sectionsRepository.findByBudgetIdForUpdate(
+          manager,
+          section.budgetId,
+        );
+
+      await this.sectionsRepository.deleteByIdWithManager(manager, sectionId);
+
+      const reorderedSections = remainingSections.filter(
+        (existingSection) => existingSection.id !== sectionId,
+      );
+      reorderedSections.forEach((existingSection, index) => {
+        existingSection.sortOrder = index;
       });
-    }
-    return budget;
+
+      if (reorderedSections.length) {
+        await this.sectionsRepository.saveManyWithManager(
+          manager,
+          reorderedSections,
+        );
+      }
+    });
   }
 
-  private async findSectionAndCheckOwnership(sectionId: number, budgetId: number): Promise<void> {
-    const section = await this.sectionsRepository.findByIdOrFail(sectionId);
-    if (section.budgetId !== budgetId) {
+  private checkOwnership(ownerUserId: number | undefined, userId: number): void {
+    if (ownerUserId !== userId) {
       throw new DomainException({
         code: DomainExceptionCode.Forbidden,
         message: 'Budget section does not belong to user',

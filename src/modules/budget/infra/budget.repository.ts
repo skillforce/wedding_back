@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Budget } from '../domain/entities/budget.entity';
+import { DomainException } from '../../../core/exceptions/domain-exceptions';
+import { DomainExceptionCode } from '../../../core/exceptions/domain-exception-codes';
 
 @Injectable()
 export class BudgetRepository {
@@ -12,6 +14,27 @@ export class BudgetRepository {
 
   async findByUserId(userId: number): Promise<Budget | null> {
     return this.budgetOrmRepository.findOneBy({ userId });
+  }
+
+  async findByUserIdForUpdateOrFail(
+    manager: EntityManager,
+    userId: number,
+  ): Promise<Budget> {
+    const budget = await manager
+      .getRepository(Budget)
+      .createQueryBuilder('budget')
+      .setLock('pessimistic_write')
+      .where('budget.userId = :userId', { userId })
+      .getOne();
+
+    if (!budget) {
+      throw new DomainException({
+        code: DomainExceptionCode.NotFound,
+        message: 'Budget not found',
+      });
+    }
+
+    return budget;
   }
 
   async save(

@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
 import { NumericIdEntity } from '../../../common/domain/base.entity';
 import { BudgetSection } from './budget-section.entity';
 
@@ -9,6 +9,10 @@ export enum BudgetItemPriority {
 }
 
 @Entity('budget_items')
+@Unique('UQ_budget_items_section_id_sort_order', ['sectionId', 'sortOrder'], {
+  deferrable: 'INITIALLY DEFERRED',
+})
+@Index('idx_budget_items_section_id', ['sectionId'])
 export class BudgetItem extends NumericIdEntity {
   @Column({ nullable: false })
   sectionId: number;
@@ -35,6 +39,9 @@ export class BudgetItem extends NumericIdEntity {
 
   @Column({ type: 'boolean', nullable: false, default: false })
   paid: boolean;
+
+  @Column({ type: 'int', nullable: false, default: 0 })
+  sortOrder: number;
 
   @ManyToOne(() => BudgetSection, (section) => section.items, {
     onDelete: 'CASCADE',

@@ -116,9 +116,49 @@ describe('Budget (e2e)', () => {
         expect.objectContaining({
           id: expect.any(Number),
           name: 'Организация',
+          sortOrder: 0,
           items: [],
         }),
       );
+    });
+
+    it('should reorder sections within the budget', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      await budgetSectionsTestManager.createSection(
+        { name: 'Section A' },
+        accessToken,
+      );
+      await budgetSectionsTestManager.createSection(
+        { name: 'Section B' },
+        accessToken,
+      );
+      const created = await budgetSectionsTestManager.createSection(
+        { name: 'Section C' },
+        accessToken,
+      );
+      const sectionAId = created.sections.find(
+        (section: any) => section.name === 'Section A',
+      ).id;
+
+      const moved = await budgetSectionsTestManager.moveSection(
+        {
+          sectionId: sectionAId,
+          targetIndex: 2,
+        },
+        accessToken,
+      );
+
+      expect(moved).toHaveLength(3);
+      expect(moved.map((section: any) => section.name)).toEqual([
+        'Section B',
+        'Section C',
+        'Section A',
+      ]);
+      expect(moved.map((section: any) => section.sortOrder)).toEqual([
+        0, 1, 2,
+      ]);
     });
 
     it('should update section name', async () => {
@@ -246,6 +286,15 @@ describe('Budget (e2e)', () => {
         tokenB,
         HttpStatus.FORBIDDEN,
       );
+
+      await budgetSectionsTestManager.moveSection(
+        {
+          sectionId,
+          targetIndex: 0,
+        },
+        tokenB,
+        HttpStatus.FORBIDDEN,
+      );
     });
   });
 
@@ -270,6 +319,7 @@ describe('Budget (e2e)', () => {
         expect.objectContaining({
           id: expect.any(Number),
           name: 'Аренда зала',
+          sortOrder: 0,
           estimatedCost: 0,
           actualCost: null,
           deposit: null,
@@ -474,6 +524,105 @@ describe('Budget (e2e)', () => {
       expect(budget.sections[0].items).toHaveLength(0);
     });
 
+    it('should reorder items within the same section', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const withSection = await budgetSectionsTestManager.createSection(
+        { name: 'Test' },
+        accessToken,
+      );
+      const sectionId = withSection.sections[0].id;
+
+      await budgetItemsTestManager.createItem(
+        { sectionId, name: 'Item A' },
+        accessToken,
+      );
+      await budgetItemsTestManager.createItem(
+        { sectionId, name: 'Item B' },
+        accessToken,
+      );
+      const created = await budgetItemsTestManager.createItem(
+        { sectionId, name: 'Item C' },
+        accessToken,
+      );
+      const itemAId = created.sections[0].items.find(
+        (item: any) => item.name === 'Item A',
+      ).id;
+
+      const moved = await budgetItemsTestManager.moveItem(
+        {
+          itemId: itemAId,
+          targetSectionId: sectionId,
+          targetIndex: 2,
+        },
+        accessToken,
+      );
+
+      expect(moved).toHaveLength(1);
+      expect(moved[0].id).toBe(sectionId);
+      expect(moved[0].items.map((item: any) => item.name)).toEqual([
+        'Item B',
+        'Item C',
+        'Item A',
+      ]);
+      expect(moved[0].items.map((item: any) => item.sortOrder)).toEqual([0, 1, 2]);
+    });
+
+    it('should move an item to another section', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      await budgetSectionsTestManager.createSection(
+        { name: 'Source' },
+        accessToken,
+      );
+      const withTargetSection = await budgetSectionsTestManager.createSection(
+        { name: 'Target' },
+        accessToken,
+      );
+      const sourceSectionId = withTargetSection.sections.find(
+        (section: any) => section.name === 'Source',
+      ).id;
+      const targetSectionId = withTargetSection.sections.find(
+        (section: any) => section.name === 'Target',
+      ).id;
+
+      const created = await budgetItemsTestManager.createItem(
+        { sectionId: sourceSectionId, name: 'Move me' },
+        accessToken,
+      );
+      const itemId = created.sections.find(
+        (section: any) => section.id === sourceSectionId,
+      ).items[0].id;
+
+      const moved = await budgetItemsTestManager.moveItem(
+        {
+          itemId,
+          targetSectionId,
+          targetIndex: 0,
+        },
+        accessToken,
+      );
+
+      expect(moved).toHaveLength(2);
+      const sourceSection = moved.find(
+        (section: any) => section.id === sourceSectionId,
+      );
+      const targetSection = moved.find(
+        (section: any) => section.id === targetSectionId,
+      );
+
+      expect(sourceSection.items).toEqual([]);
+      expect(targetSection.items).toEqual([
+        expect.objectContaining({
+          id: itemId,
+          name: 'Move me',
+          sortOrder: 0,
+        }),
+      ]);
+    });
+
     it('should return 404 when updating non-existing item', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
@@ -521,6 +670,60 @@ describe('Budget (e2e)', () => {
       );
     });
 
+    it('should reject moving an item into a full target section', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      await budgetSectionsTestManager.createSection(
+        { name: 'Source' },
+        accessToken,
+      );
+      const withTargetSection = await budgetSectionsTestManager.createSection(
+        { name: 'Target' },
+        accessToken,
+      );
+      const sourceSectionId = withTargetSection.sections.find(
+        (section: any) => section.name === 'Source',
+      ).id;
+      const targetSectionId = withTargetSection.sections.find(
+        (section: any) => section.name === 'Target',
+      ).id;
+
+      const sourceBudget = await budgetItemsTestManager.createItem(
+        { sectionId: sourceSectionId, name: 'Move blocked' },
+        accessToken,
+      );
+      const itemId = sourceBudget.sections.find(
+        (section: any) => section.id === sourceSectionId,
+      ).items[0].id;
+
+      for (let index = 0; index < 20; index += 1) {
+        await budgetItemsTestManager.createItem(
+          { sectionId: targetSectionId, name: `Target ${index}` },
+          accessToken,
+        );
+      }
+
+      const response = await budgetItemsTestManager.moveItem(
+        {
+          itemId,
+          targetSectionId,
+          targetIndex: 20,
+        },
+        accessToken,
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+
+      expect(response).toEqual({
+        errorsMessages: [
+          {
+            field: 'targetSectionId',
+            message: 'Maximum of 20 items per section reached',
+          },
+        ],
+      });
+    });
+
     it("should not allow accessing another user's item", async () => {
       const { accessToken: tokenA } =
         await userAccountsTestManager.createUserAndLogin();
@@ -548,6 +751,16 @@ describe('Budget (e2e)', () => {
 
       await budgetItemsTestManager.deleteItem(
         itemId,
+        tokenB,
+        HttpStatus.FORBIDDEN,
+      );
+
+      await budgetItemsTestManager.moveItem(
+        {
+          itemId,
+          targetSectionId: sectionId,
+          targetIndex: 0,
+        },
         tokenB,
         HttpStatus.FORBIDDEN,
       );

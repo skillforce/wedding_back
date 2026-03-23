@@ -13,9 +13,11 @@ import { BudgetQueryRepository } from './infra/query/budget.query-repository';
 import { CreateDefaultBudgetUseCase } from './app/usecases/create-default-budget.usecase';
 import { UpdateBudgetUseCase } from './app/usecases/update-budget.usecase';
 import { CreateSectionUseCase } from './app/usecases/create-section.usecase';
+import { MoveSectionUseCase } from './app/usecases/move-section.usecase';
 import { UpdateSectionUseCase } from './app/usecases/update-section.usecase';
 import { DeleteSectionUseCase } from './app/usecases/delete-section.usecase';
 import { CreateItemUseCase } from './app/usecases/create-item.usecase';
+import { MoveItemUseCase } from './app/usecases/move-item.usecase';
 import { UpdateItemUseCase } from './app/usecases/update-item.usecase';
 import { DeleteItemUseCase } from './app/usecases/delete-item.usecase';
 
@@ -30,9 +32,11 @@ import { DeleteItemUseCase } from './app/usecases/delete-item.usecase';
     CreateDefaultBudgetUseCase,
     UpdateBudgetUseCase,
     CreateSectionUseCase,
+    MoveSectionUseCase,
     UpdateSectionUseCase,
     DeleteSectionUseCase,
     CreateItemUseCase,
+    MoveItemUseCase,
     UpdateItemUseCase,
     DeleteItemUseCase,
   ],

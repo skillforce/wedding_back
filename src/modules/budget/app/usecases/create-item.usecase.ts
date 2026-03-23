@@ -1,4 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { DataSource, EntityManager } from 'typeorm';
 import { BudgetRepository } from '../../infra/budget.repository';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
 import { BudgetItemsRepository } from '../../infra/budget-items.repository';
@@ -6,7 +7,6 @@ import { CreateBudgetSectionItemInputDto } from '../../api/input-dto/create-budg
 import { BudgetItemPriority } from '../../domain/entities/budget-item.entity';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { Budget } from '../../domain/entities/budget.entity';
 
 export class CreateItemCommand {
   constructor(
@@ -21,46 +21,48 @@ export class CreateItemUseCase implements ICommandHandler<
   number
 > {
   constructor(
+    private readonly dataSource: DataSource,
     private readonly budgetRepository: BudgetRepository,
     private readonly sectionsRepository: BudgetSectionsRepository,
     private readonly itemsRepository: BudgetItemsRepository,
   ) {}
 
   async execute({ dto, userId }: CreateItemCommand): Promise<number> {
-    const budget = await this.findBudgetByUserIdOrFail(userId);
-    await this.findSectionAndCheckOwnership(dto.sectionId, budget.id);
-    await this.checkItemsLimit(dto.sectionId);
+    return this.dataSource.transaction(async (manager) => {
+      const budget = await this.budgetRepository.findByUserIdForUpdateOrFail(
+        manager,
+        userId,
+      );
+      const section = await this.sectionsRepository.findByIdForUpdateOrFail(
+        manager,
+        dto.sectionId,
+      );
+      this.checkSectionOwnership(section.budgetId, budget.id);
+      await this.checkItemsLimit(section.id, manager);
 
-    const item = await this.itemsRepository.save({
-      sectionId: dto.sectionId,
-      name: dto.name,
-      estimatedCost: dto.estimatedCost ?? 0,
-      actualCost: null,
-      priority: dto.priority ?? BudgetItemPriority.MUST,
-      paid: false,
-      deposit: dto.deposit ?? null,
-    });
+      const maxSortOrder =
+        await this.itemsRepository.findMaxSortOrderBySectionId(
+          section.id,
+          manager,
+        );
 
-    return item.id;
-  }
-
-  private async findBudgetByUserIdOrFail(userId: number): Promise<Budget> {
-    const budget = await this.budgetRepository.findByUserId(userId);
-    if (!budget) {
-      throw new DomainException({
-        code: DomainExceptionCode.NotFound,
-        message: 'Budget not found',
+      const item = await this.itemsRepository.saveWithManager(manager, {
+        sectionId: section.id,
+        name: dto.name,
+        estimatedCost: dto.estimatedCost ?? 0,
+        actualCost: null,
+        priority: dto.priority ?? BudgetItemPriority.MUST,
+        paid: false,
+        deposit: dto.deposit ?? null,
+        sortOrder: (maxSortOrder ?? -1) + 1,
       });
-    }
-    return budget;
+
+      return item.id;
+    });
   }
 
-  private async findSectionAndCheckOwnership(
-    sectionId: number,
-    budgetId: number,
-  ): Promise<void> {
-    const section = await this.sectionsRepository.findByIdOrFail(sectionId);
-    if (section.budgetId !== budgetId) {
+  private checkSectionOwnership(sectionBudgetId: number, budgetId: number): void {
+    if (sectionBudgetId !== budgetId) {
       throw new DomainException({
         code: DomainExceptionCode.Forbidden,
         message: 'Budget section does not belong to user',
@@ -68,8 +70,11 @@ export class CreateItemUseCase implements ICommandHandler<
     }
   }
 
-  private async checkItemsLimit(sectionId: number): Promise<void> {
-    const count = await this.itemsRepository.countBySectionId(sectionId);
+  private async checkItemsLimit(
+    sectionId: number,
+    manager: EntityManager,
+  ): Promise<void> {
+    const count = await this.itemsRepository.countBySectionId(sectionId, manager);
     if (count >= 20) {
       throw new DomainException({
         code: DomainExceptionCode.Conflict,

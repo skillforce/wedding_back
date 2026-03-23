@@ -9,6 +9,9 @@ export class BudgetSectionViewDto {
   @ApiProperty({ example: 'Организация' })
   name: string;
 
+  @ApiProperty({ example: 0 })
+  sortOrder: number;
+
   @ApiProperty({ type: [BudgetItemViewDto] })
   items: BudgetItemViewDto[];
 
@@ -16,6 +19,7 @@ export class BudgetSectionViewDto {
     const dto = new BudgetSectionViewDto();
     dto.id = section.id;
     dto.name = section.name;
+    dto.sortOrder = section.sortOrder;
     dto.items = (section.items ?? []).map(BudgetItemViewDto.mapToViewDto);
     return dto;
   }

@@ -3,6 +3,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { CreateBudgetSectionItemInputDto } from '../../../src/modules/budget/api/input-dto/create-budget-section-item-input.dto';
 import { UpdateBudgetSectionItemInputDto } from '../../../src/modules/budget/api/input-dto/update-budget-section-item-input.dto';
+import { MoveBudgetItemInputDto } from '../../../src/modules/budget/api/input-dto/move-budget-item.input-dto';
 import { GLOBAL_PREFIX } from '../../../src/setup/global-prefix.setup';
 
 export class BudgetItemsTestManager {
@@ -48,6 +49,20 @@ export class BudgetItemsTestManager {
   ) {
     const response = await request(this.httpServer)
       .patch(`/${GLOBAL_PREFIX}/budget/items/${id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send(dto)
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
+  async moveItem(
+    dto: MoveBudgetItemInputDto,
+    accessToken: string,
+    expectedStatus: HttpStatus = HttpStatus.OK,
+  ) {
+    const response = await request(this.httpServer)
+      .patch(`/${GLOBAL_PREFIX}/budget/items/move`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send(dto)
       .expect(expectedStatus);

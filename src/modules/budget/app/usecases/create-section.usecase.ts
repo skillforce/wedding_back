@@ -1,10 +1,10 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { DataSource, EntityManager } from 'typeorm';
 import { BudgetRepository } from '../../infra/budget.repository';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
 import { CreateSectionInputDto } from '../../api/input-dto/create-section.input-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { Budget } from '../../domain/entities/budget.entity';
 
 export class CreateSectionCommand {
   constructor(
@@ -18,35 +18,43 @@ export class CreateSectionUseCase
   implements ICommandHandler<CreateSectionCommand, number>
 {
   constructor(
+    private readonly dataSource: DataSource,
     private readonly budgetRepository: BudgetRepository,
     private readonly sectionsRepository: BudgetSectionsRepository,
   ) {}
 
   async execute({ dto, userId }: CreateSectionCommand): Promise<number> {
-    const budget = await this.findBudgetByUserIdOrFail(userId);
-    await this.checkSectionsLimit(budget.id);
+    return this.dataSource.transaction(async (manager) => {
+      const budget = await this.budgetRepository.findByUserIdForUpdateOrFail(
+        manager,
+        userId,
+      );
+      await this.checkSectionsLimit(budget.id, manager);
 
-    const section = await this.sectionsRepository.save({
-      budgetId: budget.id,
-      name: dto.name,
-    });
+      const maxSortOrder =
+        await this.sectionsRepository.findMaxSortOrderByBudgetId(
+          budget.id,
+          manager,
+        );
 
-    return section.id;
-  }
-
-  private async findBudgetByUserIdOrFail(userId: number): Promise<Budget> {
-    const budget = await this.budgetRepository.findByUserId(userId);
-    if (!budget) {
-      throw new DomainException({
-        code: DomainExceptionCode.NotFound,
-        message: 'Budget not found',
+      const section = await this.sectionsRepository.saveWithManager(manager, {
+        budgetId: budget.id,
+        name: dto.name,
+        sortOrder: (maxSortOrder ?? -1) + 1,
       });
-    }
-    return budget;
+
+      return section.id;
+    });
   }
 
-  private async checkSectionsLimit(budgetId: number): Promise<void> {
-    const count = await this.sectionsRepository.countByBudgetId(budgetId);
+  private async checkSectionsLimit(
+    budgetId: number,
+    manager: EntityManager,
+  ): Promise<void> {
+    const count = await this.sectionsRepository.countByBudgetId(
+      budgetId,
+      manager,
+    );
     if (count >= 30) {
       throw new DomainException({
         code: DomainExceptionCode.Conflict,

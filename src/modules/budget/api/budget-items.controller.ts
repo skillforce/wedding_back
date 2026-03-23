@@ -17,11 +17,14 @@ import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-
 import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
 import { BudgetQueryRepository } from '../infra/query/budget.query-repository';
 import { BudgetViewDto } from './view-dto/budget.view-dto';
+import { BudgetSectionViewDto } from './view-dto/budget-section.view-dto';
 import { CreateBudgetSectionItemInputDto } from './input-dto/create-budget-section-item-input.dto';
 import { UpdateBudgetSectionItemInputDto } from './input-dto/update-budget-section-item-input.dto';
+import { MoveBudgetItemInputDto } from './input-dto/move-budget-item.input-dto';
 import { CreateItemCommand } from '../app/usecases/create-item.usecase';
 import { UpdateItemCommand } from '../app/usecases/update-item.usecase';
 import { DeleteItemCommand } from '../app/usecases/delete-item.usecase';
+import { MoveItemCommand } from '../app/usecases/move-item.usecase';
 
 @ApiTags('Budget items')
 @ApiBearerAuth()
@@ -41,6 +44,21 @@ export class BudgetItemsController {
   ): Promise<BudgetViewDto> {
     await this.commandBus.execute(new CreateItemCommand(dto, user.id));
     return this.budgetQueryRepository.findFullBudgetByUserId(user.id);
+  }
+
+  @Patch('move')
+  async moveItem(
+    @Body() dto: MoveBudgetItemInputDto,
+    @ExtractUserFromRequest() user: UserContextDto,
+  ): Promise<BudgetSectionViewDto[]> {
+    const affectedSectionIds = await this.commandBus.execute<
+      MoveItemCommand,
+      number[]
+    >(new MoveItemCommand(dto, user.id));
+    return this.budgetQueryRepository.findSectionViewsByIdsForUser(
+      user.id,
+      affectedSectionIds,
+    );
   }
 
   @Patch(':id')

@@ -8,6 +8,9 @@ export class BudgetItemViewDto {
   @ApiProperty({ example: 'Ведущий' })
   name: string;
 
+  @ApiProperty({ example: 0 })
+  sortOrder: number;
+
   @ApiProperty({ example: 50000 })
   estimatedCost: number;
 
@@ -27,6 +30,7 @@ export class BudgetItemViewDto {
     const dto = new BudgetItemViewDto();
     dto.id = item.id;
     dto.name = item.name;
+    dto.sortOrder = item.sortOrder;
     dto.estimatedCost = Number(item.estimatedCost);
     dto.actualCost = item.actualCost !== null ? Number(item.actualCost) : null;
     dto.deposit = item.deposit !== null ? Number(item.deposit) : null;

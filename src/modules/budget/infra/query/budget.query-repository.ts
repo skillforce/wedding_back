@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Budget } from '../../domain/entities/budget.entity';
+import { BudgetSection } from '../../domain/entities/budget-section.entity';
 import { BudgetViewDto } from '../../api/view-dto/budget.view-dto';
+import { BudgetSectionViewDto } from '../../api/view-dto/budget-section.view-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 
@@ -11,12 +13,26 @@ export class BudgetQueryRepository {
   constructor(
     @InjectRepository(Budget)
     private readonly budgetOrmRepository: Repository<Budget>,
+    @InjectRepository(BudgetSection)
+    private readonly sectionOrmRepository: Repository<BudgetSection>,
   ) {}
 
   async findFullBudgetByUserId(userId: number): Promise<BudgetViewDto> {
     const budget = await this.budgetOrmRepository.findOne({
       where: { userId },
-      relations: ['sections', 'sections.items'],
+      relations: {
+        sections: {
+          items: true,
+        },
+      },
+      order: {
+        sections: {
+          sortOrder: 'ASC',
+          items: {
+            sortOrder: 'ASC',
+          },
+        },
+      },
     });
     if (!budget) {
       throw new DomainException({
@@ -25,5 +41,35 @@ export class BudgetQueryRepository {
       });
     }
     return BudgetViewDto.mapToViewDto(budget);
+  }
+
+  async findSectionViewsByIdsForUser(
+    userId: number,
+    sectionIds: number[],
+  ): Promise<BudgetSectionViewDto[]> {
+    const uniqueSectionIds = [...new Set(sectionIds)];
+    if (!uniqueSectionIds.length) {
+      return [];
+    }
+
+    const sections = await this.sectionOrmRepository.find({
+      where: {
+        id: In(uniqueSectionIds),
+        budget: {
+          userId,
+        },
+      },
+      relations: {
+        items: true,
+      },
+      order: {
+        sortOrder: 'ASC',
+        items: {
+          sortOrder: 'ASC',
+        },
+      },
+    });
+
+    return sections.map(BudgetSectionViewDto.mapToViewDto);
   }
 }

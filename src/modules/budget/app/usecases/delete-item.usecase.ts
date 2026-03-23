@@ -1,9 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { BudgetRepository } from '../../infra/budget.repository';
+import { DataSource } from 'typeorm';
 import { BudgetItemsRepository } from '../../infra/budget-items.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { Budget } from '../../domain/entities/budget.entity';
 
 export class DeleteItemCommand {
   constructor(
@@ -17,30 +16,40 @@ export class DeleteItemUseCase
   implements ICommandHandler<DeleteItemCommand, void>
 {
   constructor(
-    private readonly budgetRepository: BudgetRepository,
+    private readonly dataSource: DataSource,
     private readonly itemsRepository: BudgetItemsRepository,
   ) {}
 
   async execute({ itemId, userId }: DeleteItemCommand): Promise<void> {
-    const budget = await this.findBudgetByUserIdOrFail(userId);
-    await this.findItemAndCheckOwnership(itemId, budget.id);
-    await this.itemsRepository.deleteByIdOrFail(itemId);
-  }
+    await this.dataSource.transaction(async (manager) => {
+      const item = await this.itemsRepository.findByIdForUpdateOrFail(
+        manager,
+        itemId,
+      );
+      this.checkOwnership(item.section?.budget?.userId, userId);
 
-  private async findBudgetByUserIdOrFail(userId: number): Promise<Budget> {
-    const budget = await this.budgetRepository.findByUserId(userId);
-    if (!budget) {
-      throw new DomainException({
-        code: DomainExceptionCode.NotFound,
-        message: 'Budget not found',
+      const sectionItems = await this.itemsRepository.findBySectionIdForUpdate(
+        manager,
+        item.sectionId,
+      );
+
+      await this.itemsRepository.deleteByIdWithManager(manager, itemId);
+
+      const reorderedItems = sectionItems.filter(
+        (existingItem) => existingItem.id !== itemId,
+      );
+      reorderedItems.forEach((existingItem, index) => {
+        existingItem.sortOrder = index;
       });
-    }
-    return budget;
+
+      if (reorderedItems.length) {
+        await this.itemsRepository.saveManyWithManager(manager, reorderedItems);
+      }
+    });
   }
 
-  private async findItemAndCheckOwnership(itemId: number, budgetId: number): Promise<void> {
-    const item = await this.itemsRepository.findByIdOrFail(itemId);
-    if (item.section!.budgetId !== budgetId) {
+  private checkOwnership(ownerUserId: number | undefined, userId: number): void {
+    if (ownerUserId !== userId) {
       throw new DomainException({
         code: DomainExceptionCode.Forbidden,
         message: 'Budget item does not belong to user',
