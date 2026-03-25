@@ -1,6 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
 import { NumericIdEntity } from '../../../common/domain/base.entity';
 import { BudgetSection } from './budget-section.entity';
+import { BudgetCurrency } from './budget-currency.enum';
 
 export enum BudgetItemPriority {
   MUST = 'must',
@@ -28,6 +29,14 @@ export class BudgetItem extends NumericIdEntity {
 
   @Column({ type: 'int', nullable: true })
   deposit: number | null;
+
+  @Column({
+    type: 'enum',
+    enum: BudgetCurrency,
+    nullable: false,
+    default: BudgetCurrency.USD,
+  })
+  currency: BudgetCurrency;
 
   @Column({
     type: 'enum',

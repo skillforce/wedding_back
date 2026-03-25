@@ -9,6 +9,7 @@ import { BudgetTestManager } from './helpers/budget/budget.test-manager';
 import { BudgetSectionsTestManager } from './helpers/budget/budget-sections.test-manager';
 import { BudgetItemsTestManager } from './helpers/budget/budget-items.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
+import { BudgetCurrency } from '../src/modules/budget/domain/entities/budget.entity';
 
 describe('Budget (e2e)', () => {
   let app: INestApplication;
@@ -156,9 +157,7 @@ describe('Budget (e2e)', () => {
         'Section C',
         'Section A',
       ]);
-      expect(moved.map((section: any) => section.sortOrder)).toEqual([
-        0, 1, 2,
-      ]);
+      expect(moved.map((section: any) => section.sortOrder)).toEqual([0, 1, 2]);
     });
 
     it('should update section name', async () => {
@@ -323,6 +322,7 @@ describe('Budget (e2e)', () => {
           estimatedCost: 0,
           actualCost: null,
           deposit: null,
+          currency: 'USD',
           priority: 'must',
           paid: false,
         }),
@@ -478,6 +478,49 @@ describe('Budget (e2e)', () => {
       expect(cleared.sections[0].items[0].deposit).toBeNull();
     });
 
+    it('should set item currency', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const withSection = await budgetSectionsTestManager.createSection(
+        { name: 'Test' },
+        accessToken,
+      );
+      const sectionId = withSection.sections[0].id;
+
+      const created = await budgetItemsTestManager.createItem(
+        budgetItemsTestManager.buildCreateItemDto(sectionId),
+        accessToken,
+      );
+      const itemId = created.sections[0].items[0].id;
+
+      const updated = await budgetItemsTestManager.updateItem(
+        itemId,
+        { currency: 'USD' as any },
+        accessToken,
+      );
+
+      expect(updated.sections[0].items[0].currency).toBe('USD');
+    });
+
+    it('should create an item with a specific currency', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const withSection = await budgetSectionsTestManager.createSection(
+        { name: 'Test' },
+        accessToken,
+      );
+      const sectionId = withSection.sections[0].id;
+
+      const budget = await budgetItemsTestManager.createItem(
+        { sectionId, name: 'Item with currency' },
+        accessToken,
+      );
+
+      expect(budget.sections[0].items[0].currency).toBe('USD');
+    });
+
     it('should return 400 when deposit is not an integer', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
@@ -566,7 +609,9 @@ describe('Budget (e2e)', () => {
         'Item C',
         'Item A',
       ]);
-      expect(moved[0].items.map((item: any) => item.sortOrder)).toEqual([0, 1, 2]);
+      expect(moved[0].items.map((item: any) => item.sortOrder)).toEqual([
+        0, 1, 2,
+      ]);
     });
 
     it('should move an item to another section', async () => {
@@ -589,7 +634,10 @@ describe('Budget (e2e)', () => {
       ).id;
 
       const created = await budgetItemsTestManager.createItem(
-        { sectionId: sourceSectionId, name: 'Move me' },
+        {
+          sectionId: sourceSectionId,
+          name: 'Move me',
+        },
         accessToken,
       );
       const itemId = created.sections.find(

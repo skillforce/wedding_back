@@ -3,11 +3,9 @@ import { NumericIdEntity } from '../../../common/domain/base.entity';
 import { User } from '../../../user-accounts/domain/entities/user.entity';
 import { BudgetSection } from './budget-section.entity';
 
-export enum BudgetCurrency {
-  RUB = 'RUB',
-  USD = 'USD',
-  BYN = 'BYN',
-}
+import { BudgetCurrency } from './budget-currency.enum';
+
+export { BudgetCurrency };
 
 @Entity('budgets')
 export class Budget extends NumericIdEntity {

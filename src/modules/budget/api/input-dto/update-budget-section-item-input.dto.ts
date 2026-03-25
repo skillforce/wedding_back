@@ -11,6 +11,7 @@ import {
 } from 'class-validator';
 import { Trim } from '../../../../core/decorators/transform/trim';
 import { BudgetItemPriority } from '../../domain/entities/budget-item.entity';
+import { BudgetCurrency } from '../../domain/entities/budget.entity';
 
 export class UpdateBudgetSectionItemInputDto {
   @ApiProperty({
@@ -75,4 +76,13 @@ export class UpdateBudgetSectionItemInputDto {
   @IsOptional()
   @IsBoolean()
   paid?: boolean;
+
+  @ApiProperty({
+    description: 'Item currency',
+    enum: BudgetCurrency,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(BudgetCurrency)
+  currency?: BudgetCurrency;
 }

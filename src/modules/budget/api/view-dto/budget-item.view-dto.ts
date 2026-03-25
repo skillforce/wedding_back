@@ -26,6 +26,9 @@ export class BudgetItemViewDto {
   @ApiProperty({ example: false })
   paid: boolean;
 
+  @ApiProperty({ example: 'RUB' })
+  currency: string;
+
   static mapToViewDto(item: BudgetItem): BudgetItemViewDto {
     const dto = new BudgetItemViewDto();
     dto.id = item.id;
@@ -36,6 +39,7 @@ export class BudgetItemViewDto {
     dto.deposit = item.deposit !== null ? Number(item.deposit) : null;
     dto.priority = item.priority;
     dto.paid = item.paid;
+    dto.currency = item.currency;
     return dto;
   }
 }

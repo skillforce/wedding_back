@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { Trim } from '../../../../core/decorators/transform/trim';
 import { BudgetItemPriority } from '../../domain/entities/budget-item.entity';
+import { BudgetCurrency } from '../../domain/entities/budget.entity';
 
 export class CreateBudgetSectionItemInputDto {
   @ApiProperty({ description: 'Section ID the item belongs to', example: 1 })
@@ -52,4 +53,13 @@ export class CreateBudgetSectionItemInputDto {
   @IsOptional()
   @IsEnum(BudgetItemPriority)
   priority?: BudgetItemPriority;
+
+  @ApiProperty({
+    description: 'Item currency (overrides budget currency)',
+    enum: BudgetCurrency,
+    required: true,
+    nullable: false,
+  })
+  @IsEnum(BudgetCurrency)
+  currency: BudgetCurrency;
 }

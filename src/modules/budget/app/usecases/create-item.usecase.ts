@@ -54,6 +54,7 @@ export class CreateItemUseCase implements ICommandHandler<
         priority: dto.priority ?? BudgetItemPriority.MUST,
         paid: false,
         deposit: dto.deposit ?? null,
+        currency: dto.currency,
         sortOrder: (maxSortOrder ?? -1) + 1,
       });
 
@@ -61,7 +62,10 @@ export class CreateItemUseCase implements ICommandHandler<
     });
   }
 
-  private checkSectionOwnership(sectionBudgetId: number, budgetId: number): void {
+  private checkSectionOwnership(
+    sectionBudgetId: number,
+    budgetId: number,
+  ): void {
     if (sectionBudgetId !== budgetId) {
       throw new DomainException({
         code: DomainExceptionCode.Forbidden,
@@ -74,7 +78,10 @@ export class CreateItemUseCase implements ICommandHandler<
     sectionId: number,
     manager: EntityManager,
   ): Promise<void> {
-    const count = await this.itemsRepository.countBySectionId(sectionId, manager);
+    const count = await this.itemsRepository.countBySectionId(
+      sectionId,
+      manager,
+    );
     if (count >= 20) {
       throw new DomainException({
         code: DomainExceptionCode.Conflict,

@@ -3,6 +3,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { CreateBudgetSectionItemInputDto } from '../../../src/modules/budget/api/input-dto/create-budget-section-item-input.dto';
 import { UpdateBudgetSectionItemInputDto } from '../../../src/modules/budget/api/input-dto/update-budget-section-item-input.dto';
+import { BudgetCurrency } from '../../../src/modules/budget/domain/entities/budget.entity';
 import { MoveBudgetItemInputDto } from '../../../src/modules/budget/api/input-dto/move-budget-item.input-dto';
 import { GLOBAL_PREFIX } from '../../../src/setup/global-prefix.setup';
 
@@ -24,18 +25,20 @@ export class BudgetItemsTestManager {
       name: overrides.name ?? `Item ${this.sequence}`,
       estimatedCost: overrides.estimatedCost,
       priority: overrides.priority,
+      currency: overrides.currency ?? BudgetCurrency.USD,
     };
   }
 
   async createItem(
-    dto: CreateBudgetSectionItemInputDto,
+    dto: Omit<CreateBudgetSectionItemInputDto, 'currency'>,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
   ) {
+    const payload = { ...dto, currency: BudgetCurrency.USD };
     const response = await request(this.httpServer)
       .post(`/${GLOBAL_PREFIX}/budget/items`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
+      .send(payload)
       .expect(expectedStatus);
 
     return response.body;
