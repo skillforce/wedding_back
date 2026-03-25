@@ -9,7 +9,7 @@ import { BudgetTestManager } from './helpers/budget/budget.test-manager';
 import { BudgetSectionsTestManager } from './helpers/budget/budget-sections.test-manager';
 import { BudgetItemsTestManager } from './helpers/budget/budget-items.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
-import { BudgetCurrency } from '../src/modules/budget/domain/entities/budget.entity';
+import { BaseCurrency } from '../src/modules/currency/domain/entities/base-currency.enum';
 
 describe('Budget (e2e)', () => {
   let app: INestApplication;

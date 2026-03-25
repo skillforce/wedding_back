@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BudgetRepository } from '../../infra/budget.repository';
-import { BudgetCurrency } from '../../domain/entities/budget.entity';
+import { BaseCurrency } from '../../../currency/domain/entities/base-currency.enum';
 
 export class CreateDefaultBudgetCommand {
   constructor(public readonly userId: number) {}
@@ -16,7 +16,7 @@ export class CreateDefaultBudgetUseCase
     await this.budgetRepository.save({
       userId,
       budgetLimit: 0,
-      currency: BudgetCurrency.BYN,
+      currency: BaseCurrency.BYN,
     });
   }
 }

@@ -1,5 +1,5 @@
 import { configModule } from './dynamic-config-module';
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, Logger, Module } from '@nestjs/common';
 import { CoreConfig } from './core/configs/core.config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -16,6 +16,7 @@ import { TestingModule } from './modules/testing/testing.module';
 import { UserAccountsModule } from './modules/user-accounts/user-accounts.module';
 import { BudgetModule } from './modules/budget/budget.module';
 import { ChecklistModule } from './modules/checklist/checklist.module';
+import { CurrencyModule } from './modules/currency/currency.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
@@ -28,13 +29,13 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     CoreModule,
     TypeOrmModule.forRootAsync({
       useFactory: (DBConfig: DBConfig) => {
-        console.log('PG_DB_URI', DBConfig.postgresHost);
-        console.log('PG_DB_PORT', DBConfig.postgresPort);
-        console.log('PG_DB_USER', DBConfig.postgresUser);
-        console.log('PG_DB_PASSWORD', DBConfig.postgresPassword);
-        console.log('PG_DB_NAME', DBConfig.postgresDatabase);
-        console.log('PG_SSL_STATUS', DBConfig.postgresIsSSLEnabled);
-        console.log('PD_IS_TESTING', DBConfig.isTesting);
+        const logger = new Logger('TypeOrmConfig');
+        logger.log(`PG_DB_HOST: ${DBConfig.postgresHost}`);
+        logger.log(`PG_DB_PORT: ${DBConfig.postgresPort}`);
+        logger.log(`PG_DB_USER: ${DBConfig.postgresUser}`);
+        logger.log(`PG_DB_NAME: ${DBConfig.postgresDatabase}`);
+        logger.log(`PG_SSL_STATUS: ${DBConfig.postgresIsSSLEnabled}`);
+        logger.log(`PG_IS_TESTING: ${DBConfig.isTesting}`);
 
         return {
           type: 'postgres',
@@ -61,6 +62,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     UserAccountsModule,
     BudgetModule,
     ChecklistModule,
+    CurrencyModule,
   ],
   controllers: [],
   providers: [

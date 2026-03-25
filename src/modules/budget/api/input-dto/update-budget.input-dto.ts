@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
-import { BudgetCurrency } from '../../domain/entities/budget.entity';
+import { BaseCurrency } from '../../../currency/domain/entities/base-currency.enum';
 
 export class UpdateBudgetInputDto {
   @ApiProperty({
@@ -15,10 +15,10 @@ export class UpdateBudgetInputDto {
 
   @ApiProperty({
     description: 'Budget currency',
-    enum: BudgetCurrency,
+    enum: BaseCurrency,
     required: false,
   })
   @IsOptional()
-  @IsEnum(BudgetCurrency)
-  currency?: BudgetCurrency;
+  @IsEnum(BaseCurrency)
+  currency?: BaseCurrency;
 }

@@ -3,9 +3,7 @@ import { NumericIdEntity } from '../../../common/domain/base.entity';
 import { User } from '../../../user-accounts/domain/entities/user.entity';
 import { BudgetSection } from './budget-section.entity';
 
-import { BudgetCurrency } from './budget-currency.enum';
-
-export { BudgetCurrency };
+import { BaseCurrency } from '../../../currency/domain/entities/base-currency.enum';
 
 @Entity('budgets')
 export class Budget extends NumericIdEntity {
@@ -17,11 +15,11 @@ export class Budget extends NumericIdEntity {
 
   @Column({
     type: 'enum',
-    enum: BudgetCurrency,
+    enum: BaseCurrency,
     nullable: false,
-    default: BudgetCurrency.RUB,
+    default: BaseCurrency.RUB,
   })
-  currency: BudgetCurrency;
+  currency: BaseCurrency;
 
   @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
