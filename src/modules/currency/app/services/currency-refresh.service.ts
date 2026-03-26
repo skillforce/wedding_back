@@ -23,7 +23,7 @@ export class CurrencyRefreshService implements OnModuleInit {
     await this.refreshRates();
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_2_HOURS)
   async refreshRates(): Promise<void> {
     try {
       const response = await fetch(this.generateRequestUrl());
@@ -48,6 +48,12 @@ export class CurrencyRefreshService implements OnModuleInit {
       };
 
       await this.currencyRatesRepository.save(newCurrencyRate);
+
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+      const deleted = await this.currencyRatesRepository.deleteOlderThan(twoDaysAgo);
+      if (deleted > 0) {
+        this.logger.log(`Deleted ${deleted} outdated currency rate(s)`);
+      }
 
       this.logger.log('Currency rates refreshed successfully');
     } catch (error) {
