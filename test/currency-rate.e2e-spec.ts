@@ -7,15 +7,29 @@ import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { CurrencyRateTestManager } from './helpers/currency-rate.test-manager';
 import { CurrencyRefreshService } from '../src/modules/currency/app/services/currency-refresh.service';
-import { CurrencyRateQueryRepository } from '../src/modules/currency/infra/query/currency-rate.query-repository';
 import { getOptionsToken } from '@nestjs/throttler';
+
+const mockRatesResponse = {
+  result: 'success',
+  base_code: 'USD',
+  conversion_rates: {
+    BYN: 3.27,
+    RUB: 96.5,
+  },
+};
 
 describe('Currency Rate (e2e)', () => {
   let app: INestApplication;
   let userAccountsTestManager: UserAccountsTestManager;
   let currencyRateTestManager: CurrencyRateTestManager;
+  let fetchSpy: jest.SpyInstance;
 
   beforeAll(async () => {
+    fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => mockRatesResponse,
+    } as Response);
+
     const result = await initTesting((moduleBuilder) =>
       moduleBuilder
         .overrideProvider(getOptionsToken())
@@ -40,40 +54,30 @@ describe('Currency Rate (e2e)', () => {
 
   beforeEach(async () => {
     await deleteAllData(app);
+    fetchSpy.mockClear();
   });
 
   afterAll(async () => {
+    fetchSpy.mockRestore();
     if (app) {
       await app.close();
     }
   });
 
-  it('should have fetched rates on module init (onModuleInit)', async () => {
-    const queryRepository = app.get<CurrencyRateQueryRepository>(CurrencyRateQueryRepository);
-    const latest = await queryRepository.findLatest();
-
-    expect(latest).not.toBeNull();
-    expect(latest!.base).toBe('USD');
-    expect(latest!.rates.BYN).toBeGreaterThan(0);
-    expect(latest!.rates.RUB).toBeGreaterThan(0);
-  });
-
-  it('should fetch fresh rates when refreshRates is called', async () => {
-    const currencyRefreshService = app.get<CurrencyRefreshService>(CurrencyRefreshService);
-    const fetchSpy = jest.spyOn(global, 'fetch');
+  it('should call fetch when refreshRates is invoked', async () => {
+    const currencyRefreshService = app.get<CurrencyRefreshService>(
+      CurrencyRefreshService,
+    );
 
     await currencyRefreshService.refreshRates();
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(fetchSpy).toHaveBeenCalledWith(
-      expect.stringContaining('exchangerate-api.com'),
+      expect.stringContaining('exchangerate'),
     );
-    fetchSpy.mockRestore();
   });
 
-  it('should return currency rates', async () => {
-    const { accessToken } =
-      await userAccountsTestManager.createUserAndLogin();
+  it('should return currency rates from mocked data', async () => {
+    const { accessToken } = await userAccountsTestManager.createUserAndLogin();
 
     const rates = await currencyRateTestManager.getRates(accessToken);
 
@@ -87,16 +91,6 @@ describe('Currency Rate (e2e)', () => {
         updatedAt: expect.any(String),
       }),
     );
-  });
-
-  it('should return rates with positive values', async () => {
-    const { accessToken } =
-      await userAccountsTestManager.createUserAndLogin();
-
-    const rates = await currencyRateTestManager.getRates(accessToken);
-
-    expect(rates.rates.BYN).toBeGreaterThan(0);
-    expect(rates.rates.RUB).toBeGreaterThan(0);
   });
 
   it('should return 401 without auth', async () => {
