@@ -48,7 +48,7 @@ describe('Checklist (e2e)', () => {
   });
 
   describe('Checklist root', () => {
-    it('should return a default checklist for a new user', async () => {
+    it('should return a default checklist with ru locale for a new user', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
@@ -62,11 +62,11 @@ describe('Checklist (e2e)', () => {
       );
       expect(checklist.phases).toHaveLength(5);
       expect(checklist.phases.map((phase: any) => phase.timeline)).toEqual([
-        '12–10 months before',
-        '9–7 months before',
-        '6–4 months before',
-        '3–1 months before',
-        'Last 7 days',
+        '12–10 месяцев до свадьбы',
+        '9–7 месяцев до свадьбы',
+        '6–4 месяцев до свадьбы',
+        '3–1 месяцев до свадьбы',
+        'Последние 7 дней',
       ]);
       checklist.phases.forEach((phase: any, index: number) => {
         expect(phase).toEqual(
@@ -80,6 +80,26 @@ describe('Checklist (e2e)', () => {
           }),
         );
       });
+    });
+
+    it('should return a default checklist with en locale', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const checklist = await checklistTestManager.getChecklist(
+        accessToken,
+        HttpStatus.OK,
+        'en',
+      );
+
+      expect(checklist.phases).toHaveLength(5);
+      expect(checklist.phases.map((phase: any) => phase.timeline)).toEqual([
+        '12–10 месяцев до свадьбы',
+        '9–7 месяцев до свадьбы',
+        '6–4 месяцев до свадьбы',
+        '3–1 месяцев до свадьбы',
+        'Последние 7 дней',
+      ]);
     });
 
     it('should return 401 without auth', async () => {

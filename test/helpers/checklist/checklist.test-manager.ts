@@ -8,6 +8,7 @@ import { CreateChecklistPhaseItemInputDto } from '../../../src/modules/checklist
 import { UpdateChecklistPhaseItemInputDto } from '../../../src/modules/checklist/api/input-dto/update-checklist-phase-item-input.dto';
 import { MoveItemInputDto } from '../../../src/modules/checklist/api/input-dto/move-item.input-dto';
 import { ChecklistItemPriority } from '../../../src/modules/checklist/domain/entities/checklist-item.entity';
+import { ChecklistLocale } from '../../../src/modules/checklist/app/usecases/default-checklist-phases';
 
 export class ChecklistTestManager {
   private readonly httpServer: App;
@@ -66,11 +67,17 @@ export class ChecklistTestManager {
   async getChecklist(
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    locale?: ChecklistLocale,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .get(`/${GLOBAL_PREFIX}/checklist`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    if (locale) {
+      req.query({ locale });
+    }
+
+    const response = await req.expect(expectedStatus);
 
     return response.body;
   }
@@ -78,11 +85,17 @@ export class ChecklistTestManager {
   async resetChecklist(
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    locale?: ChecklistLocale,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .post(`/${GLOBAL_PREFIX}/checklist/reset`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    if (locale) {
+      req.query({ locale });
+    }
+
+    const response = await req.expect(expectedStatus);
 
     return response.body;
   }

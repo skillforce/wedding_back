@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -15,6 +16,7 @@ import { ChecklistQueryRepository } from '../infra/query/checklist.query-reposit
 import { ChecklistViewDto } from './view-dto/checklist.view-dto';
 import { CreateDefaultChecklistCommand } from '../app/usecases/create-default-checklist.usecase';
 import { ResetChecklistCommand } from '../app/usecases/reset-checklist.usecase';
+import { ChecklistLocale } from '../app/usecases/default-checklist-phases';
 
 @ApiTags('Checklist')
 @ApiBearerAuth()
@@ -29,19 +31,25 @@ export class ChecklistController {
   @Get()
   async getChecklist(
     @ExtractUserFromRequest() user: UserContextDto,
+    @Query('locale') locale?: ChecklistLocale,
   ): Promise<ChecklistViewDto> {
     await this.commandBus.execute(
-      new CreateDefaultChecklistCommand(user.id),
+      new CreateDefaultChecklistCommand(user.id, locale),
     );
-    return this.checklistQueryRepository.findFullChecklistByUserIdOrFail(user.id);
+    return this.checklistQueryRepository.findFullChecklistByUserIdOrFail(
+      user.id,
+    );
   }
 
   @Post('reset')
   @HttpCode(HttpStatus.OK)
   async resetChecklist(
     @ExtractUserFromRequest() user: UserContextDto,
+    @Query('locale') locale?: ChecklistLocale,
   ): Promise<ChecklistViewDto> {
-    await this.commandBus.execute(new ResetChecklistCommand(user.id));
-    return this.checklistQueryRepository.findFullChecklistByUserIdOrFail(user.id);
+    await this.commandBus.execute(new ResetChecklistCommand(user.id, locale));
+    return this.checklistQueryRepository.findFullChecklistByUserIdOrFail(
+      user.id,
+    );
   }
 }

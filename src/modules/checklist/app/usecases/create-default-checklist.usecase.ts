@@ -2,10 +2,13 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { ChecklistRepository } from '../../infra/checklist.repository';
 import { ChecklistPhasesRepository } from '../../infra/checklist-phases.repository';
-import { buildDefaultChecklistPhases } from './default-checklist-phases';
+import { buildDefaultChecklistPhases, ChecklistLocale } from './default-checklist-phases';
 
 export class CreateDefaultChecklistCommand {
-  constructor(public readonly userId: number) {}
+  constructor(
+    public readonly userId: number,
+    public readonly locale: ChecklistLocale = 'ru',
+  ) {}
 }
 
 @CommandHandler(CreateDefaultChecklistCommand)
@@ -18,7 +21,7 @@ export class CreateDefaultChecklistUseCase
     private readonly checklistPhasesRepository: ChecklistPhasesRepository,
   ) {}
 
-  async execute({ userId }: CreateDefaultChecklistCommand): Promise<string> {
+  async execute({ userId, locale }: CreateDefaultChecklistCommand): Promise<string> {
     const existingChecklist = await this.checklistRepository.findByUserId(userId);
     if (existingChecklist) {
       return existingChecklist.id;
@@ -39,7 +42,7 @@ export class CreateDefaultChecklistUseCase
       );
       await this.checklistPhasesRepository.saveManyWithManager(
         manager,
-        buildDefaultChecklistPhases(newChecklist.id),
+        buildDefaultChecklistPhases(newChecklist.id, locale),
       );
 
       return newChecklist.id;
