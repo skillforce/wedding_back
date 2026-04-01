@@ -1,5 +1,8 @@
 import { configModule } from './dynamic-config-module';
-import { DynamicModule, Logger, Module } from '@nestjs/common';
+import { DynamicModule, Logger, Module, Provider } from '@nestjs/common';
+import { CurrencyRefreshService } from './modules/currency/app/services/currency-refresh.service';
+import { CurrencyRateQueryRepository } from './modules/currency/infra/query/currency-rate.query-repository';
+import { BaseCurrency } from './modules/currency/domain/entities/base-currency.enum';
 import { CoreConfig } from './core/configs/core.config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -82,9 +85,29 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 })
 export class AppModule {
   static forRoot(coreConfig: CoreConfig): DynamicModule {
+    const testingProviders = coreConfig.includeTestingModule
+      ? [
+          {
+            provide: CurrencyRefreshService,
+            useValue: { onModuleInit: async () => {}, refreshRates: async () => {} },
+          },
+          {
+            provide: CurrencyRateQueryRepository,
+            useValue: {
+              findLatest: async () => ({
+                base: BaseCurrency.USD,
+                rates: { BYN: 3.27, RUB: 96.5 },
+                updatedAt: new Date().toISOString(),
+              }),
+            },
+          },
+        ]
+      : [];
+
     return {
       module: AppModule,
-      imports: [...(coreConfig.includeTestingModule ? [TestingModule] : [])], // Add dynamic modules here if needed
+      imports: [...(coreConfig.includeTestingModule ? [TestingModule] : [])],
+      providers: testingProviders,
     };
   }
 }
