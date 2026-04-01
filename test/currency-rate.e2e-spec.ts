@@ -6,28 +6,20 @@ import { JwtService } from '@nestjs/jwt';
 import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { CurrencyRateTestManager } from './helpers/currency-rate.test-manager';
-import { CurrencyRefreshService } from '../src/modules/currency/app/services/currency-refresh.service';
-import { CurrencyRatesRepository } from '../src/modules/currency/infra/currency-rates.repository';
+import { CurrencyRateQueryRepository } from '../src/modules/currency/infra/query/currency-rate.query-repository';
 import { BaseCurrency } from '../src/modules/currency/domain/entities/base-currency.enum';
+import { CurrencyRateViewDto } from '../src/modules/currency/api/view-dto/currency-rate.view-dto';
 import { getOptionsToken } from '@nestjs/throttler';
 
 const MOCK_RATES = { BYN: 3.27, RUB: 96.5 };
 
-class MockCurrencyRefreshService {
-  constructor(
-    private readonly currencyRatesRepository: CurrencyRatesRepository,
-  ) {}
-
-  async onModuleInit(): Promise<void> {
-    await this.refreshRates();
-  }
-
-  async refreshRates(): Promise<void> {
-    await this.currencyRatesRepository.save({
-      base: BaseCurrency.USD,
-      byn: MOCK_RATES.BYN,
-      rub: MOCK_RATES.RUB,
-    });
+class MockCurrencyRateQueryRepository {
+  async findLatest(): Promise<CurrencyRateViewDto> {
+    const dto = new CurrencyRateViewDto();
+    dto.base = BaseCurrency.USD;
+    dto.rates = { BYN: MOCK_RATES.BYN, RUB: MOCK_RATES.RUB };
+    dto.updatedAt = new Date().toISOString();
+    return dto;
   }
 }
 
@@ -53,8 +45,8 @@ describe('Currency Rate (e2e)', () => {
           },
           inject: [UserAccountsConfig],
         })
-        .overrideProvider(CurrencyRefreshService)
-        .useClass(MockCurrencyRefreshService),
+        .overrideProvider(CurrencyRateQueryRepository)
+        .useClass(MockCurrencyRateQueryRepository),
     );
     app = result.app;
     userAccountsTestManager = result.userAccountsTestManager;
@@ -71,21 +63,6 @@ describe('Currency Rate (e2e)', () => {
     }
   });
 
-  it('should save rates when refreshRates is invoked', async () => {
-    const currencyRefreshService = app.get<MockCurrencyRefreshService>(
-      CurrencyRefreshService,
-    );
-
-    await currencyRefreshService.refreshRates();
-
-    const { accessToken } = await userAccountsTestManager.createUserAndLogin();
-    const rates = await currencyRateTestManager.getRates(accessToken);
-
-    expect(rates.rates).toEqual(
-      expect.objectContaining({ BYN: MOCK_RATES.BYN, RUB: MOCK_RATES.RUB }),
-    );
-  });
-
   it('should return currency rates', async () => {
     const { accessToken } = await userAccountsTestManager.createUserAndLogin();
 
@@ -95,8 +72,8 @@ describe('Currency Rate (e2e)', () => {
       expect.objectContaining({
         base: 'USD',
         rates: expect.objectContaining({
-          BYN: expect.any(Number),
-          RUB: expect.any(Number),
+          BYN: MOCK_RATES.BYN,
+          RUB: MOCK_RATES.RUB,
         }),
         updatedAt: expect.any(String),
       }),
