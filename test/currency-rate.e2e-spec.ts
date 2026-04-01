@@ -6,22 +6,9 @@ import { JwtService } from '@nestjs/jwt';
 import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { CurrencyRateTestManager } from './helpers/currency-rate.test-manager';
-import { CurrencyRateQueryRepository } from '../src/modules/currency/infra/query/currency-rate.query-repository';
-import { BaseCurrency } from '../src/modules/currency/domain/entities/base-currency.enum';
-import { CurrencyRateViewDto } from '../src/modules/currency/api/view-dto/currency-rate.view-dto';
 import { getOptionsToken } from '@nestjs/throttler';
 
 const MOCK_RATES = { BYN: 3.27, RUB: 96.5 };
-
-class MockCurrencyRateQueryRepository {
-  async findLatest(): Promise<CurrencyRateViewDto> {
-    const dto = new CurrencyRateViewDto();
-    dto.base = BaseCurrency.USD;
-    dto.rates = { BYN: MOCK_RATES.BYN, RUB: MOCK_RATES.RUB };
-    dto.updatedAt = new Date().toISOString();
-    return dto;
-  }
-}
 
 describe('Currency Rate (e2e)', () => {
   let app: INestApplication;
@@ -44,9 +31,7 @@ describe('Currency Rate (e2e)', () => {
             });
           },
           inject: [UserAccountsConfig],
-        })
-        .overrideProvider(CurrencyRateQueryRepository)
-        .useClass(MockCurrencyRateQueryRepository),
+        }),
     );
     app = result.app;
     userAccountsTestManager = result.userAccountsTestManager;
