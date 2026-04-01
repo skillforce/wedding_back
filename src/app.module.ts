@@ -1,6 +1,5 @@
 import { configModule } from './dynamic-config-module';
-import { DynamicModule, Logger, Module, Provider } from '@nestjs/common';
-import { CurrencyRefreshService } from './modules/currency/app/services/currency-refresh.service';
+import { DynamicModule, Logger, Module } from '@nestjs/common';
 import { CurrencyRateQueryRepository } from './modules/currency/infra/query/currency-rate.query-repository';
 import { BaseCurrency } from './modules/currency/domain/entities/base-currency.enum';
 import { CoreConfig } from './core/configs/core.config';
@@ -87,10 +86,6 @@ export class AppModule {
   static forRoot(coreConfig: CoreConfig): DynamicModule {
     const testingProviders = coreConfig.includeTestingModule
       ? [
-          {
-            provide: CurrencyRefreshService,
-            useValue: { onModuleInit: async () => {}, refreshRates: async () => {} },
-          },
           {
             provide: CurrencyRateQueryRepository,
             useValue: {

@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { CoreConfig } from '../../../../core/configs/core.config';
+import { CoreConfig, Environments } from '../../../../core/configs/core.config';
 import { CurrencyRatesRepository } from '../../infra/currency-rates.repository';
 import { BaseCurrency } from '../../domain/entities/base-currency.enum';
 
@@ -20,6 +20,9 @@ export class CurrencyRefreshService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    if (this.coreConfig.env === Environments.TESTING) {
+      return;
+    }
     await this.refreshRates();
   }
 
