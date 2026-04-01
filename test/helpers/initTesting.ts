@@ -13,6 +13,20 @@ import { BudgetItemsTestManager } from './budget/budget-items.test-manager';
 import { ChecklistTestManager } from './checklist/checklist.test-manager';
 import { CurrencyRateTestManager } from './currency-rate.test-manager';
 import { ProfileTestManager } from './profile.test-manager';
+import { CurrencyRateQueryRepository } from '../../src/modules/currency/infra/query/currency-rate.query-repository';
+import { CurrencyRateViewDto } from '../../src/modules/currency/api/view-dto/currency-rate.view-dto';
+import { BaseCurrency } from '../../src/modules/currency/domain/entities/base-currency.enum';
+
+class MockCurrencyRateQueryRepository {
+  async findLatest(): Promise<CurrencyRateViewDto> {
+    const dto = new CurrencyRateViewDto();
+    dto.base = BaseCurrency.USD;
+    dto.rates = { BYN: 3.27, RUB: 96.5 };
+    dto.updatedAt = new Date().toISOString();
+    return dto;
+  }
+}
+
 export const initTesting = async (
   addSettingsToModuleBuilder?: (moduleBuilder: TestingModuleBuilder) => void,
 ) => {
@@ -20,6 +34,10 @@ export const initTesting = async (
   const testingModuleBuilder: TestingModuleBuilder = Test.createTestingModule({
     imports: [DynamicAppModule],
   });
+
+  testingModuleBuilder
+    .overrideProvider(CurrencyRateQueryRepository)
+    .useClass(MockCurrencyRateQueryRepository);
 
   if (addSettingsToModuleBuilder) {
     addSettingsToModuleBuilder(testingModuleBuilder);
