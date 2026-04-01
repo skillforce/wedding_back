@@ -77,7 +77,13 @@ describe('AuthController (e2e)', () => {
       accessToken: expect.any(String),
       id: expect.any(Number),
       login: credentials.login,
-      invitationUrl: null,
+      profile: {
+        invitationUrl: null,
+        profileImg: null,
+        weddingDate: null,
+        phoneNumber: null,
+        email: null,
+      },
     });
     expect(refreshTokenCookie).toBeDefined();
     expect(refreshTokenCookie).toContain('HttpOnly');
@@ -92,7 +98,13 @@ describe('AuthController (e2e)', () => {
     expect(meResponse).toEqual({
       id: userId,
       login: credentials.login,
-      invitationUrl: null,
+      profile: {
+        invitationUrl: null,
+        profileImg: null,
+        weddingDate: null,
+        phoneNumber: null,
+        email: null,
+      },
     });
   });
 

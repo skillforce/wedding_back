@@ -26,9 +26,16 @@ import { DeleteUserUseCase } from './application/usecases/delete-user.usecase';
 import { UserController } from './api/user-controller';
 import { UsersQueryRepository } from './infra/query/users.query-repository';
 import { RefreshTokenGuard } from './guards/refresh/refresh-token.guard';
+import { S3Module } from '../s3/s3.module';
+import { UserProfile } from './domain/entities/user-profile.entity';
+import { UserProfilesRepository } from './infra/user-profiles.repository';
+import { ProfileImageService } from './application/profile-image.service';
+import { CreateDefaultProfileUseCase } from './application/usecases/create-default-profile.usecase';
+import { UpdateProfileUseCase } from './application/usecases/update-profile.usecase';
+import { UploadProfileImageUseCase } from './application/usecases/upload-profile-image.usecase';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, RefreshToken]), JwtModule],
+  imports: [TypeOrmModule.forFeature([User, RefreshToken, UserProfile]), JwtModule, S3Module],
   controllers: [AuthController, UserController],
   providers: [
     BcryptService,
@@ -46,8 +53,13 @@ import { RefreshTokenGuard } from './guards/refresh/refresh-token.guard';
     UsersRepository,
     RefreshTokensRepository,
     UsersQueryRepository,
+    UserProfilesRepository,
+    ProfileImageService,
     CreateUserUseCase,
     DeleteUserUseCase,
+    CreateDefaultProfileUseCase,
+    UpdateProfileUseCase,
+    UploadProfileImageUseCase,
     {
       provide: ACCESS_TOKEN_STRATEGY_INJECT_TOKEN,
       useFactory: (userAccountsConfig: UserAccountsConfig): JwtService => {

@@ -28,8 +28,9 @@ export class UsersQueryRepository {
   }
 
   async findMeByIdOrNotFoundFail(id: number): Promise<MeViewDto> {
-    const user = await this.usersOrmRepository.findOneBy({
-      id,
+    const user = await this.usersOrmRepository.findOne({
+      where: { id },
+      relations: { profile: true },
     });
 
     if (!user) {

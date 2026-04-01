@@ -12,6 +12,7 @@ import { BudgetSectionsTestManager } from './budget/budget-sections.test-manager
 import { BudgetItemsTestManager } from './budget/budget-items.test-manager';
 import { ChecklistTestManager } from './checklist/checklist.test-manager';
 import { CurrencyRateTestManager } from './currency-rate.test-manager';
+import { ProfileTestManager } from './profile.test-manager';
 
 export const initTesting = async (
   addSettingsToModuleBuilder?: (moduleBuilder: TestingModuleBuilder) => void,
@@ -44,6 +45,7 @@ export const initTesting = async (
   const budgetItemsTestManager = new BudgetItemsTestManager(app);
   const checklistTestManager = new ChecklistTestManager(app);
   const currencyRateTestManager = new CurrencyRateTestManager(app);
+  const profileTestManager = new ProfileTestManager(app);
 
   await deleteAllData(app);
 
@@ -59,5 +61,6 @@ export const initTesting = async (
     budgetItemsTestManager,
     checklistTestManager,
     currencyRateTestManager,
+    profileTestManager,
   };
 };

@@ -1,7 +1,8 @@
-import { Column, Entity, OneToMany } from 'typeorm';
+import { Column, Entity, OneToMany, OneToOne } from 'typeorm';
 import { NumericIdEntity } from '../../../common/domain/base.entity';
 import { Length } from 'class-validator';
 import { Guest } from '../../../guests/domain/enteties/guest.entity';
+import { UserProfile } from './user-profile.entity';
 
 export const loginConstraints = {
   minLength: 3,
@@ -22,8 +23,8 @@ export class User extends NumericIdEntity {
   @Length(passwordConstraints.minLength, passwordConstraints.maxLength)
   passwordHash: string;
 
-  @Column({ nullable: true })
-  invitationUrl?: string;
+  @OneToOne(() => UserProfile, (profile) => profile.user)
+  profile?: UserProfile;
 
   @OneToMany(() => Guest, (guest) => guest.user)
   public guests?: Guest[];
