@@ -44,7 +44,7 @@ describe('Profile (e2e)', () => {
         .useValue({
           compress: jest.fn().mockResolvedValue({
             buffer: FAKE_JPEG_BUFFER,
-            contentType: 'image/jpeg',
+            contentType: 'image/avif',
           }),
         }),
     );
