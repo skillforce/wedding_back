@@ -9,6 +9,7 @@ import { ProfileTestManager } from './helpers/profile.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
 import { ProfileImageService } from '../src/modules/user-accounts/application/profile-image.service';
 import { FAKE_JPEG_BUFFER } from './helpers/profile.test-manager';
+import { ImageService } from '../src/adapters/image/image.service';
 
 const FAKE_IMAGE_URL = 'https://s3.example.com/profiles/avatars/1';
 
@@ -38,6 +39,13 @@ describe('Profile (e2e)', () => {
         .useValue({
           upload: jest.fn().mockResolvedValue(FAKE_IMAGE_URL),
           delete: jest.fn().mockResolvedValue(undefined),
+        })
+        .overrideProvider(ImageService)
+        .useValue({
+          compress: jest.fn().mockResolvedValue({
+            buffer: FAKE_JPEG_BUFFER,
+            contentType: 'image/jpeg',
+          }),
         }),
     );
     app = result.app;
