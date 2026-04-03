@@ -37,6 +37,7 @@ describe('Profile (e2e)', () => {
         .overrideProvider(ProfileImageService)
         .useValue({
           upload: jest.fn().mockResolvedValue(FAKE_IMAGE_URL),
+          delete: jest.fn().mockResolvedValue(undefined),
         }),
     );
     app = result.app;
@@ -142,7 +143,8 @@ describe('Profile (e2e)', () => {
 
   describe('PATCH /users/profile/image', () => {
     it('should upload profile image and store the URL', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
 
       const updated = await profileTestManager.uploadProfileImage(
         accessToken,
@@ -163,7 +165,8 @@ describe('Profile (e2e)', () => {
     });
 
     it('should reject file exceeding 15 MB', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
 
       const oversizedFile = Buffer.concat([
         FAKE_JPEG_BUFFER,
@@ -178,7 +181,8 @@ describe('Profile (e2e)', () => {
     });
 
     it('should reject non-image file type', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
 
       await profileTestManager.uploadProfileImage(
         accessToken,
@@ -189,7 +193,8 @@ describe('Profile (e2e)', () => {
     });
 
     it('should allow up to 5 uploads per day', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const fakeImage = Buffer.from('fake-image-data');
 
       for (let i = 0; i < 5; i++) {
@@ -203,11 +208,16 @@ describe('Profile (e2e)', () => {
     });
 
     it('should reject the 6th upload on the same day', async () => {
-      const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
       const fakeImage = Buffer.from('fake-image-data');
 
       for (let i = 0; i < 5; i++) {
-        await profileTestManager.uploadProfileImage(accessToken, fakeImage, 'image/png');
+        await profileTestManager.uploadProfileImage(
+          accessToken,
+          fakeImage,
+          'image/png',
+        );
       }
 
       await profileTestManager.uploadProfileImage(
