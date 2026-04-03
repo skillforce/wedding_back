@@ -5,6 +5,7 @@ import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { ProfileViewDto } from '../../api/view-dto/profile.view-dto';
 import { UserProfile } from '../../domain/entities/user-profile.entity';
+import { ImageService } from '../../../../adapters/image/image.service';
 
 const DAILY_UPLOAD_LIMIT = 5;
 
@@ -24,6 +25,7 @@ export class UploadProfileImageUseCase implements ICommandHandler<
   constructor(
     private readonly userProfilesRepository: UserProfilesRepository,
     private readonly profileImageService: ProfileImageService,
+    private readonly imageService: ImageService,
   ) {}
 
   async execute({
@@ -41,11 +43,9 @@ export class UploadProfileImageUseCase implements ICommandHandler<
 
     this.checkDailyUploadLimit(profile);
 
-    const url = await this.profileImageService.upload(
-      userId,
-      file,
-      contentType,
-    );
+    const previousImageUrl = profile.profileImg;
+    const compressed = await this.imageService.compress(file);
+    const url = await this.profileImageService.upload(compressed.buffer, compressed.contentType);
     const isNewDay = this.isNewDate(profile.imageUploadResetDate);
 
     await this.userProfilesRepository.update(userId, {
@@ -54,8 +54,15 @@ export class UploadProfileImageUseCase implements ICommandHandler<
       imageUploadResetDate: new Date(new Date().toISOString().slice(0, 10)),
     });
 
+    await this.deletePreviousImage(previousImageUrl);
+
     const updated = await this.userProfilesRepository.findByUserId(userId);
     return ProfileViewDto.mapToViewDto(updated!);
+  }
+
+  private async deletePreviousImage(imageUrl: string | null): Promise<void> {
+    if (!imageUrl) return;
+    await this.profileImageService.delete(imageUrl);
   }
 
   private checkDailyUploadLimit(profile: UserProfile): void {

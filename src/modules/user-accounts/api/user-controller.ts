@@ -4,16 +4,13 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
-  MaxFileSizeValidator,
   Param,
-  ParseFilePipe,
   Patch,
   Post,
-  UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ImageFileTypeValidator } from './validators/image-file-type.validator';
+import { ParseProfileImage } from './validators/parse-profile-image.decorator';
 import {
   ApiBasicAuth,
   ApiBearerAuth,
@@ -110,16 +107,7 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async uploadProfileImage(
     @ExtractUserFromRequest() user: UserContextDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 15 * 1024 * 1024 }),
-          new ImageFileTypeValidator({}),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
+    @ParseProfileImage() file: Express.Multer.File,
   ): Promise<ProfileViewDto> {
     return this.commandBus.execute<UploadProfileImageCommand, ProfileViewDto>(
       new UploadProfileImageCommand(user.id, file.buffer, file.mimetype),

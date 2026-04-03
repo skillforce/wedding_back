@@ -26,7 +26,8 @@ import { DeleteUserUseCase } from './application/usecases/delete-user.usecase';
 import { UserController } from './api/user-controller';
 import { UsersQueryRepository } from './infra/query/users.query-repository';
 import { RefreshTokenGuard } from './guards/refresh/refresh-token.guard';
-import { S3Module } from '../s3/s3.module';
+import { S3Module } from '../../adapters/s3/s3.module';
+import { ImageModule } from '../../adapters/image/image.module';
 import { UserProfile } from './domain/entities/user-profile.entity';
 import { UserProfilesRepository } from './infra/user-profiles.repository';
 import { ProfileImageService } from './application/profile-image.service';
@@ -35,7 +36,12 @@ import { UpdateProfileUseCase } from './application/usecases/update-profile.usec
 import { UploadProfileImageUseCase } from './application/usecases/upload-profile-image.usecase';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, RefreshToken, UserProfile]), JwtModule, S3Module],
+  imports: [
+    TypeOrmModule.forFeature([User, RefreshToken, UserProfile]),
+    JwtModule,
+    S3Module,
+    ImageModule,
+  ],
   controllers: [AuthController, UserController],
   providers: [
     BcryptService,
