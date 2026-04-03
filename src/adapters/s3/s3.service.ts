@@ -50,4 +50,11 @@ export class S3Service {
       }),
     );
   }
+
+  async deleteFileByUrl(url: string): Promise<void> {
+    const prefix = `${this.s3Config.endpoint}/${this.s3Config.bucket}/`;
+    if (!url.startsWith(prefix)) return;
+    const key = url.slice(prefix.length);
+    await this.deleteFile(key);
+  }
 }
