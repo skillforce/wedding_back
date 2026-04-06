@@ -1,16 +1,21 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { RefreshTokensRepository } from '../../infra/refresh-tokens.repository';
+import { randomUUID } from 'crypto';
+import { AuthSessionsRepository } from '../../infra/auth-sessions.repository';
 import { BcryptService } from '../bcrypt.service';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { GenerateNewTokenCommand } from './generate-token.usecase';
-import { GenerateRefreshTokenCommand } from './generate-refresh-token.usecase';
+import {
+  GenerateRefreshTokenCommand,
+  SessionMetadata,
+} from './generate-refresh-token.usecase';
 
 export class RefreshTokenCommand {
   constructor(
     public readonly userId: number,
     public readonly tokenId: string,
     public readonly rawToken: string,
+    public readonly metadata: SessionMetadata,
   ) {}
 }
 
@@ -24,7 +29,7 @@ export class RefreshTokenUsecase
 {
   constructor(
     private readonly commandBus: CommandBus,
-    private readonly refreshTokensRepository: RefreshTokensRepository,
+    private readonly authSessionsRepository: AuthSessionsRepository,
     private readonly bcryptService: BcryptService,
   ) {}
 
@@ -32,10 +37,14 @@ export class RefreshTokenUsecase
     userId,
     tokenId,
     rawToken,
-  }: RefreshTokenCommand): Promise<{ accessToken: string; refreshToken: string }> {
-    const record = await this.refreshTokensRepository.findById(tokenId);
+    metadata,
+  }: RefreshTokenCommand): Promise<{
+    accessToken: string;
+    refreshToken: string;
+  }> {
+    const session = await this.authSessionsRepository.findById(tokenId);
 
-    if (!record) {
+    if (!session) {
       throw new DomainException({
         code: DomainExceptionCode.Unauthorized,
         extensions: [
@@ -50,28 +59,33 @@ export class RefreshTokenUsecase
 
     const isValid = await this.bcryptService.comparePasswords(
       rawToken,
-      record.tokenHash,
+      session.refreshTokenHash,
     );
 
     if (!isValid) {
+      await this.authSessionsRepository.deleteAllByUserId(userId);
       throw new DomainException({
         code: DomainExceptionCode.Unauthorized,
-        extensions: [{ field: 'refreshToken', message: 'Invalid refresh token' }],
+        extensions: [
+          { field: 'refreshToken', message: 'Invalid refresh token' },
+        ],
         message: 'Unauthorized',
       });
     }
 
-    await this.refreshTokensRepository.deleteById(tokenId);
+    await this.authSessionsRepository.deleteById(tokenId);
+
+    const newSessionId = randomUUID();
 
     const accessToken = await this.commandBus.execute<
       GenerateNewTokenCommand,
       string
-    >(new GenerateNewTokenCommand(userId));
+    >(new GenerateNewTokenCommand(userId, newSessionId));
 
     const refreshToken = await this.commandBus.execute<
       GenerateRefreshTokenCommand,
       string
-    >(new GenerateRefreshTokenCommand(userId));
+    >(new GenerateRefreshTokenCommand(userId, newSessionId, metadata));
 
     return { accessToken, refreshToken };
   }

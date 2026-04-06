@@ -8,9 +8,12 @@ import { GenerateNewTokenUsecase } from './application/usecases/generate-token.u
 import { GenerateRefreshTokenUsecase } from './application/usecases/generate-refresh-token.usecase';
 import { RefreshTokenUsecase } from './application/usecases/refresh-token.usecase';
 import { LogoutUsecase } from './application/usecases/logout.usecase';
+import { ListActiveSessionsUseCase } from './application/usecases/list-active-sessions.usecase';
+import { RevokeSessionUseCase } from './application/usecases/revoke-session.usecase';
+import { RevokeAllOtherSessionsUseCase } from './application/usecases/revoke-all-other-sessions.usecase';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './domain/entities/user.entity';
-import { RefreshToken } from './domain/entities/refresh-token.entity';
+import { AuthSession } from './domain/entities/auth-session.entity';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { AuthController } from './api/auth-controller';
 import {
@@ -19,8 +22,10 @@ import {
 } from './constants/auth-token.inject-context';
 import { AuthService } from './application/auth.service';
 import { CookieService } from './application/cookie.service';
+import { CleanupSessionsService } from './application/cleanup-sessions.service';
 import { UsersRepository } from './infra/users.repository';
-import { RefreshTokensRepository } from './infra/refresh-tokens.repository';
+import { AuthSessionsRepository } from './infra/auth-sessions.repository';
+import { AuthSessionsQueryRepository } from './infra/query/auth-sessions.query-repository';
 import { CreateUserUseCase } from './application/usecases/create-user.usecase';
 import { DeleteUserUseCase } from './application/usecases/delete-user.usecase';
 import { UserController } from './api/user-controller';
@@ -34,13 +39,15 @@ import { ProfileImageService } from './application/profile-image.service';
 import { CreateDefaultProfileUseCase } from './application/usecases/create-default-profile.usecase';
 import { UpdateProfileUseCase } from './application/usecases/update-profile.usecase';
 import { UploadProfileImageUseCase } from './application/usecases/upload-profile-image.usecase';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, RefreshToken, UserProfile]),
+    TypeOrmModule.forFeature([User, AuthSession, UserProfile]),
     JwtModule,
     S3Module,
     ImageModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AuthController, UserController],
   providers: [
@@ -50,14 +57,19 @@ import { UploadProfileImageUseCase } from './application/usecases/upload-profile
     JwtStrategy,
     LocalStrategy,
     AuthService,
+    CleanupSessionsService,
     LoginUserUseCase,
     GenerateNewTokenUsecase,
     GenerateRefreshTokenUsecase,
     RefreshTokenUsecase,
     LogoutUsecase,
+    ListActiveSessionsUseCase,
+    RevokeSessionUseCase,
+    RevokeAllOtherSessionsUseCase,
     RefreshTokenGuard,
     UsersRepository,
-    RefreshTokensRepository,
+    AuthSessionsRepository,
+    AuthSessionsQueryRepository,
     UsersQueryRepository,
     UserProfilesRepository,
     ProfileImageService,

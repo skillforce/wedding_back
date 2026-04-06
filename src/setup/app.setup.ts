@@ -11,7 +11,7 @@ export function appSetup(app: INestApplication, coreConfig: CoreConfig) {
     origin: true,
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Device-Id'],
   });
   globalPrefixSetup(app);
   swaggerSetup(app, coreConfig);

@@ -75,6 +75,7 @@ describe('AuthController (e2e)', () => {
 
     expect(body).toEqual({
       accessToken: expect.any(String),
+      deviceId: expect.any(String),
       id: expect.any(Number),
       login: credentials.login,
       profile: {
@@ -199,5 +200,327 @@ describe('AuthController (e2e)', () => {
     );
 
     await userAccountsTestManager.login(credentials, HttpStatus.UNAUTHORIZED);
+  });
+
+  it('login response should include deviceId', async () => {
+    const credentials = userAccountsTestManager.buildCreateUserDto();
+    await userAccountsTestManager.createUser(credentials);
+
+    const { body } = await userAccountsTestManager.login(credentials);
+
+    expect(body.deviceId).toBeDefined();
+    expect(typeof body.deviceId).toBe('string');
+  });
+
+  it('should return the provided deviceId when X-Device-Id header is sent', async () => {
+    const credentials = userAccountsTestManager.buildCreateUserDto();
+    await userAccountsTestManager.createUser(credentials);
+    const customDeviceId = '11111111-1111-1111-1111-111111111111';
+
+    const { body } = await userAccountsTestManager.login(
+      credentials,
+      HttpStatus.OK,
+      customDeviceId,
+    );
+
+    expect(body.deviceId).toBe(customDeviceId);
+  });
+
+  describe('session management', () => {
+    it('GET /auth/sessions should return the active session', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const sessions = await userAccountsTestManager.getSessions(accessToken);
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0]).toEqual(
+        expect.objectContaining({
+          id: expect.any(String),
+          isCurrent: true,
+          lastActiveAt: expect.any(String),
+          createdAt: expect.any(String),
+        }),
+      );
+    });
+
+    it('should create separate sessions for different devices', async () => {
+      const credentials = userAccountsTestManager.buildCreateUserDto();
+      await userAccountsTestManager.createUser(credentials);
+
+      await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        'device-aaa-0000-0000-0000-000000000001',
+      );
+      const { body: body2 } = await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        'device-bbb-0000-0000-0000-000000000002',
+      );
+
+      const sessions = await userAccountsTestManager.getSessions(body2.accessToken);
+
+      expect(sessions).toHaveLength(2);
+      expect(sessions.find((s: any) => s.isCurrent)).toBeDefined();
+    });
+
+    it('should replace existing session on re-login from same device', async () => {
+      const credentials = userAccountsTestManager.buildCreateUserDto();
+      await userAccountsTestManager.createUser(credentials);
+      const deviceId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+      await userAccountsTestManager.login(credentials, HttpStatus.OK, deviceId);
+      const { body } = await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        deviceId,
+      );
+
+      const sessions = await userAccountsTestManager.getSessions(body.accessToken);
+
+      expect(sessions).toHaveLength(1);
+    });
+
+    it('DELETE /auth/sessions/:id should revoke a specific session', async () => {
+      const credentials = userAccountsTestManager.buildCreateUserDto();
+      await userAccountsTestManager.createUser(credentials);
+
+      const { refreshTokenCookie: cookie1 } = await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        'device-ccc-0000-0000-0000-000000000003',
+      );
+      const { body: body2 } = await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        'device-ddd-0000-0000-0000-000000000004',
+      );
+
+      const sessions = await userAccountsTestManager.getSessions(body2.accessToken);
+      const otherSession = sessions.find((s: any) => !s.isCurrent);
+
+      await userAccountsTestManager.revokeSession(body2.accessToken, otherSession.id);
+
+      await userAccountsTestManager.refresh(cookie1!, HttpStatus.UNAUTHORIZED);
+    });
+
+    it('DELETE /auth/sessions should revoke all other sessions', async () => {
+      const credentials = userAccountsTestManager.buildCreateUserDto();
+      await userAccountsTestManager.createUser(credentials);
+
+      const { refreshTokenCookie: cookie1 } = await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        'device-eee-0000-0000-0000-000000000005',
+      );
+      const { refreshTokenCookie: cookie2 } = await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        'device-fff-0000-0000-0000-000000000006',
+      );
+      const { body: currentBody } = await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        'device-ggg-0000-0000-0000-000000000007',
+      );
+
+      await userAccountsTestManager.revokeAllOtherSessions(currentBody.accessToken);
+
+      const sessions = await userAccountsTestManager.getSessions(currentBody.accessToken);
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].isCurrent).toBe(true);
+
+      await userAccountsTestManager.refresh(cookie1!, HttpStatus.UNAUTHORIZED);
+      await userAccountsTestManager.refresh(cookie2!, HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should return 404 when revoking a session that does not belong to the user', async () => {
+      const { accessToken: token1 } =
+        await userAccountsTestManager.createUserAndLogin();
+      const { accessToken: token2 } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const sessions1 = await userAccountsTestManager.getSessions(token1);
+      const foreignSessionId = sessions1[0].id;
+
+      await userAccountsTestManager.revokeSession(
+        token2,
+        foreignSessionId,
+        HttpStatus.NOT_FOUND,
+      );
+    });
+
+    describe('User-Agent and deviceName', () => {
+      const UA_CHROME_MACOS =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+      const UA_FIREFOX_WINDOWS =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0';
+      const UA_SAFARI_IPHONE =
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1';
+
+      it('deviceName should be null when no User-Agent is sent', async () => {
+        const { accessToken } =
+          await userAccountsTestManager.createUserAndLogin();
+
+        const sessions = await userAccountsTestManager.getSessions(accessToken);
+
+        expect(sessions[0].deviceName).toBeNull();
+      });
+
+      it('deviceName should be parsed from Chrome on macOS User-Agent', async () => {
+        const credentials = userAccountsTestManager.buildCreateUserDto();
+        await userAccountsTestManager.createUser(credentials);
+
+        const { body } = await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          undefined,
+          UA_CHROME_MACOS,
+        );
+
+        const sessions = await userAccountsTestManager.getSessions(
+          body.accessToken,
+        );
+
+        expect(sessions[0].deviceName).toBe('Chrome on macOS');
+      });
+
+      it('deviceName should be parsed from Firefox on Windows User-Agent', async () => {
+        const credentials = userAccountsTestManager.buildCreateUserDto();
+        await userAccountsTestManager.createUser(credentials);
+
+        const { body } = await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          undefined,
+          UA_FIREFOX_WINDOWS,
+        );
+
+        const sessions = await userAccountsTestManager.getSessions(
+          body.accessToken,
+        );
+
+        expect(sessions[0].deviceName).toBe('Firefox on Windows');
+      });
+
+      it('deviceName should be parsed from Safari on iPhone User-Agent', async () => {
+        const credentials = userAccountsTestManager.buildCreateUserDto();
+        await userAccountsTestManager.createUser(credentials);
+
+        const { body } = await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          undefined,
+          UA_SAFARI_IPHONE,
+        );
+
+        const sessions = await userAccountsTestManager.getSessions(
+          body.accessToken,
+        );
+
+        expect(sessions[0].deviceName).toBe('Safari on iPhone');
+      });
+
+      it('sessions from multiple devices should each carry their own deviceName', async () => {
+        const credentials = userAccountsTestManager.buildCreateUserDto();
+        await userAccountsTestManager.createUser(credentials);
+
+        await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          'device-ua-1111-0000-0000-000000000001',
+          UA_CHROME_MACOS,
+        );
+        await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          'device-ua-2222-0000-0000-000000000002',
+          UA_FIREFOX_WINDOWS,
+        );
+        const { body } = await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          'device-ua-3333-0000-0000-000000000003',
+          UA_SAFARI_IPHONE,
+        );
+
+        const sessions = await userAccountsTestManager.getSessions(
+          body.accessToken,
+        );
+
+        expect(sessions).toHaveLength(3);
+        const deviceNames: (string | null)[] = sessions
+          .map((s: any) => s.deviceName)
+          .sort();
+        expect(deviceNames).toEqual(
+          ['Chrome on macOS', 'Firefox on Windows', 'Safari on iPhone'].sort(),
+        );
+      });
+
+      it('re-login from same device with a different User-Agent should update deviceName', async () => {
+        const credentials = userAccountsTestManager.buildCreateUserDto();
+        await userAccountsTestManager.createUser(credentials);
+        const deviceId = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+
+        await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          deviceId,
+          UA_CHROME_MACOS,
+        );
+        const { body } = await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          deviceId,
+          UA_FIREFOX_WINDOWS,
+        );
+
+        const sessions = await userAccountsTestManager.getSessions(
+          body.accessToken,
+        );
+
+        expect(sessions).toHaveLength(1);
+        expect(sessions[0].deviceName).toBe('Firefox on Windows');
+      });
+
+      it('isCurrent should point to the calling device session', async () => {
+        const credentials = userAccountsTestManager.buildCreateUserDto();
+        await userAccountsTestManager.createUser(credentials);
+
+        const { body: body1 } = await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          'device-cur-1111-0000-0000-000000000001',
+          UA_CHROME_MACOS,
+        );
+        const { body: body2 } = await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          'device-cur-2222-0000-0000-000000000002',
+          UA_FIREFOX_WINDOWS,
+        );
+
+        const sessionsFromDevice1 = await userAccountsTestManager.getSessions(
+          body1.accessToken,
+        );
+        const sessionsFromDevice2 = await userAccountsTestManager.getSessions(
+          body2.accessToken,
+        );
+
+        const currentForDevice1 = sessionsFromDevice1.find(
+          (s: any) => s.isCurrent,
+        );
+        const currentForDevice2 = sessionsFromDevice2.find(
+          (s: any) => s.isCurrent,
+        );
+
+        expect(currentForDevice1).toBeDefined();
+        expect(currentForDevice2).toBeDefined();
+        expect(currentForDevice1.id).not.toBe(currentForDevice2.id);
+        expect(currentForDevice1.deviceName).toBe('Chrome on macOS');
+        expect(currentForDevice2.deviceName).toBe('Firefox on Windows');
+      });
+    });
   });
 });

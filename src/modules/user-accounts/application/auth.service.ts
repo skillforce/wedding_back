@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { UserContextDto } from '../guards/dto/user-context.dto';
 import { BcryptService } from './bcrypt.service';
 import { UsersRepository } from '../infra/users.repository';
 
@@ -13,7 +12,7 @@ export class AuthService {
   async validateUser(
     login: string,
     password: string,
-  ): Promise<UserContextDto | null> {
+  ): Promise<{ id: number } | null> {
     const user = await this.usersRepository.findUserByLogin(login);
 
     if (!user) {

@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   Res,
@@ -31,6 +33,14 @@ import { LogoutCommand } from '../application/usecases/logout.usecase';
 import { UsersQueryRepository } from '../infra/query/users.query-repository';
 import { MeViewDto } from './view-dto/auth-view-dto';
 import { CookieService } from '../application/cookie.service';
+import {
+  ExtractRequestMetadata,
+  RequestMetadata,
+} from './decorators/extract-request-metadata.decorator';
+import { ListActiveSessionsCommand } from '../application/usecases/list-active-sessions.usecase';
+import { RevokeSessionCommand } from '../application/usecases/revoke-session.usecase';
+import { RevokeAllOtherSessionsCommand } from '../application/usecases/revoke-all-other-sessions.usecase';
+import { SessionViewDto } from './view-dto/session.view-dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -55,6 +65,7 @@ export class AuthController {
           type: 'string',
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         },
+        deviceId: { type: 'string', example: 'a3f1c2d4-...' },
         id: { type: 'number', example: 1 },
         login: { type: 'string', example: 'john' },
         invitationUrl: { type: 'string', nullable: true, example: null },
@@ -65,18 +76,22 @@ export class AuthController {
   async login(
     @Body() _: LoginInputDto,
     @ExtractUserFromRequest() user: UserContextDto,
+    @ExtractRequestMetadata() metadata: RequestMetadata,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, refreshToken } = await this.commandBus.execute<
-      LoginUserCommand,
-      { accessToken: string; refreshToken: string }
-    >(new LoginUserCommand(user.id));
+    const { accessToken, refreshToken, deviceId } =
+      await this.commandBus.execute<
+        LoginUserCommand,
+        { accessToken: string; refreshToken: string; deviceId: string }
+      >(new LoginUserCommand(user.id, metadata));
 
     this.cookieService.setRefreshToken(res, refreshToken);
 
-    const me = await this.usersQueryRepository.findMeByIdOrNotFoundFail(user.id);
+    const me = await this.usersQueryRepository.findMeByIdOrNotFoundFail(
+      user.id,
+    );
 
-    return { accessToken, ...me };
+    return { accessToken, deviceId, ...me };
   }
 
   @Post('refresh')
@@ -97,12 +112,20 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid or missing refresh token' })
   async refresh(
     @Req() req: Request & { user: UserRefreshContextDto; refreshToken: string },
+    @ExtractRequestMetadata() metadata: RequestMetadata,
     @Res({ passthrough: true }) res: Response,
   ) {
     const { accessToken, refreshToken } = await this.commandBus.execute<
       RefreshTokenCommand,
       { accessToken: string; refreshToken: string }
-    >(new RefreshTokenCommand(req.user.id, req.user.tokenId, req.refreshToken));
+    >(
+      new RefreshTokenCommand(
+        req.user.id,
+        req.user.tokenId,
+        req.refreshToken,
+        metadata,
+      ),
+    );
 
     this.cookieService.setRefreshToken(res, refreshToken);
 
@@ -131,9 +154,50 @@ export class AuthController {
   @ApiOperation({ summary: 'Get the currently authenticated user' })
   @ApiResponse({ status: 200, description: 'Current user info', type: MeViewDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async me(
-    @ExtractUserFromRequest() user: UserContextDto,
-  ): Promise<MeViewDto> {
+  async me(@ExtractUserFromRequest() user: UserContextDto): Promise<MeViewDto> {
     return this.usersQueryRepository.findMeByIdOrNotFoundFail(user.id);
+  }
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all active sessions for the current user' })
+  @ApiResponse({ status: 200, type: [SessionViewDto] })
+  async getSessions(
+    @ExtractUserFromRequest() user: UserContextDto,
+  ): Promise<SessionViewDto[]> {
+    return this.commandBus.execute<ListActiveSessionsCommand, SessionViewDto[]>(
+      new ListActiveSessionsCommand(user.id, user.sessionId),
+    );
+  }
+
+  @Delete('sessions')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke all sessions except the current one' })
+  @ApiResponse({ status: 204 })
+  async revokeAllOtherSessions(
+    @ExtractUserFromRequest() user: UserContextDto,
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new RevokeAllOtherSessionsCommand(user.id, user.sessionId),
+    );
+  }
+
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a specific session by ID' })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 404, description: 'Session not found' })
+  async revokeSession(
+    @Param('id') sessionId: string,
+    @ExtractUserFromRequest() user: UserContextDto,
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new RevokeSessionCommand(sessionId, user.id),
+    );
   }
 }

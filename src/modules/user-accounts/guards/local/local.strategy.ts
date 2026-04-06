@@ -1,7 +1,6 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
-import { UserContextDto } from '../dto/user-context.dto';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { Strategy } from 'passport-local';
 import { AuthService } from '../../application/auth.service';
@@ -12,9 +11,9 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     super({ usernameField: 'login' });
   }
 
-  async validate(login: string, password: string): Promise<UserContextDto> {
-    const userId = await this.authService.validateUser(login, password);
-    if (!userId) {
+  async validate(login: string, password: string): Promise<{ id: number }> {
+    const user = await this.authService.validateUser(login, password);
+    if (!user) {
       throw new DomainException({
         code: DomainExceptionCode.Unauthorized,
         extensions: [
@@ -31,6 +30,6 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
       });
     }
 
-    return userId;
+    return user;
   }
 }

@@ -52,11 +52,19 @@ export class UserAccountsTestManager {
   async login(
     dto: Partial<LoginInputDto>,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    deviceId?: string,
+    userAgent?: string,
   ): Promise<{ body: any; refreshTokenCookie: string | undefined }> {
-    const response = await request(this.httpServer)
-      .post('/api/auth/login')
-      .send(dto)
-      .expect(expectedStatus);
+    const req = request(this.httpServer).post('/api/auth/login').send(dto);
+
+    if (deviceId) {
+      req.set('X-Device-Id', deviceId);
+    }
+    if (userAgent) {
+      req.set('User-Agent', userAgent);
+    }
+
+    const response = await req.expect(expectedStatus);
 
     const setCookie = response.headers['set-cookie'];
     const cookieArray = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
@@ -123,23 +131,67 @@ export class UserAccountsTestManager {
     return response.body;
   }
 
+  async getSessions(
+    accessToken: string,
+    expectedStatus: HttpStatus = HttpStatus.OK,
+  ) {
+    const response = await request(this.httpServer)
+      .get('/api/auth/sessions')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
+  async revokeSession(
+    accessToken: string,
+    sessionId: string,
+    expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+  ) {
+    const response = await request(this.httpServer)
+      .delete(`/api/auth/sessions/${sessionId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
+  async revokeAllOtherSessions(
+    accessToken: string,
+    expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+  ) {
+    const response = await request(this.httpServer)
+      .delete('/api/auth/sessions')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
   async createUserAndLogin(
     overrides: Partial<CreateUserInputDto> = {},
+    deviceId?: string,
   ): Promise<{
     credentials: CreateUserInputDto;
     userId: number;
     accessToken: string;
     refreshTokenCookie: string;
+    deviceId: string;
   }> {
     const credentials = this.buildCreateUserDto(overrides);
     const createUserResponse = await this.createUser(credentials);
-    const { body: loginBody, refreshTokenCookie } = await this.login(credentials);
+    const { body: loginBody, refreshTokenCookie } = await this.login(
+      credentials,
+      HttpStatus.OK,
+      deviceId,
+    );
 
     return {
       credentials,
       userId: createUserResponse.id as number,
       accessToken: loginBody.accessToken as string,
       refreshTokenCookie: refreshTokenCookie!,
+      deviceId: loginBody.deviceId as string,
     };
   }
 

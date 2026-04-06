@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { RefreshTokensRepository } from '../../infra/refresh-tokens.repository';
+import { AuthSessionsRepository } from '../../infra/auth-sessions.repository';
 
 export class LogoutCommand {
   constructor(public readonly tokenId: string) {}
@@ -8,10 +8,10 @@ export class LogoutCommand {
 @CommandHandler(LogoutCommand)
 export class LogoutUsecase implements ICommandHandler<LogoutCommand, void> {
   constructor(
-    private readonly refreshTokensRepository: RefreshTokensRepository,
+    private readonly authSessionsRepository: AuthSessionsRepository,
   ) {}
 
   async execute({ tokenId }: LogoutCommand): Promise<void> {
-    await this.refreshTokensRepository.deleteById(tokenId);
+    await this.authSessionsRepository.deleteById(tokenId);
   }
 }

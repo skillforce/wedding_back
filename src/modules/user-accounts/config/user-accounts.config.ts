@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsPositive } from 'class-validator';
 import { configValidationUtility } from '../../../core/helpers/config-validation.utility';
 
 @Injectable()
@@ -25,6 +25,9 @@ export class UserAccountsConfig {
   })
   refreshTokenExpireIn!: string;
 
+  @IsPositive()
+  maxSessionsPerUser!: number;
+
   constructor(private readonly configService: ConfigService<any, true>) {
     this.accessTokenExpireIn = this.configService.get<string>(
       'ACCESS_TOKEN_EXPIRE_IN',
@@ -38,7 +41,9 @@ export class UserAccountsConfig {
     this.refreshTokenExpireIn = this.configService.get<string>(
       'REFRESH_TOKEN_EXPIRE_IN',
     );
-
+    this.maxSessionsPerUser = parseInt(
+      this.configService.get<string>('MAX_SESSIONS_PER_USER') ?? 5,
+    );
     configValidationUtility.validateConfig(this);
   }
 }
