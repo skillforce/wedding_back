@@ -10,6 +10,7 @@ import { getOptionsToken } from '@nestjs/throttler';
 import { ProfileImageService } from '../src/modules/user-accounts/application/profile-image.service';
 import { FAKE_JPEG_BUFFER } from './helpers/profile.test-manager';
 import { ImageService } from '../src/adapters/image/image.service';
+import { UserRole } from '../src/modules/user-accounts/domain/entities/user-role.enum';
 
 const FAKE_IMAGE_URL = 'https://s3.example.com/profiles/avatars/1';
 
@@ -67,6 +68,8 @@ describe('Profile (e2e)', () => {
     invitationUrl: null,
     profileImg: null,
     weddingDate: null,
+    isCreatedBySuperUser: false,
+    isSuperUser: false,
     phoneNumber: null,
     email: null,
   };
@@ -147,6 +150,46 @@ describe('Profile (e2e)', () => {
         profile: expect.objectContaining({ email: 'user@example.com' }),
       }),
     );
+  });
+
+  describe('plain user created by super user', () => {
+    let plainUserAccessToken: string;
+
+    beforeEach(async () => {
+      const superUserDto = userAccountsTestManager.buildCreateUserDto({
+        role: UserRole.SUPER_USER,
+      });
+      const superUser = await userAccountsTestManager.createUser(superUserDto);
+      await userAccountsTestManager.login(superUserDto);
+
+      const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
+      await userAccountsTestManager.createActivatedPlainUser(superUser.id, plainUserDto);
+
+      const { body: plainUserBody } = await userAccountsTestManager.login({
+        login: plainUserDto.login,
+        password: plainUserDto.password,
+      });
+      plainUserAccessToken = plainUserBody.accessToken;
+    });
+
+    it('should have isCreatedBySuperUser=true and isSuperUser=false in default profile', async () => {
+      const me = await userAccountsTestManager.me(plainUserAccessToken);
+
+      expect(me.profile).toEqual({
+        ...defaultProfile,
+        isCreatedBySuperUser: true,
+        isSuperUser: false,
+      });
+    });
+
+    it('should preserve isCreatedBySuperUser=true after profile update', async () => {
+      const updated = await profileTestManager.updateProfile(plainUserAccessToken, {
+        invitationUrl: 'https://example.com/invite/abc',
+      });
+
+      expect(updated.isCreatedBySuperUser).toBe(true);
+      expect(updated.isSuperUser).toBe(false);
+    });
   });
 
   describe('PATCH /users/profile/image', () => {
