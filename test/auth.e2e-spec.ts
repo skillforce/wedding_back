@@ -9,10 +9,12 @@ import { JwtService } from '@nestjs/jwt';
 import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
+import { UserRole } from '../src/modules/user-accounts/domain/entities/user-role.enum';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let userAccountsTestManager: UserAccountsTestManager;
+  let mockResendAdapter: { send: jest.Mock };
 
   beforeAll(async () => {
     const result = await initTesting((moduleBuilder) =>
@@ -45,6 +47,7 @@ describe('AuthController (e2e)', () => {
         }),
     );
     app = result.app;
+    mockResendAdapter = result.mockResendAdapter;
     userAccountsTestManager = result.userAccountsTestManager;
   });
 
@@ -80,6 +83,8 @@ describe('AuthController (e2e)', () => {
       login: credentials.login,
       profile: {
         invitationUrl: null,
+        isCreatedBySuperUser: false,
+        isSuperUser: false,
         profileImg: null,
         weddingDate: null,
         phoneNumber: null,
@@ -102,6 +107,8 @@ describe('AuthController (e2e)', () => {
       profile: {
         invitationUrl: null,
         profileImg: null,
+        isCreatedBySuperUser: false,
+        isSuperUser: false,
         weddingDate: null,
         phoneNumber: null,
         email: null,
@@ -158,7 +165,7 @@ describe('AuthController (e2e)', () => {
       errorsMessages: [
         {
           field: 'login',
-          message: 'user with this login already exists',
+          message: 'login is already in use',
         },
       ],
     });
@@ -191,15 +198,24 @@ describe('AuthController (e2e)', () => {
   });
 
   it('should delete user and reject next login', async () => {
-    const credentials = userAccountsTestManager.buildCreateUserDto();
-    const createUserResponse =
-      await userAccountsTestManager.createUser(credentials);
+    const superUserDto = userAccountsTestManager.buildCreateUserDto({
+      role: UserRole.SUPER_USER,
+    });
+    const superUser = await userAccountsTestManager.createUser(superUserDto);
+    const { body: superUserBody } = await userAccountsTestManager.login(superUserDto);
 
-    await userAccountsTestManager.deleteUserById(
-      createUserResponse.id as number,
+    const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
+    const plainUser = await userAccountsTestManager.createActivatedPlainUser(
+      superUser.id,
+      plainUserDto,
     );
 
-    await userAccountsTestManager.login(credentials, HttpStatus.UNAUTHORIZED);
+    await userAccountsTestManager.deleteUserById(plainUser.id, superUserBody.accessToken);
+
+    await userAccountsTestManager.login(
+      { login: plainUserDto.login, password: plainUserDto.password },
+      HttpStatus.UNAUTHORIZED,
+    );
   });
 
   it('login response should include deviceId', async () => {
@@ -224,6 +240,106 @@ describe('AuthController (e2e)', () => {
     );
 
     expect(body.deviceId).toBe(customDeviceId);
+  });
+
+  describe('super user creation', () => {
+    it('should create a super user via admin endpoint', async () => {
+      const dto = userAccountsTestManager.buildCreateUserDto({
+        role: UserRole.SUPER_USER,
+      });
+
+      const response = await userAccountsTestManager.createUser(dto);
+
+      expect(response).toEqual(
+        expect.objectContaining({ id: expect.any(Number), login: dto.login }),
+      );
+    });
+
+    it('should allow super user to login after creation', async () => {
+      const dto = userAccountsTestManager.buildCreateUserDto({
+        role: UserRole.SUPER_USER,
+      });
+      await userAccountsTestManager.createUser(dto);
+
+      const { body } = await userAccountsTestManager.login(dto);
+
+      expect(body.accessToken).toBeDefined();
+    });
+
+    it('should reject super user creation with duplicate login', async () => {
+      const dto = userAccountsTestManager.buildCreateUserDto({
+        role: UserRole.SUPER_USER,
+      });
+      await userAccountsTestManager.createUser(dto);
+
+      const response = await userAccountsTestManager.createUser(
+        dto,
+        HttpStatus.BAD_REQUEST,
+      );
+
+      expect(response).toEqual({
+        errorsMessages: [
+          { field: 'login', message: 'login is already in use' },
+        ],
+      });
+    });
+
+    it('should reject super user creation with invalid basic auth credentials', async () => {
+      const dto = userAccountsTestManager.buildCreateUserDto({
+        role: UserRole.SUPER_USER,
+      });
+
+      await userAccountsTestManager.createUser(dto, HttpStatus.UNAUTHORIZED, {
+        username: 'wrong',
+        password: 'wrong',
+      });
+    });
+  });
+
+  describe('plain user email uniqueness across super users', () => {
+    it("should reject plain user creation with email already used by another super user's plain user", async () => {
+      const superUser1Dto = userAccountsTestManager.buildCreateUserDto({
+        role: UserRole.SUPER_USER,
+      });
+      await userAccountsTestManager.createUser(superUser1Dto);
+      const { body: body1 } =
+        await userAccountsTestManager.login(superUser1Dto);
+
+      const superUser2Dto = userAccountsTestManager.buildCreateUserDto({
+        role: UserRole.SUPER_USER,
+      });
+      await userAccountsTestManager.createUser(superUser2Dto);
+      const { body: body2 } =
+        await userAccountsTestManager.login(superUser2Dto);
+
+      const sharedEmail = `shared${Date.now()}@example.com`;
+      const plainDto1 = userAccountsTestManager.buildCreatePlainUserDto({
+        email: sharedEmail,
+      });
+      await userAccountsTestManager.createPlainUser(
+        body1.accessToken,
+        plainDto1,
+      );
+
+      const plainDto2 = userAccountsTestManager.buildCreatePlainUserDto({
+        email: sharedEmail,
+      });
+      const response = await userAccountsTestManager.createPlainUser(
+        body2.accessToken,
+        plainDto2,
+        HttpStatus.BAD_REQUEST,
+      );
+
+      expect(response).toEqual(
+        expect.objectContaining({
+          errorsMessages: expect.arrayContaining([
+            expect.objectContaining({
+              message: 'login or email is already in use',
+            }),
+          ]),
+        }),
+      );
+    });
   });
 
   describe('session management', () => {
@@ -259,7 +375,9 @@ describe('AuthController (e2e)', () => {
         'device-bbb-0000-0000-0000-000000000002',
       );
 
-      const sessions = await userAccountsTestManager.getSessions(body2.accessToken);
+      const sessions = await userAccountsTestManager.getSessions(
+        body2.accessToken,
+      );
 
       expect(sessions).toHaveLength(2);
       expect(sessions.find((s: any) => s.isCurrent)).toBeDefined();
@@ -277,7 +395,9 @@ describe('AuthController (e2e)', () => {
         deviceId,
       );
 
-      const sessions = await userAccountsTestManager.getSessions(body.accessToken);
+      const sessions = await userAccountsTestManager.getSessions(
+        body.accessToken,
+      );
 
       expect(sessions).toHaveLength(1);
     });
@@ -286,21 +406,27 @@ describe('AuthController (e2e)', () => {
       const credentials = userAccountsTestManager.buildCreateUserDto();
       await userAccountsTestManager.createUser(credentials);
 
-      const { refreshTokenCookie: cookie1 } = await userAccountsTestManager.login(
-        credentials,
-        HttpStatus.OK,
-        'device-ccc-0000-0000-0000-000000000003',
-      );
+      const { refreshTokenCookie: cookie1 } =
+        await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          'device-ccc-0000-0000-0000-000000000003',
+        );
       const { body: body2 } = await userAccountsTestManager.login(
         credentials,
         HttpStatus.OK,
         'device-ddd-0000-0000-0000-000000000004',
       );
 
-      const sessions = await userAccountsTestManager.getSessions(body2.accessToken);
+      const sessions = await userAccountsTestManager.getSessions(
+        body2.accessToken,
+      );
       const otherSession = sessions.find((s: any) => !s.isCurrent);
 
-      await userAccountsTestManager.revokeSession(body2.accessToken, otherSession.id);
+      await userAccountsTestManager.revokeSession(
+        body2.accessToken,
+        otherSession.id,
+      );
 
       await userAccountsTestManager.refresh(cookie1!, HttpStatus.UNAUTHORIZED);
     });
@@ -309,25 +435,31 @@ describe('AuthController (e2e)', () => {
       const credentials = userAccountsTestManager.buildCreateUserDto();
       await userAccountsTestManager.createUser(credentials);
 
-      const { refreshTokenCookie: cookie1 } = await userAccountsTestManager.login(
-        credentials,
-        HttpStatus.OK,
-        'device-eee-0000-0000-0000-000000000005',
-      );
-      const { refreshTokenCookie: cookie2 } = await userAccountsTestManager.login(
-        credentials,
-        HttpStatus.OK,
-        'device-fff-0000-0000-0000-000000000006',
-      );
+      const { refreshTokenCookie: cookie1 } =
+        await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          'device-eee-0000-0000-0000-000000000005',
+        );
+      const { refreshTokenCookie: cookie2 } =
+        await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          'device-fff-0000-0000-0000-000000000006',
+        );
       const { body: currentBody } = await userAccountsTestManager.login(
         credentials,
         HttpStatus.OK,
         'device-ggg-0000-0000-0000-000000000007',
       );
 
-      await userAccountsTestManager.revokeAllOtherSessions(currentBody.accessToken);
+      await userAccountsTestManager.revokeAllOtherSessions(
+        currentBody.accessToken,
+      );
 
-      const sessions = await userAccountsTestManager.getSessions(currentBody.accessToken);
+      const sessions = await userAccountsTestManager.getSessions(
+        currentBody.accessToken,
+      );
       expect(sessions).toHaveLength(1);
       expect(sessions[0].isCurrent).toBe(true);
 
@@ -349,6 +481,140 @@ describe('AuthController (e2e)', () => {
         foreignSessionId,
         HttpStatus.NOT_FOUND,
       );
+    });
+
+    describe('plain user flow', () => {
+      let superUserAccessToken: string;
+
+      beforeEach(async () => {
+        mockResendAdapter.send.mockClear();
+        const dto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        await userAccountsTestManager.createUser(dto);
+        const { body } = await userAccountsTestManager.login(dto);
+        superUserAccessToken = body.accessToken;
+      });
+
+      it('should create plain user and send confirmation email', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+
+        const plainUser = await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+
+        expect(plainUser).toEqual(
+          expect.objectContaining({ id: expect.any(Number), login: dto.login }),
+        );
+
+        await new Promise((r) => setImmediate(r));
+
+        expect(mockResendAdapter.send).toHaveBeenCalledTimes(1);
+        expect(mockResendAdapter.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            to: dto.email,
+            subject: 'Confirm your account',
+          }),
+        );
+      });
+
+      it('should confirm email and allow login', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+
+        await new Promise((r) => setImmediate(r));
+
+        const emailCall = mockResendAdapter.send.mock.calls[0][0];
+        const token = userAccountsTestManager.extractTokenFromEmailHtml(
+          emailCall.html,
+        );
+
+        await userAccountsTestManager.confirmEmail(token);
+
+        const { body } = await userAccountsTestManager.login({
+          login: dto.login,
+          password: dto.password,
+        });
+        expect(body.accessToken).toBeDefined();
+      });
+
+      it('should reject login before email is confirmed', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+
+        await userAccountsTestManager.login(
+          { login: dto.login, password: dto.password },
+          HttpStatus.UNAUTHORIZED,
+        );
+      });
+
+      it('should reject plain user creation with duplicate email', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+
+        const dto2 = userAccountsTestManager.buildCreatePlainUserDto({
+          email: dto.email,
+        });
+        const response = await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto2,
+          HttpStatus.BAD_REQUEST,
+        );
+
+        expect(response).toEqual(
+          expect.objectContaining({
+            errorsMessages: expect.arrayContaining([
+              expect.objectContaining({
+                message: 'login or email is already in use',
+              }),
+            ]),
+          }),
+        );
+      });
+
+      it('should reject plain user creation with duplicate login', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+
+        const dto2 = userAccountsTestManager.buildCreatePlainUserDto({
+          login: dto.login,
+        });
+        const response = await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto2,
+          HttpStatus.BAD_REQUEST,
+        );
+
+        expect(response).toEqual(
+          expect.objectContaining({
+            errorsMessages: expect.arrayContaining([
+              expect.objectContaining({
+                message: 'login or email is already in use',
+              }),
+            ]),
+          }),
+        );
+      });
+
+      it('should reject expired confirmation token', async () => {
+        await userAccountsTestManager.confirmEmail(
+          '00000000-0000-0000-0000-000000000000',
+          HttpStatus.BAD_REQUEST,
+        );
+      });
     });
 
     describe('User-Agent and deviceName', () => {

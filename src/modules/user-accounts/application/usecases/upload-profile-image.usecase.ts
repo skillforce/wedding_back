@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UserProfilesRepository } from '../../infra/user-profiles.repository';
+import { UsersRepository } from '../../infra/users.repository';
 import { ProfileImageService } from '../profile-image.service';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
@@ -24,6 +25,7 @@ export class UploadProfileImageUseCase implements ICommandHandler<
 > {
   constructor(
     private readonly userProfilesRepository: UserProfilesRepository,
+    private readonly usersRepository: UsersRepository,
     private readonly profileImageService: ProfileImageService,
     private readonly imageService: ImageService,
   ) {}
@@ -48,16 +50,21 @@ export class UploadProfileImageUseCase implements ICommandHandler<
     const url = await this.profileImageService.upload(compressed.buffer, compressed.contentType);
     const isNewDay = this.isNewDate(profile.imageUploadResetDate);
 
-    await this.userProfilesRepository.update(userId, {
+    const fields = {
       profileImg: url,
       dailyImageUploadCount: isNewDay ? 1 : profile.dailyImageUploadCount + 1,
       imageUploadResetDate: new Date(new Date().toISOString().slice(0, 10)),
-    });
+    };
+
+    const [, user] = await Promise.all([
+      this.userProfilesRepository.update(userId, fields),
+      this.usersRepository.findUserById(userId),
+    ]);
 
     await this.deletePreviousImage(previousImageUrl);
 
-    const updated = await this.userProfilesRepository.findByUserId(userId);
-    return ProfileViewDto.mapToViewDto(updated!);
+    Object.assign(profile, fields);
+    return ProfileViewDto.mapToViewDto(profile, user!);
   }
 
   private async deletePreviousImage(imageUrl: string | null): Promise<void> {

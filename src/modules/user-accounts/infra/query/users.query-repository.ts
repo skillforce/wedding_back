@@ -14,8 +14,9 @@ export class UsersQueryRepository {
   ) {}
 
   async findUserByIdOrNotFoundFail(id: number): Promise<UsersViewDto> {
-    const user = await this.usersOrmRepository.findOneBy({
-      id,
+    const user = await this.usersOrmRepository.findOne({
+      where: { id },
+      relations: { profile: true },
     });
 
     if (!user) {
@@ -25,6 +26,14 @@ export class UsersQueryRepository {
       });
     }
     return UsersViewDto.mapToViewDto(user);
+  }
+
+  async findPlainUsersByCreatorId(creatorId: number): Promise<UsersViewDto[]> {
+    const users = await this.usersOrmRepository.find({
+      where: { createdByUserId: creatorId },
+      relations: { profile: true },
+    });
+    return users.map((u) => UsersViewDto.mapToViewDto(u));
   }
 
   async findMeByIdOrNotFoundFail(id: number): Promise<MeViewDto> {

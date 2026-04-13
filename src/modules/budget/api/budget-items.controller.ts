@@ -10,11 +10,11 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
-import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
-import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
+import { UserOwnershipGuard } from '../../user-accounts/guards/ownership/user-ownership.guard';
+import { EffectiveUserId } from '../../user-accounts/guards/ownership/effective-user-id.decorator';
 import { BudgetQueryRepository } from '../infra/query/budget.query-repository';
 import { BudgetViewDto } from './view-dto/budget.view-dto';
 import { BudgetSectionViewDto } from './view-dto/budget-section.view-dto';
@@ -28,7 +28,8 @@ import { MoveItemCommand } from '../app/usecases/move-item.usecase';
 
 @ApiTags('Budget items')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, UserOwnershipGuard)
+@ApiQuery({ name: 'userId', required: false, type: Number })
 @Controller('budget/items')
 export class BudgetItemsController {
   constructor(
@@ -40,43 +41,39 @@ export class BudgetItemsController {
   @HttpCode(HttpStatus.CREATED)
   async createItem(
     @Body() dto: CreateBudgetSectionItemInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<BudgetViewDto> {
-    await this.commandBus.execute(new CreateItemCommand(dto, user.id));
-    return this.budgetQueryRepository.findFullBudgetByUserId(user.id);
+    await this.commandBus.execute(new CreateItemCommand(dto, userId));
+    return this.budgetQueryRepository.findFullBudgetByUserId(userId);
   }
 
   @Patch('move')
   async moveItem(
     @Body() dto: MoveBudgetItemInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<BudgetSectionViewDto[]> {
-    const affectedSectionIds = await this.commandBus.execute<
-      MoveItemCommand,
-      number[]
-    >(new MoveItemCommand(dto, user.id));
-    return this.budgetQueryRepository.findSectionViewsByIdsForUser(
-      user.id,
-      affectedSectionIds,
+    const affectedSectionIds = await this.commandBus.execute<MoveItemCommand, number[]>(
+      new MoveItemCommand(dto, userId),
     );
+    return this.budgetQueryRepository.findSectionViewsByIdsForUser(userId, affectedSectionIds);
   }
 
   @Patch(':id')
   async updateItem(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateBudgetSectionItemInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<BudgetViewDto> {
-    await this.commandBus.execute(new UpdateItemCommand(id, dto, user.id));
-    return this.budgetQueryRepository.findFullBudgetByUserId(user.id);
+    await this.commandBus.execute(new UpdateItemCommand(id, dto, userId));
+    return this.budgetQueryRepository.findFullBudgetByUserId(userId);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteItem(
     @Param('id', ParseIntPipe) id: number,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<void> {
-    await this.commandBus.execute(new DeleteItemCommand(id, user.id));
+    await this.commandBus.execute(new DeleteItemCommand(id, userId));
   }
 }

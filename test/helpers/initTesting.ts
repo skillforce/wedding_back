@@ -4,6 +4,7 @@ import { CoreConfig } from '../../src/core/configs/core.config';
 import { appSetup } from '../../src/setup/app.setup';
 import { deleteAllData } from './delete-all-data';
 import { UserAccountsTestManager } from './user-acounts.test-manager';
+import { ResendAdapter } from '../../src/modules/email/resend.adapter';
 import { GuestsTestManager } from './guests.test-manager';
 import { SeatingTablesTestManager } from './seating-tables.test-manager';
 import { SeatingSeatsTestManager } from './seating-seats.test-manager';
@@ -35,9 +36,15 @@ export const initTesting = async (
     imports: [DynamicAppModule],
   });
 
+  const mockResendAdapter = { send: jest.fn().mockResolvedValue(undefined) };
+
   testingModuleBuilder
     .overrideProvider(CurrencyRateQueryRepository)
     .useClass(MockCurrencyRateQueryRepository);
+
+  testingModuleBuilder
+    .overrideProvider(ResendAdapter)
+    .useValue(mockResendAdapter);
 
   if (addSettingsToModuleBuilder) {
     addSettingsToModuleBuilder(testingModuleBuilder);
@@ -69,6 +76,7 @@ export const initTesting = async (
   return {
     app,
     httpServer,
+    mockResendAdapter,
     userAccountsTestManager,
     guestsTestManager,
     seatingTablesTestManager,

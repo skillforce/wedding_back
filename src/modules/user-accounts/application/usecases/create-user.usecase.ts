@@ -6,6 +6,7 @@ import { DomainExceptionCode } from '../../../../core/exceptions/domain-exceptio
 import { BcryptService } from '../bcrypt.service';
 import { CreateUserDomainDto } from '../../domain/dto/create-user.domain.dto';
 import { User } from '../../domain/entities/user.entity';
+import { UserRole } from '../../domain/entities/user-role.enum';
 import { CreateDefaultSeatingArrangementCommand } from '../../../seating-arrangements/app/usecases/create-default-seating-arrangement.usecase';
 import { CreateDefaultBudgetCommand } from '../../../budget/app/usecases/create-default-budget.usecase';
 import { CreateDefaultChecklistCommand } from '../../../checklist/app/usecases/create-default-checklist.usecase';
@@ -27,10 +28,15 @@ export class CreateUserUseCase implements ICommandHandler<
   ) {}
 
   async execute({ dto }: CreateUserCommand) {
-    await this.checkUserDtoForUniqueFields(dto.login);
+    await this.checkUniqueFields(dto.login);
     const passwordHash = await this.bcryptService.hashPassword(dto.password);
 
-    const newUser = this.createUser({ login: dto.login, passwordHash });
+    const newUser = this.createUser({
+      login: dto.login,
+      passwordHash,
+      role: dto.role ?? UserRole.PLAIN_USER,
+      createdByUserId: null,
+    });
 
     const userId = await this.userRepository.save(newUser);
     await this.commandBus.execute(new CreateDefaultSeatingArrangementCommand(userId));
@@ -40,27 +46,24 @@ export class CreateUserUseCase implements ICommandHandler<
     return userId;
   }
 
-  private async checkUserDtoForUniqueFields(login: string) {
-    const usersWithSameLogin = await this.userRepository.findUserByLogin(login);
+  private async checkUniqueFields(login: string): Promise<void> {
+    const existing = await this.userRepository.findUserByLogin(login);
 
-    if (usersWithSameLogin) {
+    if (existing) {
       throw new DomainException({
         code: DomainExceptionCode.BadRequest,
-        extensions: [
-          {
-            field: 'login',
-            message: 'user with this login already exists',
-          },
-        ],
-        message: 'user with this login already exists',
+        extensions: [{ field: 'login', message: 'login is already in use' }],
+        message: 'login is already in use',
       });
     }
   }
 
-  private createUser(dto: CreateUserDomainDto): Omit<User, 'id'> {
+  private createUser(dto: CreateUserDomainDto): Partial<User> {
     return {
       login: dto.login,
       passwordHash: dto.passwordHash,
+      role: dto.role,
+      createdByUserId: dto.createdByUserId,
     };
   }
 }

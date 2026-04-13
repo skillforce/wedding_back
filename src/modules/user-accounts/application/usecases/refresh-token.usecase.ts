@@ -1,10 +1,11 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { AuthSessionsRepository } from '../../infra/auth-sessions.repository';
+import { UsersRepository } from '../../infra/users.repository';
 import { BcryptService } from '../bcrypt.service';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { GenerateNewTokenCommand } from './generate-token.usecase';
+import { GenerateAccessTokenCommand } from './generate-access-token.usecase';
 import {
   GenerateRefreshTokenCommand,
   SessionMetadata,
@@ -30,6 +31,7 @@ export class RefreshTokenUsecase
   constructor(
     private readonly commandBus: CommandBus,
     private readonly authSessionsRepository: AuthSessionsRepository,
+    private readonly usersRepository: UsersRepository,
     private readonly bcryptService: BcryptService,
   ) {}
 
@@ -75,12 +77,19 @@ export class RefreshTokenUsecase
 
     await this.authSessionsRepository.deleteById(tokenId);
 
+    const user = await this.usersRepository.findUserById(userId);
+    if (!user) {
+      throw new DomainException({
+        code: DomainExceptionCode.Unauthorized,
+        message: 'Unauthorized',
+      });
+    }
     const newSessionId = randomUUID();
 
     const accessToken = await this.commandBus.execute<
-      GenerateNewTokenCommand,
+      GenerateAccessTokenCommand,
       string
-    >(new GenerateNewTokenCommand(userId, newSessionId));
+    >(new GenerateAccessTokenCommand(userId, newSessionId, user.role));
 
     const refreshToken = await this.commandBus.execute<
       GenerateRefreshTokenCommand,

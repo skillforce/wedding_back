@@ -6,7 +6,6 @@ import { UserRefreshContextDto } from '../../guards/dto/user-refresh-context.dto
 import { AuthSessionsRepository } from '../../infra/auth-sessions.repository';
 import { BcryptService } from '../bcrypt.service';
 import { parseDeviceName } from '../utils/user-agent.util';
-
 export interface SessionMetadata {
   deviceId: string;
   userAgent: string;

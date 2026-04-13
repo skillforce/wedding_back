@@ -41,6 +41,8 @@ import { ListActiveSessionsCommand } from '../application/usecases/list-active-s
 import { RevokeSessionCommand } from '../application/usecases/revoke-session.usecase';
 import { RevokeAllOtherSessionsCommand } from '../application/usecases/revoke-all-other-sessions.usecase';
 import { SessionViewDto } from './view-dto/session.view-dto';
+import { ConfirmEmailCommand } from '../application/usecases/confirm-email.usecase';
+import { ConfirmEmailInputDto } from './input-dto/confirm-email.input-dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -83,7 +85,7 @@ export class AuthController {
       await this.commandBus.execute<
         LoginUserCommand,
         { accessToken: string; refreshToken: string; deviceId: string }
-      >(new LoginUserCommand(user.id, metadata));
+      >(new LoginUserCommand(user.id, user.role, metadata));
 
     this.cookieService.setRefreshToken(res, refreshToken);
 
@@ -183,6 +185,15 @@ export class AuthController {
     await this.commandBus.execute(
       new RevokeAllOtherSessionsCommand(user.id, user.sessionId),
     );
+  }
+
+  @Post('confirm-email')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Confirm user email with token' })
+  @ApiResponse({ status: 204, description: 'Email confirmed successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  async confirmEmail(@Body() dto: ConfirmEmailInputDto): Promise<void> {
+    await this.commandBus.execute(new ConfirmEmailCommand(dto.token));
   }
 
   @Delete('sessions/:id')

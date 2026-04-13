@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserAccountsModule } from '../user-accounts/user-accounts.module';
 import { Budget } from './domain/entities/budget.entity';
 import { BudgetSection } from './domain/entities/budget-section.entity';
 import { BudgetItem } from './domain/entities/budget-item.entity';
@@ -22,8 +23,15 @@ import { UpdateItemUseCase } from './app/usecases/update-item.usecase';
 import { DeleteItemUseCase } from './app/usecases/delete-item.usecase';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Budget, BudgetSection, BudgetItem])],
-  controllers: [BudgetController, BudgetSectionsController, BudgetItemsController],
+  imports: [
+    TypeOrmModule.forFeature([Budget, BudgetSection, BudgetItem]),
+    UserAccountsModule,
+  ],
+  controllers: [
+    BudgetController,
+    BudgetSectionsController,
+    BudgetItemsController,
+  ],
   providers: [
     BudgetRepository,
     BudgetSectionsRepository,

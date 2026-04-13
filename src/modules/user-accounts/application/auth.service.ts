@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BcryptService } from './bcrypt.service';
 import { UsersRepository } from '../infra/users.repository';
+import { UserRole } from '../domain/entities/user-role.enum';
+import { UserStatus } from '../domain/entities/user-status.enum';
 
 @Injectable()
 export class AuthService {
@@ -12,7 +14,7 @@ export class AuthService {
   async validateUser(
     login: string,
     password: string,
-  ): Promise<{ id: number } | null> {
+  ): Promise<{ id: number; role: UserRole } | null> {
     const user = await this.usersRepository.findUserByLogin(login);
 
     if (!user) {
@@ -28,6 +30,10 @@ export class AuthService {
       return null;
     }
 
-    return { id: user.id };
+    if (user.status !== UserStatus.ACTIVE) {
+      return null;
+    }
+
+    return { id: user.id, role: user.role };
   }
 }

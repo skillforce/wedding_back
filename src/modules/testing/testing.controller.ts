@@ -1,11 +1,28 @@
-import { Controller, Delete, HttpCode, HttpStatus } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import {
+  Body,
+  Controller,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Post,
+} from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { SkipThrottle } from '@nestjs/throttler';
+import { CommandBus } from '@nestjs/cqrs';
+import { CreatePlainUserCommand } from '../user-accounts/application/usecases/create-plain-user.usecase';
+import { ConfirmEmailCommand } from '../user-accounts/application/usecases/confirm-email.usecase';
+import { EmailConfirmation } from '../user-accounts/domain/entities/email-confirmation.entity';
+import { CreateActivatedPlainUserInputDto } from './api/input-dto/create-activated-plain-user.input-dto';
 
 @Controller('testing')
 export class TestingController {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    @InjectRepository(EmailConfirmation)
+    private readonly emailConfirmationRepository: Repository<EmailConfirmation>,
+    private readonly commandBus: CommandBus,
+  ) {}
 
   @Delete('all-data')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -15,5 +32,25 @@ export class TestingController {
     return {
       status: 'succeeded',
     };
+  }
+
+  @Post('users/plain')
+  @HttpCode(HttpStatus.CREATED)
+  @SkipThrottle()
+  async createActivatedPlainUser(@Body() dto: CreateActivatedPlainUserInputDto) {
+    const userId = await this.commandBus.execute<CreatePlainUserCommand, number>(
+      new CreatePlainUserCommand(
+        { login: dto.login, password: dto.password, email: dto.email },
+        dto.creatorUserId,
+      ),
+    );
+
+    const confirmation = await this.emailConfirmationRepository.findOne({
+      where: { userId, confirmedAt: IsNull() },
+    });
+
+    await this.commandBus.execute(new ConfirmEmailCommand(confirmation!.token));
+
+    return { id: userId };
   }
 }

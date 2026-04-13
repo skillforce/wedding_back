@@ -1,38 +1,34 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
-import { GenerateNewTokenCommand } from './generate-token.usecase';
 import {
   GenerateRefreshTokenCommand,
   SessionMetadata,
 } from './generate-refresh-token.usecase';
 import { AuthSessionsRepository } from '../../infra/auth-sessions.repository';
 import { UserAccountsConfig } from '../../config/user-accounts.config';
+import { UserRole } from '../../domain/entities/user-role.enum';
+import { GenerateAccessTokenCommand } from './generate-access-token.usecase';
 
 export class LoginUserCommand {
   constructor(
     public userId: number,
+    public role: UserRole,
     public metadata: SessionMetadata,
   ) {}
 }
 
 @CommandHandler(LoginUserCommand)
-export class LoginUserUseCase
-  implements
-    ICommandHandler<
-      LoginUserCommand,
-      { accessToken: string; refreshToken: string; deviceId: string }
-    >
-{
+export class LoginUserUseCase implements ICommandHandler<
+  LoginUserCommand,
+  { accessToken: string; refreshToken: string; deviceId: string }
+> {
   constructor(
     private commandBus: CommandBus,
     private readonly authSessionsRepository: AuthSessionsRepository,
     private readonly userAccountsConfig: UserAccountsConfig,
   ) {}
 
-  async execute({
-    userId,
-    metadata,
-  }: LoginUserCommand): Promise<{
+  async execute({ userId, role, metadata }: LoginUserCommand): Promise<{
     accessToken: string;
     refreshToken: string;
     deviceId: string;
@@ -43,9 +39,9 @@ export class LoginUserUseCase
     const sessionId = randomUUID();
 
     const accessToken = await this.commandBus.execute<
-      GenerateNewTokenCommand,
+      GenerateAccessTokenCommand,
       string
-    >(new GenerateNewTokenCommand(userId, sessionId));
+    >(new GenerateAccessTokenCommand(userId, sessionId, role));
 
     const refreshToken = await this.commandBus.execute<
       GenerateRefreshTokenCommand,

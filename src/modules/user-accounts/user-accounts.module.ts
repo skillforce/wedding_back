@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
 import { BcryptService } from './application/bcrypt.service';
 import { UserAccountsConfig } from './config/user-accounts.config';
+import { EmailModule } from '../email/email.module';
+import { EmailConfirmation } from './domain/entities/email-confirmation.entity';
+import { EmailConfirmationRepository } from './infra/email-confirmation.repository';
+import { SendEmailConfirmationUseCase } from './application/usecases/send-email-confirmation.usecase';
+import { ConfirmEmailUseCase } from './application/usecases/confirm-email.usecase';
+import { ResendConfirmationUseCase } from './application/usecases/resend-confirmation.usecase';
 import { JwtStrategy } from './guards/bearer/jwt.strategy';
 import { LocalStrategy } from './guards/local/local.strategy';
 import { LoginUserUseCase } from './application/usecases/login-user.usecase';
-import { GenerateNewTokenUsecase } from './application/usecases/generate-token.usecase';
+import { GenerateAccessTokenUsecase } from './application/usecases/generate-access-token.usecase';
 import { GenerateRefreshTokenUsecase } from './application/usecases/generate-refresh-token.usecase';
 import { RefreshTokenUsecase } from './application/usecases/refresh-token.usecase';
 import { LogoutUsecase } from './application/usecases/logout.usecase';
@@ -27,7 +33,11 @@ import { UsersRepository } from './infra/users.repository';
 import { AuthSessionsRepository } from './infra/auth-sessions.repository';
 import { AuthSessionsQueryRepository } from './infra/query/auth-sessions.query-repository';
 import { CreateUserUseCase } from './application/usecases/create-user.usecase';
+import { CreatePlainUserUseCase } from './application/usecases/create-plain-user.usecase';
+import { ValidateUserOwnershipUseCase } from './application/usecases/validate-user-ownership.usecase';
 import { DeleteUserUseCase } from './application/usecases/delete-user.usecase';
+import { RolesGuard } from './guards/roles/roles.guard';
+import { UserOwnershipGuard } from './guards/ownership/user-ownership.guard';
 import { UserController } from './api/user-controller';
 import { UsersQueryRepository } from './infra/query/users.query-repository';
 import { RefreshTokenGuard } from './guards/refresh/refresh-token.guard';
@@ -43,10 +53,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, AuthSession, UserProfile]),
+    TypeOrmModule.forFeature([User, AuthSession, UserProfile, EmailConfirmation]),
     JwtModule,
     S3Module,
     ImageModule,
+    EmailModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AuthController, UserController],
@@ -59,7 +70,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     AuthService,
     CleanupSessionsService,
     LoginUserUseCase,
-    GenerateNewTokenUsecase,
+    GenerateAccessTokenUsecase,
     GenerateRefreshTokenUsecase,
     RefreshTokenUsecase,
     LogoutUsecase,
@@ -74,10 +85,18 @@ import { ScheduleModule } from '@nestjs/schedule';
     UserProfilesRepository,
     ProfileImageService,
     CreateUserUseCase,
+    CreatePlainUserUseCase,
+    ValidateUserOwnershipUseCase,
+    RolesGuard,
+    UserOwnershipGuard,
     DeleteUserUseCase,
     CreateDefaultProfileUseCase,
     UpdateProfileUseCase,
     UploadProfileImageUseCase,
+    EmailConfirmationRepository,
+    SendEmailConfirmationUseCase,
+    ConfirmEmailUseCase,
+    ResendConfirmationUseCase,
     {
       provide: ACCESS_TOKEN_STRATEGY_INJECT_TOKEN,
       useFactory: (userAccountsConfig: UserAccountsConfig): JwtService => {
@@ -103,6 +122,6 @@ import { ScheduleModule } from '@nestjs/schedule';
       inject: [UserAccountsConfig],
     },
   ],
-  exports: [BcryptService],
+  exports: [BcryptService, UserOwnershipGuard],
 })
 export class UserAccountsModule {}

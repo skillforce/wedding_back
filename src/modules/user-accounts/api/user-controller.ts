@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -25,17 +26,24 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { IdNumberParamDto } from '../../../core/decorators/validation/queryParamDto';
 import { CreateUserInputDto } from './input-dto/create-user-input-dto';
 import { CreateUserCommand } from '../application/usecases/create-user.usecase';
+import { CreatePlainUserCommand } from '../application/usecases/create-plain-user.usecase';
+import { CreatePlainUserInputDto } from './input-dto/create-plain-user.input-dto';
+import { ValidateUserOwnershipCommand } from '../application/usecases/validate-user-ownership.usecase';
 import { UsersQueryRepository } from '../infra/query/users.query-repository';
 import { DeleteUserCommand } from '../application/usecases/delete-user.usecase';
 import { UsersViewDto } from './view-dto/users.view-dto';
-import { BasicAuthGuard } from '../guards/basic/basic-auth.guard';
+import { BasicAuthGuard } from '../guards/basic/basic-auth.guard';  // kept for POST /users (admin)
 import { JwtAuthGuard } from '../guards/bearer/jwt-auth.guard';
+import { RolesGuard } from '../guards/roles/roles.guard';
+import { Roles } from '../guards/roles/roles.decorator';
+import { UserRole } from '../domain/entities/user-role.enum';
 import { ExtractUserFromRequest } from '../guards/extract-user-from-request.decorator';
 import { UserContextDto } from '../guards/dto/user-context.dto';
 import { UpdateProfileInputDto } from './input-dto/update-profile.input-dto';
 import { UpdateProfileCommand } from '../application/usecases/update-profile.usecase';
 import { UploadProfileImageCommand } from '../application/usecases/upload-profile-image.usecase';
 import { ProfileViewDto } from './view-dto/profile.view-dto';
+import { ResendConfirmationCommand } from '../application/usecases/resend-confirmation.usecase';
 
 @ApiTags('Users')
 @Controller('users')
@@ -65,19 +73,101 @@ export class UserController {
     return this.userQueryRepository.findUserByIdOrNotFoundFail(createdUserId);
   }
 
+  @Post('plain')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_USER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a plain user (superUser only)' })
+  @ApiResponse({ status: 201, description: 'Plain user created', type: UsersViewDto })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async createPlainUser(
+    @ExtractUserFromRequest() user: UserContextDto,
+    @Body() dto: CreatePlainUserInputDto,
+  ): Promise<UsersViewDto> {
+    const createdUserId = await this.commandBus.execute<CreatePlainUserCommand, number>(
+      new CreatePlainUserCommand(dto, user.id),
+    );
+    return this.userQueryRepository.findUserByIdOrNotFoundFail(createdUserId);
+  }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_USER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List plain users created by the requesting superUser' })
+  @ApiResponse({ status: 200, type: [UsersViewDto] })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async getPlainUsers(
+    @ExtractUserFromRequest() user: UserContextDto,
+  ): Promise<UsersViewDto[]> {
+    return this.userQueryRepository.findPlainUsersByCreatorId(user.id);
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_USER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a plain user by ID (superUser only, must be creator)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: Number })
+  @ApiResponse({ status: 200, type: UsersViewDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getPlainUserById(
+    @ExtractUserFromRequest() user: UserContextDto,
+    @Param() { id }: IdNumberParamDto,
+  ): Promise<UsersViewDto> {
+    const effectiveUserId = await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
+      new ValidateUserOwnershipCommand(user.id, user.role, id),
+    );
+    return this.userQueryRepository.findUserByIdOrNotFoundFail(effectiveUserId);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(BasicAuthGuard)
-  @ApiBasicAuth()
-  @ApiOperation({ summary: 'Delete a user by ID (admin only)' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_USER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a plain user (superUser only, must be creator)' })
   @ApiParam({ name: 'id', description: 'User ID', type: Number })
   @ApiResponse({ status: 204, description: 'User deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async deleteUserById(@Param() { id }: IdNumberParamDto) {
-    return this.commandBus.execute<DeleteUserCommand, void>(
-      new DeleteUserCommand(id),
+  async deletePlainUser(
+    @ExtractUserFromRequest() user: UserContextDto,
+    @Param() { id }: IdNumberParamDto,
+  ): Promise<void> {
+    await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
+      new ValidateUserOwnershipCommand(user.id, user.role, id),
     );
+    return this.commandBus.execute<DeleteUserCommand, void>(new DeleteUserCommand(id));
+  }
+
+  @Post(':id/resend-confirmation')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_USER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resend confirmation email for a plain user (superUser only)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: Number })
+  @ApiResponse({ status: 204, description: 'Confirmation email resent' })
+  @ApiResponse({ status: 400, description: 'User already confirmed or not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async resendConfirmation(
+    @ExtractUserFromRequest() user: UserContextDto,
+    @Param() { id }: IdNumberParamDto,
+  ): Promise<void> {
+    await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
+      new ValidateUserOwnershipCommand(user.id, user.role, id),
+    );
+    await this.commandBus.execute(new ResendConfirmationCommand(id));
   }
 
   @Patch('profile')

@@ -16,7 +16,7 @@ export class MeViewDto {
     const dto = new MeViewDto();
     dto.id = user.id;
     dto.login = user.login;
-    dto.profile = user.profile ? ProfileViewDto.mapToViewDto(user.profile) : null;
+    dto.profile = user.profile ? ProfileViewDto.mapToViewDto(user.profile, user) : null;
     return dto;
   }
 }

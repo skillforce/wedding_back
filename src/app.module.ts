@@ -17,6 +17,7 @@ import { UserAccountsModule } from './modules/user-accounts/user-accounts.module
 import { BudgetModule } from './modules/budget/budget.module';
 import { ChecklistModule } from './modules/checklist/checklist.module';
 import { CurrencyModule } from './modules/currency/currency.module';
+import { EmailModule } from './modules/email/email.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
@@ -63,6 +64,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     BudgetModule,
     ChecklistModule,
     CurrencyModule,
+    EmailModule,
   ],
   controllers: [],
   providers: [

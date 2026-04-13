@@ -10,21 +10,18 @@ export class UsersRepository {
   ) {}
 
   async findUserByLogin(login: string): Promise<User | null> {
-    return await this.usersOrmRepository.findOneBy({
-      login,
-    });
+    return await this.usersOrmRepository.findOneBy({ login });
   }
+
   async findUserById(id: number): Promise<User | null> {
-    return await this.usersOrmRepository.findOneBy({
-      id,
-    });
+    return await this.usersOrmRepository.findOneBy({ id });
   }
 
-  async save(user: Omit<User, 'id'>): Promise<number> {
+  async save(user: Partial<User>): Promise<number> {
     const result = await this.usersOrmRepository.save(user);
-
     return result.id;
   }
+
   async deleteUserById(id: number): Promise<boolean> {
     const result = await this.usersOrmRepository.delete(id);
     return result.affected === 1;

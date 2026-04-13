@@ -3,6 +3,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { CreateUserInputDto } from '../../src/modules/user-accounts/api/input-dto/create-user-input-dto';
 import { LoginInputDto } from '../../src/modules/user-accounts/api/input-dto/auth-input-dto';
+import { CreatePlainUserInputDto } from '../../src/modules/user-accounts/api/input-dto/create-plain-user.input-dto';
 
 type BasicAuthCredentials = {
   username: string;
@@ -21,20 +22,28 @@ export class UserAccountsTestManager {
     this.httpServer = this.app.getHttpServer();
   }
 
-  buildCreateUserDto(
-    overrides: Partial<CreateUserInputDto> = {},
-  ): CreateUserInputDto {
+  buildCreateUserDto(overrides: Partial<CreateUserInputDto> = {}): CreateUserInputDto {
     return {
       login: overrides.login ?? this.generateUniqueLogin(),
       password: overrides.password ?? 'pass123',
+      ...(overrides.role !== undefined && { role: overrides.role }),
+    };
+  }
+
+  buildCreatePlainUserDto(
+    overrides: Partial<CreatePlainUserInputDto> = {},
+  ): CreatePlainUserInputDto {
+    return {
+      login: overrides.login ?? this.generateUniqueLogin(),
+      password: overrides.password ?? 'pass123',
+      email: overrides.email ?? this.generateUniqueEmail(),
     };
   }
 
   async createUser(
     dto: CreateUserInputDto,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
-    basicAuthCredentials: BasicAuthCredentials = this
-      .defaultBasicAuthCredentials,
+    basicAuthCredentials: BasicAuthCredentials = this.defaultBasicAuthCredentials,
   ) {
     const encodedCredentials = Buffer.from(
       `${basicAuthCredentials.username}:${basicAuthCredentials.password}`,
@@ -44,6 +53,45 @@ export class UserAccountsTestManager {
       .post('/api/users')
       .set('Authorization', `Basic ${encodedCredentials}`)
       .send(dto)
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
+  async createPlainUser(
+    accessToken: string,
+    dto: CreatePlainUserInputDto,
+    expectedStatus: HttpStatus = HttpStatus.CREATED,
+  ) {
+    const response = await request(this.httpServer)
+      .post('/api/users/plain')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send(dto)
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
+  async createActivatedPlainUser(
+    creatorUserId: number,
+    dto: CreatePlainUserInputDto,
+    expectedStatus: HttpStatus = HttpStatus.CREATED,
+  ) {
+    const response = await request(this.httpServer)
+      .post('/api/testing/users/plain')
+      .send({ ...dto, creatorUserId })
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
+  async confirmEmail(
+    token: string,
+    expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+  ) {
+    const response = await request(this.httpServer)
+      .post('/api/auth/confirm-email')
+      .send({ token })
       .expect(expectedStatus);
 
     return response.body;
@@ -101,10 +149,7 @@ export class UserAccountsTestManager {
     return response.body;
   }
 
-  async me(
-    accessToken: string,
-    expectedStatus: HttpStatus = HttpStatus.OK,
-  ) {
+  async me(accessToken: string, expectedStatus: HttpStatus = HttpStatus.OK) {
     const response = await request(this.httpServer)
       .get('/api/auth/me')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -115,26 +160,18 @@ export class UserAccountsTestManager {
 
   async deleteUserById(
     id: number,
+    accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
-    basicAuthCredentials: BasicAuthCredentials = this
-      .defaultBasicAuthCredentials,
   ) {
-    const encodedCredentials = Buffer.from(
-      `${basicAuthCredentials.username}:${basicAuthCredentials.password}`,
-    ).toString('base64');
-
     const response = await request(this.httpServer)
       .delete(`/api/users/${id}`)
-      .set('Authorization', `Basic ${encodedCredentials}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(expectedStatus);
 
     return response.body;
   }
 
-  async getSessions(
-    accessToken: string,
-    expectedStatus: HttpStatus = HttpStatus.OK,
-  ) {
+  async getSessions(accessToken: string, expectedStatus: HttpStatus = HttpStatus.OK) {
     const response = await request(this.httpServer)
       .get('/api/auth/sessions')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -195,8 +232,19 @@ export class UserAccountsTestManager {
     };
   }
 
+  extractTokenFromEmailHtml(html: string): string {
+    const match = html.match(/token=([a-f0-9-]{36})/);
+    if (!match) throw new Error('Confirmation token not found in email HTML');
+    return match[1];
+  }
+
   private generateUniqueLogin(): string {
     this.sequence += 1;
     return `u${Date.now().toString().slice(-6)}${this.sequence}`.slice(0, 10);
+  }
+
+  private generateUniqueEmail(): string {
+    this.sequence += 1;
+    return `test${Date.now()}${this.sequence}@example.com`;
   }
 }

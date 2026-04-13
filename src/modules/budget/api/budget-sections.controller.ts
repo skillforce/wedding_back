@@ -10,11 +10,11 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
-import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
-import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
+import { UserOwnershipGuard } from '../../user-accounts/guards/ownership/user-ownership.guard';
+import { EffectiveUserId } from '../../user-accounts/guards/ownership/effective-user-id.decorator';
 import { BudgetQueryRepository } from '../infra/query/budget.query-repository';
 import { BudgetViewDto } from './view-dto/budget.view-dto';
 import { BudgetSectionViewDto } from './view-dto/budget-section.view-dto';
@@ -28,7 +28,8 @@ import { MoveSectionCommand } from '../app/usecases/move-section.usecase';
 
 @ApiTags('Budget sections')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, UserOwnershipGuard)
+@ApiQuery({ name: 'userId', required: false, type: Number })
 @Controller('budget/sections')
 export class BudgetSectionsController {
   constructor(
@@ -40,43 +41,39 @@ export class BudgetSectionsController {
   @HttpCode(HttpStatus.CREATED)
   async createSection(
     @Body() dto: CreateSectionInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<BudgetViewDto> {
-    await this.commandBus.execute(new CreateSectionCommand(dto, user.id));
-    return this.budgetQueryRepository.findFullBudgetByUserId(user.id);
+    await this.commandBus.execute(new CreateSectionCommand(dto, userId));
+    return this.budgetQueryRepository.findFullBudgetByUserId(userId);
   }
 
   @Patch('move')
   async moveSection(
     @Body() dto: MoveBudgetSectionInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<BudgetSectionViewDto[]> {
-    const affectedSectionIds = await this.commandBus.execute<
-      MoveSectionCommand,
-      number[]
-    >(new MoveSectionCommand(dto, user.id));
-    return this.budgetQueryRepository.findSectionViewsByIdsForUser(
-      user.id,
-      affectedSectionIds,
+    const affectedSectionIds = await this.commandBus.execute<MoveSectionCommand, number[]>(
+      new MoveSectionCommand(dto, userId),
     );
+    return this.budgetQueryRepository.findSectionViewsByIdsForUser(userId, affectedSectionIds);
   }
 
   @Patch(':id')
   async updateSection(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateSectionInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<BudgetViewDto> {
-    await this.commandBus.execute(new UpdateSectionCommand(id, dto, user.id));
-    return this.budgetQueryRepository.findFullBudgetByUserId(user.id);
+    await this.commandBus.execute(new UpdateSectionCommand(id, dto, userId));
+    return this.budgetQueryRepository.findFullBudgetByUserId(userId);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteSection(
     @Param('id', ParseIntPipe) id: number,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<void> {
-    await this.commandBus.execute(new DeleteSectionCommand(id, user.id));
+    await this.commandBus.execute(new DeleteSectionCommand(id, userId));
   }
 }
