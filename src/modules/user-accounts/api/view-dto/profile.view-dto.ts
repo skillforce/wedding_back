@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { UserProfile } from '../../domain/entities/user-profile.entity';
 import { User } from '../../domain/entities/user.entity';
 import { UserRole } from '../../domain/entities/user-role.enum';
+import { UserStatus } from '../../domain/entities/user-status.enum';
 
 export class ProfileViewDto {
   @ApiProperty({ nullable: true })
@@ -25,6 +26,9 @@ export class ProfileViewDto {
   @ApiProperty()
   isCreatedBySuperUser: boolean;
 
+  @ApiProperty({ description: 'Whether the user has confirmed their email' })
+  isConfirmed: boolean;
+
   static mapToViewDto(profile: UserProfile, user: User): ProfileViewDto {
     const dto = new ProfileViewDto();
     dto.invitationUrl = profile.invitationUrl;
@@ -34,6 +38,7 @@ export class ProfileViewDto {
     dto.email = profile.email;
     dto.isSuperUser = user.role === UserRole.SUPER_USER;
     dto.isCreatedBySuperUser = user.createdByUserId !== null;
+    dto.isConfirmed = user.status === UserStatus.ACTIVE;
     return dto;
   }
 }

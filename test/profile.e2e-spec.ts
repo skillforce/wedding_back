@@ -70,6 +70,7 @@ describe('Profile (e2e)', () => {
     weddingDate: null,
     isCreatedBySuperUser: false,
     isSuperUser: false,
+    isConfirmed: true,
     phoneNumber: null,
     email: null,
   };
