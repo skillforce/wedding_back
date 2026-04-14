@@ -652,13 +652,13 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       });
 
       it('should allow superUser to update a plain user guest form via ?userId', async () => {
-        const dto = guestsTestManager.buildCreateGuestDto(plainUserId);
+        const initialForm = guestsTestManager.buildGuestFormDto({ age_group: 'young' });
+        const dto = guestsTestManager.buildCreateGuestDto(plainUserId, { guestForm: initialForm });
         const [guest] = await guestsTestManager.createGuest(dto, superUserToken, HttpStatus.CREATED, plainUserId);
 
-        const guestForm = guestsTestManager.buildGuestFormDto({ age_group: 'old' });
         const [updated] = await guestsTestManager.updateGuestForm(
           guest.id,
-          guestForm,
+          { age_group: 'old' },
           superUserToken,
           HttpStatus.OK,
           plainUserId,
