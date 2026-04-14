@@ -155,6 +155,7 @@ describe('Profile (e2e)', () => {
 
   describe('plain user created by super user', () => {
     let plainUserAccessToken: string;
+    let plainUserEmail: string;
 
     beforeEach(async () => {
       const superUserDto = userAccountsTestManager.buildCreateUserDto({
@@ -164,13 +165,17 @@ describe('Profile (e2e)', () => {
       await userAccountsTestManager.login(superUserDto);
 
       const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
-      await userAccountsTestManager.createActivatedPlainUser(superUser.id, plainUserDto);
+      await userAccountsTestManager.createActivatedPlainUser(
+        superUser.id,
+        plainUserDto,
+      );
 
       const { body: plainUserBody } = await userAccountsTestManager.login({
         login: plainUserDto.login,
         password: plainUserDto.password,
       });
       plainUserAccessToken = plainUserBody.accessToken;
+      plainUserEmail = plainUserDto.email;
     });
 
     it('should have isCreatedBySuperUser=true and isSuperUser=false in default profile', async () => {
@@ -178,15 +183,19 @@ describe('Profile (e2e)', () => {
 
       expect(me.profile).toEqual({
         ...defaultProfile,
+        email: plainUserEmail,
         isCreatedBySuperUser: true,
         isSuperUser: false,
       });
     });
 
     it('should preserve isCreatedBySuperUser=true after profile update', async () => {
-      const updated = await profileTestManager.updateProfile(plainUserAccessToken, {
-        invitationUrl: 'https://example.com/invite/abc',
-      });
+      const updated = await profileTestManager.updateProfile(
+        plainUserAccessToken,
+        {
+          invitationUrl: 'https://example.com/invite/abc',
+        },
+      );
 
       expect(updated.isCreatedBySuperUser).toBe(true);
       expect(updated.isSuperUser).toBe(false);
