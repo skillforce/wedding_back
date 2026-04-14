@@ -62,13 +62,16 @@ export class GuestsTestManager {
     dto: CreateGuestInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
+    userId?: number,
   ): Promise<GuestDetailViewDto[]> {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .post('/api/guests/')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -86,12 +89,15 @@ export class GuestsTestManager {
   async getAllGuests(
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .get('/api/guests/')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -99,11 +105,15 @@ export class GuestsTestManager {
     id: string,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .delete(`/api/guests/${id}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -112,13 +122,16 @@ export class GuestsTestManager {
     dto: UpdateGuestFormInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    userId?: number,
   ): Promise<GuestDetailViewDto[]> {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .patch(`/api/guests/${guestId}/form`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -139,20 +152,20 @@ export class GuestsTestManager {
     guestId: string,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .delete(`/api/guests/${guestId}/response`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
   private generateUniqueGuestName(): string {
     this.sequence += 1;
-    return `guest-${Date.now().toString().slice(-6)}-${this.sequence}`.slice(
-      0,
-      20,
-    );
+    return `guest-${Date.now().toString().slice(-6)}-${this.sequence}`.slice(0, 20);
   }
 }

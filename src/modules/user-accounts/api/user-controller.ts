@@ -203,4 +203,54 @@ export class UserController {
       new UploadProfileImageCommand(user.id, file.buffer, file.mimetype),
     );
   }
+
+  @Patch(':id/profile')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_USER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update profile of a plain user (superUser only, must be creator)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: Number })
+  @ApiResponse({ status: 200, type: ProfileViewDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async updatePlainUserProfile(
+    @ExtractUserFromRequest() user: UserContextDto,
+    @Param() { id }: IdNumberParamDto,
+    @Body() dto: UpdateProfileInputDto,
+  ): Promise<ProfileViewDto> {
+    const effectiveUserId = await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
+      new ValidateUserOwnershipCommand(user.id, user.role, id),
+    );
+    return this.commandBus.execute<UpdateProfileCommand, ProfileViewDto>(
+      new UpdateProfileCommand(effectiveUserId, dto),
+    );
+  }
+
+  @Patch(':id/profile/image')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_USER)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload profile image for a plain user (superUser only, must be creator)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: Number })
+  @ApiResponse({ status: 200, type: ProfileViewDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async uploadPlainUserProfileImage(
+    @ExtractUserFromRequest() user: UserContextDto,
+    @Param() { id }: IdNumberParamDto,
+    @ParseProfileImage() file: Express.Multer.File,
+  ): Promise<ProfileViewDto> {
+    const effectiveUserId = await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
+      new ValidateUserOwnershipCommand(user.id, user.role, id),
+    );
+    return this.commandBus.execute<UploadProfileImageCommand, ProfileViewDto>(
+      new UploadProfileImageCommand(effectiveUserId, file.buffer, file.mimetype),
+    );
+  }
 }

@@ -47,7 +47,7 @@ export class CreatePlainUserUseCase
     await this.commandBus.execute(new CreateDefaultSeatingArrangementCommand(userId));
     await this.commandBus.execute(new CreateDefaultBudgetCommand(userId));
     await this.commandBus.execute(new CreateDefaultChecklistCommand(userId));
-    await this.commandBus.execute(new CreateDefaultProfileCommand(userId));
+    await this.commandBus.execute(new CreateDefaultProfileCommand(userId, dto.email));
 
     await this.commandBus.execute(new SendEmailConfirmationCommand(userId, dto.email));
 

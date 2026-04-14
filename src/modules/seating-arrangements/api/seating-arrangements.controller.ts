@@ -10,14 +10,15 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
-import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
-import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
+import { UserOwnershipGuard } from '../../user-accounts/guards/ownership/user-ownership.guard';
+import { EffectiveUserId } from '../../user-accounts/guards/ownership/effective-user-id.decorator';
 import { SeatingArrangementsQueryRepository } from '../infra/query/seating-arrangements.query-repository';
 import { SeatingArrangementViewDto } from './view-dto/seating-arrangement.view-dto';
 import { UpdateSeatingArrangementInputDto } from './input-dto/update-seating-arrangement.input-dto';
@@ -26,7 +27,8 @@ import { AutoSeatGuestsCommand } from '../app/usecases/auto-seat-guests.usecase'
 
 @ApiTags('Seating arrangements')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, UserOwnershipGuard)
+@ApiQuery({ name: 'userId', required: false, type: Number })
 @Throttle({ default: { limit: 30, ttl: 5000 } })
 @Controller('seating-arrangements/arrangement')
 export class SeatingArrangementsController {
@@ -37,7 +39,7 @@ export class SeatingArrangementsController {
 
   @Patch()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update seating arrangement workspace settings' })
+  @ApiOperation({ summary: "Update seating arrangement workspace settings. SuperUsers may pass ?userId." })
   @ApiResponse({
     status: 200,
     description: 'Seating arrangement updated successfully',
@@ -47,17 +49,17 @@ export class SeatingArrangementsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateArrangement(
     @Body() dto: UpdateSeatingArrangementInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<SeatingArrangementViewDto> {
     await this.commandBus.execute<UpdateSeatingArrangementCommand, void>(
-      new UpdateSeatingArrangementCommand(dto, user.id),
+      new UpdateSeatingArrangementCommand(dto, userId),
     );
-    return this.queryRepository.findByUserId(user.id);
+    return this.queryRepository.findByUserId(userId);
   }
 
   @Post('auto-seat')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Auto-assign all guests to tables' })
+  @ApiOperation({ summary: "Auto-assign all guests to tables. SuperUsers may pass ?userId." })
   @ApiResponse({
     status: 200,
     description: 'Guests seated successfully',
@@ -66,11 +68,11 @@ export class SeatingArrangementsController {
   @ApiResponse({ status: 400, description: 'Capacity exceeded or invalid state' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async autoSeat(
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<SeatingArrangementViewDto> {
     await this.commandBus.execute<AutoSeatGuestsCommand, void>(
-      new AutoSeatGuestsCommand(user.id),
+      new AutoSeatGuestsCommand(userId),
     );
-    return this.queryRepository.findByUserId(user.id);
+    return this.queryRepository.findByUserId(userId);
   }
 }

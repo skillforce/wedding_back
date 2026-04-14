@@ -14,14 +14,15 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
-import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
-import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
+import { UserOwnershipGuard } from '../../user-accounts/guards/ownership/user-ownership.guard';
+import { EffectiveUserId } from '../../user-accounts/guards/ownership/effective-user-id.decorator';
 import { SeatingTablesQueryRepository } from '../infra/query/seating-tables.query-repository';
 import { SeatingArrangementsQueryRepository } from '../infra/query/seating-arrangements.query-repository';
 import { SeatingTableViewDto } from './view-dto/seating-table.view-dto';
@@ -34,7 +35,8 @@ import { DeleteSeatingTableCommand } from '../app/usecases/delete-seating-table.
 
 @ApiTags('Seating tables')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, UserOwnershipGuard)
+@ApiQuery({ name: 'userId', required: false, type: Number })
 @Throttle({ default: { limit: 30, ttl: 5000 } })
 @Controller('seating-arrangements/tables')
 export class SeatingTablesController {
@@ -45,9 +47,7 @@ export class SeatingTablesController {
   ) {}
 
   @Get()
-  @ApiOperation({
-    summary: 'Get seating arrangement with all tables for the authenticated user',
-  })
+  @ApiOperation({ summary: "Get seating arrangement with all tables. SuperUsers may pass ?userId." })
   @ApiResponse({
     status: 200,
     description: 'Seating arrangement with workspace settings and tables',
@@ -55,14 +55,14 @@ export class SeatingTablesController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAllTables(
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<SeatingArrangementViewDto> {
-    return this.arrangementQueryRepository.findByUserId(user.id);
+    return this.arrangementQueryRepository.findByUserId(userId);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new seating tables' })
+  @ApiOperation({ summary: "Create a new seating table. SuperUsers may pass ?userId." })
   @ApiResponse({
     status: 201,
     description: 'Seating table created successfully',
@@ -72,18 +72,17 @@ export class SeatingTablesController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createTable(
     @Body() dto: CreateSeatingTableInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<SeatingTableViewDto> {
-    const tableId = await this.commandBus.execute<
-      CreateSeatingTableCommand,
-      string
-    >(new CreateSeatingTableCommand(dto, user.id));
+    const tableId = await this.commandBus.execute<CreateSeatingTableCommand, string>(
+      new CreateSeatingTableCommand(dto, userId),
+    );
     return this.queryRepository.findByIdOrFail(tableId);
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update an existing seating table' })
+  @ApiOperation({ summary: "Update an existing seating table. SuperUsers may pass ?userId." })
   @ApiParam({ name: 'id', description: 'Table UUID', type: String })
   @ApiResponse({
     status: 200,
@@ -92,42 +91,33 @@ export class SeatingTablesController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - table does not belong to user',
-  })
+  @ApiResponse({ status: 403, description: 'Forbidden - table does not belong to user' })
   @ApiResponse({ status: 404, description: 'Table not found' })
   async updateTable(
     @Param('id') id: string,
     @Body() dto: UpdateSeatingTableInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<SeatingTableViewDto> {
     await this.commandBus.execute<UpdateSeatingTableCommand, void>(
-      new UpdateSeatingTableCommand(id, dto, user.id),
+      new UpdateSeatingTableCommand(id, dto, userId),
     );
     return this.queryRepository.findByIdOrFail(id);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a seating table by ID' })
+  @ApiOperation({ summary: "Delete a seating table by ID. SuperUsers may pass ?userId." })
   @ApiParam({ name: 'id', description: 'Table UUID', type: String })
-  @ApiResponse({
-    status: 204,
-    description: 'Seating table deleted successfully',
-  })
+  @ApiResponse({ status: 204, description: 'Seating table deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - table does not belong to user',
-  })
+  @ApiResponse({ status: 403, description: 'Forbidden - table does not belong to user' })
   @ApiResponse({ status: 404, description: 'Table not found' })
   async deleteTable(
     @Param('id') id: string,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<void> {
     return this.commandBus.execute<DeleteSeatingTableCommand, void>(
-      new DeleteSeatingTableCommand(id, user.id),
+      new DeleteSeatingTableCommand(id, userId),
     );
   }
 }

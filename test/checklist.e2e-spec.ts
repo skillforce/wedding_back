@@ -8,6 +8,7 @@ import { initTesting } from './helpers/initTesting';
 import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { ChecklistTestManager } from './helpers/checklist/checklist.test-manager';
+import { UserRole } from '../src/modules/user-accounts/domain/entities/user-role.enum';
 
 describe('Checklist (e2e)', () => {
   let app: INestApplication;
@@ -611,6 +612,110 @@ describe('Checklist (e2e)', () => {
             message: 'Maximum of 10 items per phase reached',
           },
         ],
+      });
+    });
+
+    describe('superUser ownership (?userId)', () => {
+      let superUserToken: string;
+      let superUserId: number;
+      let plainUserId: number;
+
+      beforeEach(async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({ role: UserRole.SUPER_USER });
+        const superUser = await userAccountsTestManager.createUser(superUserDto);
+        const { body } = await userAccountsTestManager.login(superUserDto);
+        superUserToken = body.accessToken;
+        superUserId = superUser.id;
+
+        const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
+        const plainUser = await userAccountsTestManager.createActivatedPlainUser(superUserId, plainUserDto);
+        plainUserId = plainUser.id;
+      });
+
+      it('should allow superUser to read plain user checklist via ?userId', async () => {
+        const checklist = await checklistTestManager.getChecklist(
+          superUserToken,
+          HttpStatus.OK,
+          undefined,
+          plainUserId,
+        );
+
+        expect(checklist).toEqual(expect.objectContaining({ id: expect.any(String), phases: expect.any(Array) }));
+        expect(checklist.phases).toHaveLength(5);
+      });
+
+      it('should allow superUser to create a phase for plain user via ?userId', async () => {
+        const checklist = await checklistTestManager.getChecklist(
+          superUserToken,
+          HttpStatus.OK,
+          undefined,
+          plainUserId,
+        );
+        const phase = await checklistTestManager.createPhase(
+          checklistTestManager.buildCreatePhaseDto({ name: 'SuperUser Phase' }),
+          superUserToken,
+          HttpStatus.CREATED,
+          plainUserId,
+        );
+
+        expect(phase).toEqual(expect.objectContaining({ name: 'SuperUser Phase' }));
+
+        const updated = await checklistTestManager.getChecklist(
+          superUserToken,
+          HttpStatus.OK,
+          undefined,
+          plainUserId,
+        );
+        expect(updated.phases).toHaveLength(checklist.phases.length + 1);
+      });
+
+      it('should allow superUser to add item to plain user checklist phase via ?userId', async () => {
+        const checklist = await checklistTestManager.getChecklist(
+          superUserToken,
+          HttpStatus.OK,
+          undefined,
+          plainUserId,
+        );
+        const phaseId = checklist.phases[0].id;
+
+        const item = await checklistTestManager.createItem(
+          phaseId,
+          checklistTestManager.buildCreateItemDto({ title: 'SuperUser Item' }),
+          superUserToken,
+          HttpStatus.CREATED,
+          plainUserId,
+        );
+
+        expect(item).toEqual(expect.objectContaining({ title: 'SuperUser Item' }));
+      });
+
+      it('should return 403 when a non-creator superUser accesses the plain user checklist', async () => {
+        const otherSuperUserDto = userAccountsTestManager.buildCreateUserDto({ role: UserRole.SUPER_USER });
+        await userAccountsTestManager.createUser(otherSuperUserDto);
+        const { body: otherBody } = await userAccountsTestManager.login(otherSuperUserDto);
+
+        await checklistTestManager.getChecklist(
+          otherBody.accessToken,
+          HttpStatus.FORBIDDEN,
+          undefined,
+          plainUserId,
+        );
+      });
+
+      it('should return 403 when a plain user passes ?userId', async () => {
+        const plainUserDto2 = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createActivatedPlainUser(superUserId, plainUserDto2);
+        const { body: plainBody } = await userAccountsTestManager.login({
+          login: plainUserDto2.login,
+          password: plainUserDto2.password,
+        });
+
+        await checklistTestManager.getChecklist(
+          plainBody.accessToken,
+          HttpStatus.FORBIDDEN,
+          undefined,
+          plainUserId,
+        );
       });
     });
 

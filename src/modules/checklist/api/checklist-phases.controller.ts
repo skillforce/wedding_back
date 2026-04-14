@@ -10,11 +10,11 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
-import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
-import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
+import { UserOwnershipGuard } from '../../user-accounts/guards/ownership/user-ownership.guard';
+import { EffectiveUserId } from '../../user-accounts/guards/ownership/effective-user-id.decorator';
 import { CreatePhaseInputDto } from './input-dto/create-phase.input-dto';
 import { UpdatePhaseInputDto } from './input-dto/update-phase.input-dto';
 import { ChecklistQueryRepository } from '../infra/query/checklist.query-repository';
@@ -25,7 +25,8 @@ import { DeletePhaseCommand } from '../app/usecases/delete-phase.usecase';
 
 @ApiTags('Checklist phases')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, UserOwnershipGuard)
+@ApiQuery({ name: 'userId', required: false, type: Number })
 @Controller('checklist/phases')
 export class ChecklistPhasesController {
   constructor(
@@ -37,10 +38,10 @@ export class ChecklistPhasesController {
   @HttpCode(HttpStatus.CREATED)
   async createPhase(
     @Body() dto: CreatePhaseInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<ChecklistPhaseViewDto> {
     const phaseId = await this.commandBus.execute<CreatePhaseCommand, string>(
-      new CreatePhaseCommand(dto, user.id),
+      new CreatePhaseCommand(dto, userId),
     );
     return this.checklistQueryRepository.findPhaseViewByIdOrFail(phaseId);
   }
@@ -49,10 +50,10 @@ export class ChecklistPhasesController {
   async updatePhase(
     @Param('phaseId', new ParseUUIDPipe()) phaseId: string,
     @Body() dto: UpdatePhaseInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<ChecklistPhaseViewDto> {
     await this.commandBus.execute<UpdatePhaseCommand, void>(
-      new UpdatePhaseCommand(phaseId, dto, user.id),
+      new UpdatePhaseCommand(phaseId, dto, userId),
     );
     return this.checklistQueryRepository.findPhaseViewByIdOrFail(phaseId);
   }
@@ -61,10 +62,10 @@ export class ChecklistPhasesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletePhase(
     @Param('phaseId', new ParseUUIDPipe()) phaseId: string,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<void> {
     await this.commandBus.execute<DeletePhaseCommand, void>(
-      new DeletePhaseCommand(phaseId, user.id),
+      new DeletePhaseCommand(phaseId, userId),
     );
   }
 }

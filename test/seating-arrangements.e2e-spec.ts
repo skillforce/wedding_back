@@ -11,6 +11,7 @@ import { GuestsTestManager } from './helpers/guests.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
 import { RelationshipToCouple } from '../src/modules/guests/domain/enteties/guest-form.entity';
 import { TableShape } from '../src/modules/seating-arrangements/domain/entities/seating-table.entity';
+import { UserRole } from '../src/modules/user-accounts/domain/entities/user-role.enum';
 
 describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
   let app: INestApplication;
@@ -586,6 +587,106 @@ describe('SeatingTablesController & SeatingSeatsController (e2e)', () => {
       const arrangement =
         await seatingTablesTestManager.getAllTables(accessToken);
       expect(arrangement.items[0].seats).toHaveLength(0);
+    });
+  });
+
+  // ─── SuperUser ownership ──────────────────────────────────────────────────
+
+  describe('superUser ownership (?userId)', () => {
+    let superUserToken: string;
+    let superUserId: number;
+    let plainUserId: number;
+
+    beforeEach(async () => {
+      const superUserDto = userAccountsTestManager.buildCreateUserDto({ role: UserRole.SUPER_USER });
+      const superUser = await userAccountsTestManager.createUser(superUserDto);
+      const { body } = await userAccountsTestManager.login(superUserDto);
+      superUserToken = body.accessToken;
+      superUserId = superUser.id;
+
+      const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
+      const plainUser = await userAccountsTestManager.createActivatedPlainUser(superUserId, plainUserDto);
+      plainUserId = plainUser.id;
+    });
+
+    it('should allow superUser to read plain user seating arrangement via ?userId', async () => {
+      const arrangement = await seatingTablesTestManager.getAllTables(
+        superUserToken,
+        HttpStatus.OK,
+        plainUserId,
+      );
+
+      expect(arrangement).toEqual(expect.objectContaining({ items: [] }));
+    });
+
+    it('should allow superUser to create a table for plain user via ?userId', async () => {
+      const dto = seatingTablesTestManager.buildCreateTableDto({ name: 'SuperUser Table' });
+      const created = await seatingTablesTestManager.createTable(
+        dto,
+        superUserToken,
+        HttpStatus.CREATED,
+        plainUserId,
+      );
+
+      expect(created).toEqual(expect.objectContaining({ name: 'SuperUser Table' }));
+
+      const arrangement = await seatingTablesTestManager.getAllTables(
+        superUserToken,
+        HttpStatus.OK,
+        plainUserId,
+      );
+      expect(arrangement.items).toHaveLength(1);
+    });
+
+    it('should allow superUser to delete a table for plain user via ?userId', async () => {
+      const dto = seatingTablesTestManager.buildCreateTableDto();
+      const created = await seatingTablesTestManager.createTable(
+        dto,
+        superUserToken,
+        HttpStatus.CREATED,
+        plainUserId,
+      );
+
+      await seatingTablesTestManager.deleteTable(
+        created.id,
+        superUserToken,
+        HttpStatus.NO_CONTENT,
+        plainUserId,
+      );
+
+      const arrangement = await seatingTablesTestManager.getAllTables(
+        superUserToken,
+        HttpStatus.OK,
+        plainUserId,
+      );
+      expect(arrangement.items).toHaveLength(0);
+    });
+
+    it('should return 403 when a non-creator superUser accesses the plain user arrangement', async () => {
+      const otherSuperUserDto = userAccountsTestManager.buildCreateUserDto({ role: UserRole.SUPER_USER });
+      await userAccountsTestManager.createUser(otherSuperUserDto);
+      const { body: otherBody } = await userAccountsTestManager.login(otherSuperUserDto);
+
+      await seatingTablesTestManager.getAllTables(
+        otherBody.accessToken,
+        HttpStatus.FORBIDDEN,
+        plainUserId,
+      );
+    });
+
+    it('should return 403 when a plain user passes ?userId', async () => {
+      const plainUserDto2 = userAccountsTestManager.buildCreatePlainUserDto();
+      await userAccountsTestManager.createActivatedPlainUser(superUserId, plainUserDto2);
+      const { body: plainBody } = await userAccountsTestManager.login({
+        login: plainUserDto2.login,
+        password: plainUserDto2.password,
+      });
+
+      await seatingTablesTestManager.getAllTables(
+        plainBody.accessToken,
+        HttpStatus.FORBIDDEN,
+        plainUserId,
+      );
     });
   });
 

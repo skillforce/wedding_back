@@ -617,6 +617,82 @@ describe('AuthController (e2e)', () => {
           HttpStatus.BAD_REQUEST,
         );
       });
+
+      describe('super user manages plain user profile', () => {
+        it('should allow super user to update profile of their plain user', async () => {
+          const superUserDto = userAccountsTestManager.buildCreateUserDto({
+            role: UserRole.SUPER_USER,
+          });
+          const superUser = await userAccountsTestManager.createUser(superUserDto);
+          const { body: superUserBody } = await userAccountsTestManager.login(superUserDto);
+
+          const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
+          const plainUser = await userAccountsTestManager.createActivatedPlainUser(
+            superUser.id,
+            plainUserDto,
+          );
+
+          const profileUpdate = {
+            invitationUrl: 'https://example.com/invite/abc123',
+            weddingDate: '2026-09-01',
+            phoneNumber: '+375291234567',
+            email: plainUserDto.email,
+          };
+
+          const updatedProfile = await userAccountsTestManager.updatePlainUserProfile(
+            superUserBody.accessToken,
+            plainUser.id,
+            profileUpdate,
+          );
+
+          expect(updatedProfile).toEqual(
+            expect.objectContaining({
+              invitationUrl: profileUpdate.invitationUrl,
+              weddingDate: expect.any(String),
+              phoneNumber: profileUpdate.phoneNumber,
+              email: profileUpdate.email,
+              isCreatedBySuperUser: true,
+              isSuperUser: false,
+              isConfirmed: true,
+            }),
+          );
+        });
+
+        it('should return 403 when super user tries to update profile of another super user\'s plain user', async () => {
+          const superUser1Dto = userAccountsTestManager.buildCreateUserDto({
+            role: UserRole.SUPER_USER,
+          });
+          const superUser1 = await userAccountsTestManager.createUser(superUser1Dto);
+
+          const superUser2Dto = userAccountsTestManager.buildCreateUserDto({
+            role: UserRole.SUPER_USER,
+          });
+          await userAccountsTestManager.createUser(superUser2Dto);
+          const { body: superUser2Body } = await userAccountsTestManager.login(superUser2Dto);
+
+          const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
+          const plainUser = await userAccountsTestManager.createActivatedPlainUser(
+            superUser1.id,
+            plainUserDto,
+          );
+
+          await userAccountsTestManager.updatePlainUserProfile(
+            superUser2Body.accessToken,
+            plainUser.id,
+            { phoneNumber: '+375291111111' },
+            HttpStatus.FORBIDDEN,
+          );
+        });
+
+        it('should return 403 when super user tries to update profile of a non-existent user', async () => {
+          await userAccountsTestManager.updatePlainUserProfile(
+            superUserAccessToken,
+            999999,
+            { phoneNumber: '+375291111111' },
+            HttpStatus.FORBIDDEN,
+          );
+        });
+      });
     });
 
     describe('User-Agent and deviceName', () => {

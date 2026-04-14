@@ -31,25 +31,31 @@ export class SeatingTablesTestManager {
     dto: CreateSeatingTableInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .post(`/${GLOBAL_PREFIX}/seating-arrangements/tables`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
   async getAllTables(
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .get(`/${GLOBAL_PREFIX}/seating-arrangements/tables`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -58,13 +64,16 @@ export class SeatingTablesTestManager {
     dto: Partial<UpdateSeatingTableInputDto>,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .put(`/${GLOBAL_PREFIX}/seating-arrangements/tables/${id}`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -72,12 +81,15 @@ export class SeatingTablesTestManager {
     id: string,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .delete(`/${GLOBAL_PREFIX}/seating-arrangements/tables/${id}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -85,25 +97,31 @@ export class SeatingTablesTestManager {
     dto: Partial<UpdateSeatingArrangementInputDto>,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .patch(`/${GLOBAL_PREFIX}/seating-arrangements/arrangement`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
   async autoSeat(
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .post(`/${GLOBAL_PREFIX}/seating-arrangements/arrangement/auto-seat`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 }

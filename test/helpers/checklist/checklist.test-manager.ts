@@ -68,17 +68,16 @@ export class ChecklistTestManager {
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
     locale?: ChecklistLocale,
+    userId?: number,
   ) {
     const req = request(this.httpServer)
       .get(`/${GLOBAL_PREFIX}/checklist`)
       .set('Authorization', `Bearer ${accessToken}`);
 
-    if (locale) {
-      req.query({ locale });
-    }
+    if (locale) req.query({ locale });
+    if (userId !== undefined) req.query({ userId });
 
     const response = await req.expect(expectedStatus);
-
     return response.body;
   }
 
@@ -86,17 +85,16 @@ export class ChecklistTestManager {
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
     locale?: ChecklistLocale,
+    userId?: number,
   ) {
     const req = request(this.httpServer)
       .post(`/${GLOBAL_PREFIX}/checklist/reset`)
       .set('Authorization', `Bearer ${accessToken}`);
 
-    if (locale) {
-      req.query({ locale });
-    }
+    if (locale) req.query({ locale });
+    if (userId !== undefined) req.query({ userId });
 
     const response = await req.expect(expectedStatus);
-
     return response.body;
   }
 
@@ -104,13 +102,16 @@ export class ChecklistTestManager {
     dto: CreatePhaseInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .post(`/${GLOBAL_PREFIX}/checklist/phases`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -119,13 +120,16 @@ export class ChecklistTestManager {
     dto: UpdatePhaseInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .patch(`/${GLOBAL_PREFIX}/checklist/phases/${phaseId}`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -133,12 +137,15 @@ export class ChecklistTestManager {
     phaseId: string,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .delete(`/${GLOBAL_PREFIX}/checklist/phases/${phaseId}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -147,13 +154,16 @@ export class ChecklistTestManager {
     dto: CreateChecklistPhaseItemInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .post(`/${GLOBAL_PREFIX}/checklist/phases/${phaseId}/items`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -163,13 +173,16 @@ export class ChecklistTestManager {
     dto: UpdateChecklistPhaseItemInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .patch(`/${GLOBAL_PREFIX}/checklist/phases/${phaseId}/items/${itemId}`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -178,14 +191,15 @@ export class ChecklistTestManager {
     itemId: string,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.OK,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
-      .patch(
-        `/${GLOBAL_PREFIX}/checklist/phases/${phaseId}/items/${itemId}/toggle`,
-      )
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+    const req = request(this.httpServer)
+      .patch(`/${GLOBAL_PREFIX}/checklist/phases/${phaseId}/items/${itemId}/toggle`)
+      .set('Authorization', `Bearer ${accessToken}`);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -194,12 +208,15 @@ export class ChecklistTestManager {
     itemId: string,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .delete(`/${GLOBAL_PREFIX}/checklist/phases/${phaseId}/items/${itemId}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -207,13 +224,16 @@ export class ChecklistTestManager {
     dto: MoveItemInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .patch(`/${GLOBAL_PREFIX}/checklist/items/move`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 }

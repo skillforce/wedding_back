@@ -10,11 +10,11 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
-import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
-import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
+import { UserOwnershipGuard } from '../../user-accounts/guards/ownership/user-ownership.guard';
+import { EffectiveUserId } from '../../user-accounts/guards/ownership/effective-user-id.decorator';
 import { ChecklistQueryRepository } from '../infra/query/checklist.query-repository';
 import { CreateChecklistPhaseItemInputDto } from './input-dto/create-checklist-phase-item-input.dto';
 import { UpdateChecklistPhaseItemInputDto } from './input-dto/update-checklist-phase-item-input.dto';
@@ -29,7 +29,8 @@ import { MoveItemCommand } from '../app/usecases/move-item.usecase';
 
 @ApiTags('Checklist items')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, UserOwnershipGuard)
+@ApiQuery({ name: 'userId', required: false, type: Number })
 @Controller('checklist')
 export class ChecklistItemsController {
   constructor(
@@ -42,10 +43,10 @@ export class ChecklistItemsController {
   async createItem(
     @Param('phaseId', new ParseUUIDPipe()) phaseId: string,
     @Body() dto: CreateChecklistPhaseItemInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<ChecklistItemViewDto> {
     const itemId = await this.commandBus.execute<CreateItemCommand, string>(
-      new CreateItemCommand(phaseId, dto, user.id),
+      new CreateItemCommand(phaseId, dto, userId),
     );
     return this.checklistQueryRepository.findItemViewByIdOrFail(itemId);
   }
@@ -55,10 +56,10 @@ export class ChecklistItemsController {
     @Param('phaseId', new ParseUUIDPipe()) phaseId: string,
     @Param('itemId', new ParseUUIDPipe()) itemId: string,
     @Body() dto: UpdateChecklistPhaseItemInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<ChecklistItemViewDto> {
     await this.commandBus.execute<UpdateItemCommand, void>(
-      new UpdateItemCommand(phaseId, itemId, dto, user.id),
+      new UpdateItemCommand(phaseId, itemId, dto, userId),
     );
     return this.checklistQueryRepository.findItemViewByIdOrFail(itemId);
   }
@@ -67,14 +68,12 @@ export class ChecklistItemsController {
   async toggleItemCompletion(
     @Param('phaseId', new ParseUUIDPipe()) phaseId: string,
     @Param('itemId', new ParseUUIDPipe()) itemId: string,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<ChecklistItemCompletionViewDto> {
     await this.commandBus.execute<ToggleItemCompletionCommand, void>(
-      new ToggleItemCompletionCommand(phaseId, itemId, user.id),
+      new ToggleItemCompletionCommand(phaseId, itemId, userId),
     );
-    return this.checklistQueryRepository.findItemCompletionViewByIdOrFail(
-      itemId,
-    );
+    return this.checklistQueryRepository.findItemCompletionViewByIdOrFail(itemId);
   }
 
   @Delete('phases/:phaseId/items/:itemId')
@@ -82,10 +81,10 @@ export class ChecklistItemsController {
   async deleteItem(
     @Param('phaseId', new ParseUUIDPipe()) phaseId: string,
     @Param('itemId', new ParseUUIDPipe()) itemId: string,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<void> {
     await this.commandBus.execute<DeleteItemCommand, void>(
-      new DeleteItemCommand(phaseId, itemId, user.id),
+      new DeleteItemCommand(phaseId, itemId, userId),
     );
   }
 
@@ -93,10 +92,10 @@ export class ChecklistItemsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async moveItem(
     @Body() dto: MoveItemInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<void> {
     await this.commandBus.execute<MoveItemCommand, void>(
-      new MoveItemCommand(dto, user.id),
+      new MoveItemCommand(dto, userId),
     );
   }
 }

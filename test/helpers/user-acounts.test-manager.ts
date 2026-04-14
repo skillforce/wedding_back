@@ -4,6 +4,7 @@ import { App } from 'supertest/types';
 import { CreateUserInputDto } from '../../src/modules/user-accounts/api/input-dto/create-user-input-dto';
 import { LoginInputDto } from '../../src/modules/user-accounts/api/input-dto/auth-input-dto';
 import { CreatePlainUserInputDto } from '../../src/modules/user-accounts/api/input-dto/create-plain-user.input-dto';
+import { UpdateProfileInputDto } from '../../src/modules/user-accounts/api/input-dto/update-profile.input-dto';
 
 type BasicAuthCredentials = {
   username: string;
@@ -230,6 +231,21 @@ export class UserAccountsTestManager {
       refreshTokenCookie: refreshTokenCookie!,
       deviceId: loginBody.deviceId as string,
     };
+  }
+
+  async updatePlainUserProfile(
+    accessToken: string,
+    userId: number,
+    dto: UpdateProfileInputDto,
+    expectedStatus: HttpStatus = HttpStatus.OK,
+  ) {
+    const response = await request(this.httpServer)
+      .patch(`/api/users/${userId}/profile`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send(dto)
+      .expect(expectedStatus);
+
+    return response.body;
   }
 
   extractTokenFromEmailHtml(html: string): string {

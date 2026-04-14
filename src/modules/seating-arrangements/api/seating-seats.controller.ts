@@ -12,14 +12,15 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../user-accounts/guards/bearer/jwt-auth.guard';
-import { ExtractUserFromRequest } from '../../user-accounts/guards/extract-user-from-request.decorator';
-import { UserContextDto } from '../../user-accounts/guards/dto/user-context.dto';
+import { UserOwnershipGuard } from '../../user-accounts/guards/ownership/user-ownership.guard';
+import { EffectiveUserId } from '../../user-accounts/guards/ownership/effective-user-id.decorator';
 import { SeatingSeatsQueryRepository } from '../infra/query/seating-seats.query-repository';
 import { SeatingSeatViewDto } from './view-dto/seating-seat.view-dto';
 import { CreateSeatingSeatInputDto } from './input-dto/create-seating-seat.input-dto';
@@ -28,7 +29,8 @@ import { DeleteSeatingSeatCommand } from '../app/usecases/delete-seating-seat.us
 
 @ApiTags('Seating Seats')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, UserOwnershipGuard)
+@ApiQuery({ name: 'userId', required: false, type: Number })
 @Throttle({ default: { limit: 20, ttl: 5000 } })
 @Controller('seating-arrangements/tables/:tableId/seats')
 export class SeatingSeatsController {
@@ -39,7 +41,7 @@ export class SeatingSeatsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Add a seat to a table' })
+  @ApiOperation({ summary: "Add a seat to a table. SuperUsers may pass ?userId." })
   @ApiParam({ name: 'tableId', description: 'Table UUID', type: String })
   @ApiResponse({
     status: 201,
@@ -52,34 +54,30 @@ export class SeatingSeatsController {
   async createSeat(
     @Param('tableId') tableId: string,
     @Body() dto: CreateSeatingSeatInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<SeatingSeatViewDto> {
-    const seatId = await this.commandBus.execute<
-      CreateSeatingSeatCommand,
-      string
-    >(new CreateSeatingSeatCommand(tableId, dto, user.id));
+    const seatId = await this.commandBus.execute<CreateSeatingSeatCommand, string>(
+      new CreateSeatingSeatCommand(tableId, dto, userId),
+    );
     return this.queryRepository.findByIdOrFail(seatId);
   }
 
   @Delete(':seatId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove a seat from a table' })
+  @ApiOperation({ summary: "Remove a seat from a table. SuperUsers may pass ?userId." })
   @ApiParam({ name: 'tableId', description: 'Table UUID', type: String })
   @ApiParam({ name: 'seatId', description: 'Seat UUID', type: String })
   @ApiResponse({ status: 204, description: 'Seat deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - seat does not belong to user',
-  })
+  @ApiResponse({ status: 403, description: 'Forbidden - seat does not belong to user' })
   @ApiResponse({ status: 404, description: 'Seat or table not found' })
   async deleteSeat(
     @Param('tableId') tableId: string,
     @Param('seatId') seatId: string,
-    @ExtractUserFromRequest() user: UserContextDto,
+    @EffectiveUserId() userId: number,
   ): Promise<void> {
     return this.commandBus.execute<DeleteSeatingSeatCommand, void>(
-      new DeleteSeatingSeatCommand(seatId, tableId, user.id),
+      new DeleteSeatingSeatCommand(seatId, tableId, userId),
     );
   }
 }

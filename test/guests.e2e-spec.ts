@@ -8,6 +8,7 @@ import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { GuestsTestManager } from './helpers/guests.test-manager';
 import { getOptionsToken } from '@nestjs/throttler';
 import { GuestDetailViewDto } from '../src/modules/guests/api/view-dto/guest-detail.view-dto';
+import { UserRole } from '../src/modules/user-accounts/domain/entities/user-role.enum';
 
 describe('GuestsController & GuestResponsesController (e2e)', () => {
   let app: INestApplication;
@@ -612,6 +613,88 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       )[0];
 
       expect(created.guestForm?.ifWithCouple).toEqual({ response: false });
+    });
+
+    describe('superUser ownership (?userId)', () => {
+      let superUserToken: string;
+      let superUserId: number;
+      let plainUserId: number;
+
+      beforeEach(async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({ role: UserRole.SUPER_USER });
+        const superUser = await userAccountsTestManager.createUser(superUserDto);
+        const { body } = await userAccountsTestManager.login(superUserDto);
+        superUserToken = body.accessToken;
+        superUserId = superUser.id;
+
+        const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
+        const plainUser = await userAccountsTestManager.createActivatedPlainUser(superUserId, plainUserDto);
+        plainUserId = plainUser.id;
+      });
+
+      it('should allow superUser to list plain user guests via ?userId', async () => {
+        const dto = guestsTestManager.buildCreateGuestDto(plainUserId);
+        await guestsTestManager.createGuest(dto, superUserToken, HttpStatus.CREATED, plainUserId);
+
+        const list = await guestsTestManager.getAllGuests(superUserToken, HttpStatus.OK, plainUserId);
+        expect(list).toHaveLength(1);
+        expect(list[0].name).toBe(dto.guest_name);
+      });
+
+      it('should allow superUser to create a guest for plain user via ?userId', async () => {
+        const dto = guestsTestManager.buildCreateGuestDto(plainUserId);
+        const [created] = await guestsTestManager.createGuest(dto, superUserToken, HttpStatus.CREATED, plainUserId);
+
+        expect(created.name).toBe(dto.guest_name);
+
+        const list = await guestsTestManager.getAllGuests(superUserToken, HttpStatus.OK, plainUserId);
+        expect(list).toHaveLength(1);
+      });
+
+      it('should allow superUser to update a plain user guest form via ?userId', async () => {
+        const dto = guestsTestManager.buildCreateGuestDto(plainUserId);
+        const [guest] = await guestsTestManager.createGuest(dto, superUserToken, HttpStatus.CREATED, plainUserId);
+
+        const guestForm = guestsTestManager.buildGuestFormDto({ age_group: 'old' });
+        const [updated] = await guestsTestManager.updateGuestForm(
+          guest.id,
+          guestForm,
+          superUserToken,
+          HttpStatus.OK,
+          plainUserId,
+        );
+
+        expect(updated.guestForm).toEqual(expect.objectContaining({ age_group: 'old' }));
+      });
+
+      it('should allow superUser to delete a plain user guest via ?userId', async () => {
+        const dto = guestsTestManager.buildCreateGuestDto(plainUserId);
+        const [guest] = await guestsTestManager.createGuest(dto, superUserToken, HttpStatus.CREATED, plainUserId);
+
+        await guestsTestManager.deleteGuestById(guest.id, superUserToken, HttpStatus.NO_CONTENT, plainUserId);
+
+        const list = await guestsTestManager.getAllGuests(superUserToken, HttpStatus.OK, plainUserId);
+        expect(list).toHaveLength(0);
+      });
+
+      it('should return 403 when a non-creator superUser accesses the plain user data', async () => {
+        const otherSuperUserDto = userAccountsTestManager.buildCreateUserDto({ role: UserRole.SUPER_USER });
+        await userAccountsTestManager.createUser(otherSuperUserDto);
+        const { body: otherBody } = await userAccountsTestManager.login(otherSuperUserDto);
+
+        await guestsTestManager.getAllGuests(otherBody.accessToken, HttpStatus.FORBIDDEN, plainUserId);
+      });
+
+      it('should return 403 when a plain user passes ?userId', async () => {
+        const plainUserDto2 = userAccountsTestManager.buildCreatePlainUserDto();
+        const plainUser2 = await userAccountsTestManager.createActivatedPlainUser(superUserId, plainUserDto2);
+        const { body: plainBody } = await userAccountsTestManager.login({
+          login: plainUserDto2.login,
+          password: plainUserDto2.password,
+        });
+
+        await guestsTestManager.getAllGuests(plainBody.accessToken, HttpStatus.FORBIDDEN, plainUserId);
+      });
     });
 
     it('should return 400 for invalid enum value in update', async () => {

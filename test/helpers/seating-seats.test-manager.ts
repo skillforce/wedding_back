@@ -20,13 +20,16 @@ export class SeatingSeatsTestManager {
     dto: CreateSeatingSeatInputDto,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .post(`/${GLOBAL_PREFIX}/seating-arrangements/tables/${tableId}/seats`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(dto)
-      .expect(expectedStatus);
+      .send(dto);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 
@@ -35,12 +38,15 @@ export class SeatingSeatsTestManager {
     seatId: string,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+    userId?: number,
   ) {
-    const response = await request(this.httpServer)
+    const req = request(this.httpServer)
       .delete(`/${GLOBAL_PREFIX}/seating-arrangements/tables/${tableId}/seats/${seatId}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(expectedStatus);
+      .set('Authorization', `Bearer ${accessToken}`);
 
+    if (userId !== undefined) req.query({ userId });
+
+    const response = await req.expect(expectedStatus);
     return response.body;
   }
 }
