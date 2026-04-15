@@ -5,10 +5,12 @@ import { SendEmailConfirmationCommand } from './send-email-confirmation.usecase'
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { UserStatus } from '../../domain/entities/user-status.enum';
+import { Locale } from '../../../email/templates/confirmation-email.template';
 
 export class ResendConfirmationCommand {
   constructor(
     public readonly targetUserId: number,
+    public readonly locale: Locale = 'en',
   ) {}
 }
 
@@ -22,7 +24,7 @@ export class ResendConfirmationUseCase
     private readonly commandBus: CommandBus,
   ) {}
 
-  async execute({ targetUserId }: ResendConfirmationCommand): Promise<void> {
+  async execute({ targetUserId, locale }: ResendConfirmationCommand): Promise<void> {
     const user = await this.usersRepository.findUserById(targetUserId);
     const existing = user
       ? await this.emailConfirmationRepository.findPendingByUserId(targetUserId)
@@ -37,7 +39,7 @@ export class ResendConfirmationUseCase
     }
 
     await this.commandBus.execute(
-      new SendEmailConfirmationCommand(targetUserId, existing.email),
+      new SendEmailConfirmationCommand(targetUserId, existing.email, locale),
     );
   }
 }

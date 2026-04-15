@@ -204,7 +204,8 @@ describe('AuthController (e2e)', () => {
       role: UserRole.SUPER_USER,
     });
     const superUser = await userAccountsTestManager.createUser(superUserDto);
-    const { body: superUserBody } = await userAccountsTestManager.login(superUserDto);
+    const { body: superUserBody } =
+      await userAccountsTestManager.login(superUserDto);
 
     const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
     const plainUser = await userAccountsTestManager.createActivatedPlainUser(
@@ -212,7 +213,10 @@ describe('AuthController (e2e)', () => {
       plainUserDto,
     );
 
-    await userAccountsTestManager.deleteUserById(plainUser.id, superUserBody.accessToken);
+    await userAccountsTestManager.deleteUserById(
+      plainUser.id,
+      superUserBody.accessToken,
+    );
 
     await userAccountsTestManager.login(
       { login: plainUserDto.login, password: plainUserDto.password },
@@ -220,7 +224,7 @@ describe('AuthController (e2e)', () => {
     );
   });
 
-  it('login response should include deviceId', async () => {
+  it('login response should includ    <UserManagementCreateDialog v-model:visible="createDialogVisible" />e deviceId', async () => {
     const credentials = userAccountsTestManager.buildCreateUserDto();
     await userAccountsTestManager.createUser(credentials);
 
@@ -516,7 +520,7 @@ describe('AuthController (e2e)', () => {
         expect(mockResendAdapter.send).toHaveBeenCalledWith(
           expect.objectContaining({
             to: dto.email,
-            subject: 'Confirm your account',
+            subject: 'Confirm your email',
           }),
         );
       });
@@ -618,19 +622,108 @@ describe('AuthController (e2e)', () => {
         );
       });
 
+      it('should send confirmation email in Russian when locale=ru', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto({
+          locale: 'ru',
+        });
+
+        await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+        await new Promise((r) => setImmediate(r));
+
+        expect(mockResendAdapter.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            to: dto.email,
+            subject: 'Подтвердите вашу почту',
+          }),
+        );
+      });
+
+      it('should send confirmation email in English by default when no locale provided', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+
+        await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+        await new Promise((r) => setImmediate(r));
+
+        expect(mockResendAdapter.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            to: dto.email,
+            subject: 'Confirm your email',
+          }),
+        );
+      });
+
+      it('should resend confirmation email with default locale', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        const plainUser = await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.resendConfirmation(
+          superUserAccessToken,
+          plainUser.id,
+        );
+        await new Promise((r) => setImmediate(r));
+
+        expect(mockResendAdapter.send).toHaveBeenCalledTimes(1);
+        expect(mockResendAdapter.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            to: dto.email,
+            subject: 'Confirm your email',
+          }),
+        );
+      });
+
+      it('should resend confirmation email in Russian when locale=ru query param is passed', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        const plainUser = await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.resendConfirmation(
+          superUserAccessToken,
+          plainUser.id,
+          'ru',
+        );
+        await new Promise((r) => setImmediate(r));
+
+        expect(mockResendAdapter.send).toHaveBeenCalledTimes(1);
+        expect(mockResendAdapter.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            to: dto.email,
+            subject: 'Подтвердите вашу почту',
+          }),
+        );
+      });
+
       describe('super user manages plain user profile', () => {
         it('should allow super user to update profile of their plain user', async () => {
           const superUserDto = userAccountsTestManager.buildCreateUserDto({
             role: UserRole.SUPER_USER,
           });
-          const superUser = await userAccountsTestManager.createUser(superUserDto);
-          const { body: superUserBody } = await userAccountsTestManager.login(superUserDto);
+          const superUser =
+            await userAccountsTestManager.createUser(superUserDto);
+          const { body: superUserBody } =
+            await userAccountsTestManager.login(superUserDto);
 
-          const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
-          const plainUser = await userAccountsTestManager.createActivatedPlainUser(
-            superUser.id,
-            plainUserDto,
-          );
+          const plainUserDto =
+            userAccountsTestManager.buildCreatePlainUserDto();
+          const plainUser =
+            await userAccountsTestManager.createActivatedPlainUser(
+              superUser.id,
+              plainUserDto,
+            );
 
           const profileUpdate = {
             invitationUrl: 'https://example.com/invite/abc123',
@@ -639,11 +732,12 @@ describe('AuthController (e2e)', () => {
             email: plainUserDto.email,
           };
 
-          const updatedProfile = await userAccountsTestManager.updatePlainUserProfile(
-            superUserBody.accessToken,
-            plainUser.id,
-            profileUpdate,
-          );
+          const updatedProfile =
+            await userAccountsTestManager.updatePlainUserProfile(
+              superUserBody.accessToken,
+              plainUser.id,
+              profileUpdate,
+            );
 
           expect(updatedProfile).toEqual(
             expect.objectContaining({
@@ -658,23 +752,27 @@ describe('AuthController (e2e)', () => {
           );
         });
 
-        it('should return 403 when super user tries to update profile of another super user\'s plain user', async () => {
+        it("should return 403 when super user tries to update profile of another super user's plain user", async () => {
           const superUser1Dto = userAccountsTestManager.buildCreateUserDto({
             role: UserRole.SUPER_USER,
           });
-          const superUser1 = await userAccountsTestManager.createUser(superUser1Dto);
+          const superUser1 =
+            await userAccountsTestManager.createUser(superUser1Dto);
 
           const superUser2Dto = userAccountsTestManager.buildCreateUserDto({
             role: UserRole.SUPER_USER,
           });
           await userAccountsTestManager.createUser(superUser2Dto);
-          const { body: superUser2Body } = await userAccountsTestManager.login(superUser2Dto);
+          const { body: superUser2Body } =
+            await userAccountsTestManager.login(superUser2Dto);
 
-          const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
-          const plainUser = await userAccountsTestManager.createActivatedPlainUser(
-            superUser1.id,
-            plainUserDto,
-          );
+          const plainUserDto =
+            userAccountsTestManager.buildCreatePlainUserDto();
+          const plainUser =
+            await userAccountsTestManager.createActivatedPlainUser(
+              superUser1.id,
+              plainUserDto,
+            );
 
           await userAccountsTestManager.updatePlainUserProfile(
             superUser2Body.accessToken,

@@ -2,13 +2,18 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { EmailConfirmationRepository } from '../../infra/email-confirmation.repository';
 import { ResendAdapter } from '../../../email/resend.adapter';
-import { confirmationEmailTemplate } from '../../../email/templates/confirmation-email.template';
+import {
+  confirmationEmailTemplate,
+  getConfirmationEmailSubject,
+  Locale,
+} from '../../../email/templates/confirmation-email.template';
 import { UserAccountsConfig } from '../../config/user-accounts.config';
 
 export class SendEmailConfirmationCommand {
   constructor(
     public readonly userId: number,
     public readonly email: string,
+    public readonly locale: Locale = 'en',
   ) {}
 }
 
@@ -26,6 +31,7 @@ export class SendEmailConfirmationUseCase implements ICommandHandler<
   async execute({
     userId,
     email,
+    locale,
   }: SendEmailConfirmationCommand): Promise<void> {
     await this.emailConfirmationRepository.invalidateAllForUser(userId);
 
@@ -40,19 +46,20 @@ export class SendEmailConfirmationUseCase implements ICommandHandler<
       confirmedAt: null,
     });
 
-    void this.sendConfirmationEmail(email, token);
+    void this.sendConfirmationEmail(email, token, locale);
   }
 
   private async sendConfirmationEmail(
     email: string,
     token: string,
+    locale: Locale,
   ): Promise<void> {
     const feUrl = this.userAccountsConfig.feUrl;
     const confirmUrl = `${feUrl}/confirm?token=${token}`;
     await this.resendAdapter.send({
       to: email,
-      subject: 'Confirm your account',
-      html: confirmationEmailTemplate(confirmUrl),
+      subject: getConfirmationEmailSubject(locale),
+      html: confirmationEmailTemplate(confirmUrl, locale),
     });
   }
 }

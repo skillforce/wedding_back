@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -44,6 +45,7 @@ import { UpdateProfileCommand } from '../application/usecases/update-profile.use
 import { UploadProfileImageCommand } from '../application/usecases/upload-profile-image.usecase';
 import { ProfileViewDto } from './view-dto/profile.view-dto';
 import { ResendConfirmationCommand } from '../application/usecases/resend-confirmation.usecase';
+import { Locale } from '../../email/templates/confirmation-email.template';
 
 @ApiTags('Users')
 @Controller('users')
@@ -163,11 +165,12 @@ export class UserController {
   async resendConfirmation(
     @ExtractUserFromRequest() user: UserContextDto,
     @Param() { id }: IdNumberParamDto,
+    @Query('locale') locale?: Locale,
   ): Promise<void> {
     await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
       new ValidateUserOwnershipCommand(user.id, user.role, id),
     );
-    await this.commandBus.execute(new ResendConfirmationCommand(id));
+    await this.commandBus.execute(new ResendConfirmationCommand(id, locale));
   }
 
   @Patch('profile')

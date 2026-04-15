@@ -38,6 +38,7 @@ export class UserAccountsTestManager {
       login: overrides.login ?? this.generateUniqueLogin(),
       password: overrides.password ?? 'pass123',
       email: overrides.email ?? this.generateUniqueEmail(),
+      ...(overrides.locale !== undefined && { locale: overrides.locale }),
     };
   }
 
@@ -81,6 +82,21 @@ export class UserAccountsTestManager {
     const response = await request(this.httpServer)
       .post('/api/testing/users/plain')
       .send({ ...dto, creatorUserId })
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
+  async resendConfirmation(
+    accessToken: string,
+    userId: number,
+    locale?: string,
+    expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+  ) {
+    const url = `/api/users/${userId}/resend-confirmation${locale ? `?locale=${locale}` : ''}`;
+    const response = await request(this.httpServer)
+      .post(url)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(expectedStatus);
 
     return response.body;
