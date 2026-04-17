@@ -42,7 +42,6 @@ export class UpdateProfileUseCase implements ICommandHandler<
       fields.invitationUrl = dto.invitationUrl;
     if (dto.weddingDate !== undefined)
       fields.weddingDate = new Date(dto.weddingDate);
-    if (dto.phoneNumber !== undefined) fields.phoneNumber = dto.phoneNumber;
     if (dto.email !== undefined) fields.email = dto.email;
 
     const [, user] = await Promise.all([

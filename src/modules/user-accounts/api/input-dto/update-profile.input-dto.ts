@@ -14,11 +14,6 @@ export class UpdateProfileInputDto {
   @IsDateString()
   weddingDate?: string;
 
-  @ApiPropertyOptional({ example: '+375291234567' })
-  @IsOptional()
-  @IsString()
-  phoneNumber?: string;
-
   @ApiPropertyOptional({ example: 'user@example.com' })
   @IsOptional()
   @Matches(EMAIL_REGEX, { message: 'email must be a valid email address' })

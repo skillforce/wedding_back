@@ -15,9 +15,6 @@ export class ProfileViewDto {
   weddingDate: Date | null;
 
   @ApiProperty({ nullable: true })
-  phoneNumber: string | null;
-
-  @ApiProperty({ nullable: true })
   email: string | null;
 
   @ApiProperty()
@@ -34,7 +31,6 @@ export class ProfileViewDto {
     dto.invitationUrl = profile.invitationUrl;
     dto.profileImg = profile.profileImg;
     dto.weddingDate = profile.weddingDate;
-    dto.phoneNumber = profile.phoneNumber;
     dto.email = profile.email;
     dto.isSuperUser = user.role === UserRole.SUPER_USER;
     dto.isCreatedBySuperUser = user.createdByUserId !== null;

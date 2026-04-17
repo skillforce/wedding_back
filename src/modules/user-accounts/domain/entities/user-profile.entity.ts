@@ -14,9 +14,6 @@ export class UserProfile extends UuidEntity {
   weddingDate: Date;
 
   @Column({ nullable: true })
-  phoneNumber: string;
-
-  @Column({ nullable: true })
   email: string;
 
   @Column({ default: 0 })

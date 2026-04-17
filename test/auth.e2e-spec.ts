@@ -88,7 +88,6 @@ describe('AuthController (e2e)', () => {
         isConfirmed: true,
         profileImg: null,
         weddingDate: null,
-        phoneNumber: null,
         email: null,
       },
     });
@@ -112,7 +111,6 @@ describe('AuthController (e2e)', () => {
         isSuperUser: false,
         isConfirmed: true,
         weddingDate: null,
-        phoneNumber: null,
         email: null,
       },
     });
@@ -728,7 +726,6 @@ describe('AuthController (e2e)', () => {
           const profileUpdate = {
             invitationUrl: 'https://example.com/invite/abc123',
             weddingDate: '2026-09-01',
-            phoneNumber: '+375291234567',
             email: plainUserDto.email,
           };
 
@@ -743,7 +740,6 @@ describe('AuthController (e2e)', () => {
             expect.objectContaining({
               invitationUrl: profileUpdate.invitationUrl,
               weddingDate: expect.any(String),
-              phoneNumber: profileUpdate.phoneNumber,
               email: profileUpdate.email,
               isCreatedBySuperUser: true,
               isSuperUser: false,
@@ -777,7 +773,7 @@ describe('AuthController (e2e)', () => {
           await userAccountsTestManager.updatePlainUserProfile(
             superUser2Body.accessToken,
             plainUser.id,
-            { phoneNumber: '+375291111111' },
+            { invitationUrl: 'https://example.com' },
             HttpStatus.FORBIDDEN,
           );
         });
@@ -786,7 +782,7 @@ describe('AuthController (e2e)', () => {
           await userAccountsTestManager.updatePlainUserProfile(
             superUserAccessToken,
             999999,
-            { phoneNumber: '+375291111111' },
+            { invitationUrl: 'https://example.com' },
             HttpStatus.FORBIDDEN,
           );
         });

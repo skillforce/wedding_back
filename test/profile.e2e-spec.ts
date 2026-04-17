@@ -71,7 +71,6 @@ describe('Profile (e2e)', () => {
     isCreatedBySuperUser: false,
     isSuperUser: false,
     isConfirmed: true,
-    phoneNumber: null,
     email: null,
   };
 
@@ -88,13 +87,11 @@ describe('Profile (e2e)', () => {
 
     const updated = await profileTestManager.updateProfile(accessToken, {
       invitationUrl: 'https://example.com/invite/abc',
-      phoneNumber: '+375291234567',
     });
 
     expect(updated).toEqual({
       ...defaultProfile,
       invitationUrl: 'https://example.com/invite/abc',
-      phoneNumber: '+375291234567',
     });
   });
 

@@ -26,7 +26,6 @@ export class UserProfilesRepository {
         | 'invitationUrl'
         | 'profileImg'
         | 'weddingDate'
-        | 'phoneNumber'
         | 'email'
         | 'dailyImageUploadCount'
         | 'imageUploadResetDate'
