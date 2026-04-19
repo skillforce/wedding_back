@@ -12,6 +12,7 @@ import { BudgetTestManager } from './budget/budget.test-manager';
 import { BudgetSectionsTestManager } from './budget/budget-sections.test-manager';
 import { BudgetItemsTestManager } from './budget/budget-items.test-manager';
 import { ChecklistTestManager } from './checklist/checklist.test-manager';
+import { ScenarioTestManager } from './scenario/scenario.test-manager';
 import { CurrencyRateTestManager } from './currency-rate.test-manager';
 import { ProfileTestManager } from './profile.test-manager';
 import { CurrencyRateQueryRepository } from '../../src/modules/currency/infra/query/currency-rate.query-repository';
@@ -68,6 +69,7 @@ export const initTesting = async (
   const budgetSectionsTestManager = new BudgetSectionsTestManager(app);
   const budgetItemsTestManager = new BudgetItemsTestManager(app);
   const checklistTestManager = new ChecklistTestManager(app);
+  const scenarioTestManager = new ScenarioTestManager(app);
   const currencyRateTestManager = new CurrencyRateTestManager(app);
   const profileTestManager = new ProfileTestManager(app);
 
@@ -85,6 +87,7 @@ export const initTesting = async (
     budgetSectionsTestManager,
     budgetItemsTestManager,
     checklistTestManager,
+    scenarioTestManager,
     currencyRateTestManager,
     profileTestManager,
   };

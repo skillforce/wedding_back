@@ -12,6 +12,7 @@ import { CreateDefaultSeatingArrangementCommand } from '../../../seating-arrange
 import { CreateDefaultBudgetCommand } from '../../../budget/app/usecases/create-default-budget.usecase';
 import { CreateDefaultChecklistCommand } from '../../../checklist/app/usecases/create-default-checklist.usecase';
 import { CreateDefaultProfileCommand } from './create-default-profile.usecase';
+import { CreateDefaultScenarioCommand } from '../../../scenario/app/usecases/create-default-scenario.usecase';
 
 export class CreatePlainUserCommand {
   constructor(
@@ -47,6 +48,7 @@ export class CreatePlainUserUseCase
     await this.commandBus.execute(new CreateDefaultSeatingArrangementCommand(userId));
     await this.commandBus.execute(new CreateDefaultBudgetCommand(userId));
     await this.commandBus.execute(new CreateDefaultChecklistCommand(userId));
+    await this.commandBus.execute(new CreateDefaultScenarioCommand(userId));
     await this.commandBus.execute(new CreateDefaultProfileCommand(userId, dto.email));
 
     await this.commandBus.execute(new SendEmailConfirmationCommand(userId, dto.email, dto.locale));

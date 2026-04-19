@@ -16,6 +16,7 @@ import { TestingModule } from './modules/testing/testing.module';
 import { UserAccountsModule } from './modules/user-accounts/user-accounts.module';
 import { BudgetModule } from './modules/budget/budget.module';
 import { ChecklistModule } from './modules/checklist/checklist.module';
+import { ScenarioModule } from './modules/scenario/scenario.module';
 import { CurrencyModule } from './modules/currency/currency.module';
 import { EmailModule } from './modules/email/email.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -63,6 +64,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     UserAccountsModule,
     BudgetModule,
     ChecklistModule,
+    ScenarioModule,
     CurrencyModule,
     EmailModule,
   ],
