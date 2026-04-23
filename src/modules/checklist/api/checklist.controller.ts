@@ -35,9 +35,11 @@ export class ChecklistController {
     @Query('locale') locale?: ChecklistLocale,
   ): Promise<ChecklistViewDto> {
     await this.commandBus.execute(
-      new CreateDefaultChecklistCommand(userId, locale),
+      new CreateDefaultChecklistCommand(userId, locale ?? 'ru'),
     );
-    return this.checklistQueryRepository.findFullChecklistByUserIdOrFail(userId);
+    return this.checklistQueryRepository.findFullChecklistByUserIdOrFail(
+      userId,
+    );
   }
 
   @Post('reset')
@@ -47,6 +49,8 @@ export class ChecklistController {
     @Query('locale') locale?: ChecklistLocale,
   ): Promise<ChecklistViewDto> {
     await this.commandBus.execute(new ResetChecklistCommand(userId, locale));
-    return this.checklistQueryRepository.findFullChecklistByUserIdOrFail(userId);
+    return this.checklistQueryRepository.findFullChecklistByUserIdOrFail(
+      userId,
+    );
   }
 }

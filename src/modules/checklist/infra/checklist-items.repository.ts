@@ -115,7 +115,9 @@ export class ChecklistItemsRepository {
 
   async saveManyWithManager(
     manager: EntityManager,
-    items: ChecklistItem[],
+    items: Array<
+      Omit<ChecklistItem, 'id' | 'phase' | 'createdAt' | 'updatedAt'>
+    >,
   ): Promise<ChecklistItem[]> {
     return manager.getRepository(ChecklistItem).save(items);
   }

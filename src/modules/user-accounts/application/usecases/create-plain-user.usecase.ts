@@ -10,7 +10,7 @@ import { SendEmailConfirmationCommand } from './send-email-confirmation.usecase'
 import { EmailConfirmationRepository } from '../../infra/email-confirmation.repository';
 import { CreateDefaultSeatingArrangementCommand } from '../../../seating-arrangements/app/usecases/create-default-seating-arrangement.usecase';
 import { CreateDefaultBudgetCommand } from '../../../budget/app/usecases/create-default-budget.usecase';
-import { CreateDefaultChecklistCommand } from '../../../checklist/app/usecases/create-default-checklist.usecase';
+import { CreateChecklistCommand } from '../../../checklist/app/usecases/create-checklist.usecase';
 import { CreateDefaultProfileCommand } from './create-default-profile.usecase';
 import { CreateDefaultScenarioCommand } from '../../../scenario/app/usecases/create-default-scenario.usecase';
 
@@ -22,9 +22,10 @@ export class CreatePlainUserCommand {
 }
 
 @CommandHandler(CreatePlainUserCommand)
-export class CreatePlainUserUseCase
-  implements ICommandHandler<CreatePlainUserCommand, number>
-{
+export class CreatePlainUserUseCase implements ICommandHandler<
+  CreatePlainUserCommand,
+  number
+> {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly emailConfirmationRepository: EmailConfirmationRepository,
@@ -32,7 +33,10 @@ export class CreatePlainUserUseCase
     private readonly commandBus: CommandBus,
   ) {}
 
-  async execute({ dto, creatorUserId }: CreatePlainUserCommand): Promise<number> {
+  async execute({
+    dto,
+    creatorUserId,
+  }: CreatePlainUserCommand): Promise<number> {
     await this.checkUniqueFields(dto.login, dto.email);
 
     const passwordHash = await this.bcryptService.hashPassword(dto.password);
@@ -45,13 +49,19 @@ export class CreatePlainUserUseCase
       createdByUserId: creatorUserId,
     });
 
-    await this.commandBus.execute(new CreateDefaultSeatingArrangementCommand(userId));
+    await this.commandBus.execute(
+      new CreateDefaultSeatingArrangementCommand(userId),
+    );
     await this.commandBus.execute(new CreateDefaultBudgetCommand(userId));
-    await this.commandBus.execute(new CreateDefaultChecklistCommand(userId));
+    await this.commandBus.execute(new CreateChecklistCommand(userId));
     await this.commandBus.execute(new CreateDefaultScenarioCommand(userId));
-    await this.commandBus.execute(new CreateDefaultProfileCommand(userId, dto.email));
+    await this.commandBus.execute(
+      new CreateDefaultProfileCommand(userId, dto.email),
+    );
 
-    await this.commandBus.execute(new SendEmailConfirmationCommand(userId, dto.email, dto.locale));
+    await this.commandBus.execute(
+      new SendEmailConfirmationCommand(userId, dto.email, dto.locale),
+    );
 
     return userId;
   }
@@ -65,7 +75,12 @@ export class CreatePlainUserUseCase
     if (existingLogin || existingEmail) {
       throw new DomainException({
         code: DomainExceptionCode.BadRequest,
-        extensions: [{ field: 'login or email', message: 'login or email is already in use' }],
+        extensions: [
+          {
+            field: 'login or email',
+            message: 'login or email is already in use',
+          },
+        ],
         message: 'login or email is already in use',
       });
     }

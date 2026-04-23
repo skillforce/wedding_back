@@ -9,7 +9,7 @@ import { User } from '../../domain/entities/user.entity';
 import { UserRole } from '../../domain/entities/user-role.enum';
 import { CreateDefaultSeatingArrangementCommand } from '../../../seating-arrangements/app/usecases/create-default-seating-arrangement.usecase';
 import { CreateDefaultBudgetCommand } from '../../../budget/app/usecases/create-default-budget.usecase';
-import { CreateDefaultChecklistCommand } from '../../../checklist/app/usecases/create-default-checklist.usecase';
+import { CreateChecklistCommand } from '../../../checklist/app/usecases/create-checklist.usecase';
 import { CreateDefaultProfileCommand } from './create-default-profile.usecase';
 import { CreateDefaultScenarioCommand } from '../../../scenario/app/usecases/create-default-scenario.usecase';
 
@@ -40,9 +40,11 @@ export class CreateUserUseCase implements ICommandHandler<
     });
 
     const userId = await this.userRepository.save(newUser);
-    await this.commandBus.execute(new CreateDefaultSeatingArrangementCommand(userId));
+    await this.commandBus.execute(
+      new CreateDefaultSeatingArrangementCommand(userId),
+    );
     await this.commandBus.execute(new CreateDefaultBudgetCommand(userId));
-    await this.commandBus.execute(new CreateDefaultChecklistCommand(userId));
+    await this.commandBus.execute(new CreateChecklistCommand(userId));
     await this.commandBus.execute(new CreateDefaultScenarioCommand(userId));
     await this.commandBus.execute(new CreateDefaultProfileCommand(userId));
     return userId;

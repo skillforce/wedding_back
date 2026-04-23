@@ -9,11 +9,13 @@ import { deleteAllData } from './helpers/delete-all-data';
 import { UserAccountsTestManager } from './helpers/user-acounts.test-manager';
 import { ChecklistTestManager } from './helpers/checklist/checklist.test-manager';
 import { UserRole } from '../src/modules/user-accounts/domain/entities/user-role.enum';
+import { ChecklistQueryRepository } from '../src/modules/checklist/infra/query/checklist.query-repository';
 
 describe('Checklist (e2e)', () => {
   let app: INestApplication;
   let userAccountsTestManager: UserAccountsTestManager;
   let checklistTestManager: ChecklistTestManager;
+  let checklistQueryRepository: ChecklistQueryRepository;
 
   beforeAll(async () => {
     const result = await initTesting((moduleBuilder) =>
@@ -36,6 +38,7 @@ describe('Checklist (e2e)', () => {
     app = result.app;
     userAccountsTestManager = result.userAccountsTestManager;
     checklistTestManager = result.checklistTestManager;
+    checklistQueryRepository = app.get(ChecklistQueryRepository);
   });
 
   beforeEach(async () => {
@@ -49,6 +52,16 @@ describe('Checklist (e2e)', () => {
   });
 
   describe('Checklist root', () => {
+    it('should create an empty checklist during regular user registration', async () => {
+      const { userId } = await userAccountsTestManager.createUserAndLogin();
+
+      const checklist =
+        await checklistQueryRepository.findFullChecklistByUserId(userId);
+
+      expect(checklist).not.toBeNull();
+      expect(checklist?.phases).toEqual([]);
+    });
+
     it('should return a default checklist with ru locale for a new user', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
@@ -77,10 +90,18 @@ describe('Checklist (e2e)', () => {
             timeline: expect.any(String),
             icon: null,
             sortOrder: index,
-            items: [],
+            items: expect.any(Array),
           }),
         );
+        expect(phase.items.length).toBeGreaterThan(0);
       });
+      expect(checklist.phases[0].items.map((item: any) => item.title)).toEqual([
+        'Определить бюджет',
+        'Составить список гостей',
+        'Выбрать дату свадьбы',
+        'Забронировать площадку',
+        'Найти организатора',
+      ]);
     });
 
     it('should return a default checklist with en locale', async () => {
@@ -95,12 +116,75 @@ describe('Checklist (e2e)', () => {
 
       expect(checklist.phases).toHaveLength(5);
       expect(checklist.phases.map((phase: any) => phase.timeline)).toEqual([
-        '12–10 месяцев до свадьбы',
-        '9–7 месяцев до свадьбы',
-        '6–4 месяцев до свадьбы',
-        '3–1 месяцев до свадьбы',
-        'Последние 7 дней',
+        '12–10 months before',
+        '9–7 months before',
+        '6–4 months before',
+        '3–1 months before',
+        'Last 7 days',
       ]);
+      expect(checklist.phases[0].items.map((item: any) => item.title)).toEqual([
+        'Set wedding budget',
+        'Draft guest list',
+        'Choose wedding date',
+        'Book venue',
+        'Hire planner if needed',
+      ]);
+    });
+
+    it('should seed an existing empty checklist for a regular user on first get', async () => {
+      const { accessToken, userId } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      const checklistBeforeGet =
+        await checklistQueryRepository.findFullChecklistByUserId(userId);
+
+      expect(checklistBeforeGet).not.toBeNull();
+      expect(checklistBeforeGet?.phases).toEqual([]);
+
+      const checklist = await checklistTestManager.getChecklist(accessToken);
+
+      expect(checklist.phases).toHaveLength(5);
+
+      const checklistAfterGet =
+        await checklistQueryRepository.findFullChecklistByUserId(userId);
+
+      expect(checklistAfterGet).not.toBeNull();
+      expect(checklistAfterGet?.phases).toHaveLength(5);
+    });
+
+    it('should seed an existing empty checklist for a plain user created by super user', async () => {
+      const superUserDto = userAccountsTestManager.buildCreateUserDto({
+        role: UserRole.SUPER_USER,
+      });
+      const superUser = await userAccountsTestManager.createUser(superUserDto);
+      const { body } = await userAccountsTestManager.login(superUserDto);
+
+      const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
+      const plainUser = await userAccountsTestManager.createActivatedPlainUser(
+        superUser.id,
+        plainUserDto,
+      );
+
+      const checklistBeforeGet =
+        await checklistQueryRepository.findFullChecklistByUserId(plainUser.id);
+
+      expect(checklistBeforeGet).not.toBeNull();
+      expect(checklistBeforeGet?.phases).toEqual([]);
+
+      const checklist = await checklistTestManager.getChecklist(
+        body.accessToken,
+        HttpStatus.OK,
+        undefined,
+        plainUser.id,
+      );
+
+      expect(checklist.phases).toHaveLength(5);
+
+      const checklistAfterGet =
+        await checklistQueryRepository.findFullChecklistByUserId(plainUser.id);
+
+      expect(checklistAfterGet).not.toBeNull();
+      expect(checklistAfterGet?.phases).toHaveLength(5);
     });
 
     it('should return 401 without auth', async () => {
@@ -110,7 +194,7 @@ describe('Checklist (e2e)', () => {
       );
     });
 
-    it('should reset checklist to default phases only', async () => {
+    it('should reset checklist to default phases and items', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
       const checklist = await checklistTestManager.getChecklist(accessToken);
@@ -138,8 +222,14 @@ describe('Checklist (e2e)', () => {
         null,
       ]);
       expect(
-        resetChecklist.phases.every((phase: any) => phase.items.length === 0),
-      ).toBe(true);
+        resetChecklist.phases[0].items.map((item: any) => item.title),
+      ).toEqual([
+        'Определить бюджет',
+        'Составить список гостей',
+        'Выбрать дату свадьбы',
+        'Забронировать площадку',
+        'Найти организатора',
+      ]);
     });
   });
 
@@ -163,7 +253,7 @@ describe('Checklist (e2e)', () => {
           name: 'After party',
           timeline: 'One week before',
           icon: 'flowers',
-          sortOrder: 5,
+          sortOrder: 0,
           items: [],
         }),
       );
@@ -241,10 +331,7 @@ describe('Checklist (e2e)', () => {
       await checklistTestManager.deletePhase(phaseA.id, accessToken);
 
       const checklist = await checklistTestManager.getChecklist(accessToken);
-      expect(checklist.phases).toHaveLength(6);
-      expect(checklist.phases.map((phase: any) => phase.sortOrder)).toEqual([
-        0, 1, 2, 3, 4, 5,
-      ]);
+      expect(checklist.phases).toHaveLength(1);
       expect(checklist.phases.map((phase: any) => phase.name)).not.toContain(
         'Phase A',
       );
@@ -254,7 +341,7 @@ describe('Checklist (e2e)', () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
 
-      for (let index = 0; index < 5; index += 1) {
+      for (let index = 0; index < 10; index += 1) {
         await checklistTestManager.createPhase(
           checklistTestManager.buildCreatePhaseDto({
             name: `Custom ${index + 1}`,
@@ -306,8 +393,11 @@ describe('Checklist (e2e)', () => {
     it('should create an item with defaults', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
-      const checklist = await checklistTestManager.getChecklist(accessToken);
-      const phaseId = checklist.phases[0].id;
+      const phase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Items phase' }),
+        accessToken,
+      );
+      const phaseId = phase.id;
 
       const item = await checklistTestManager.createItem(
         phaseId,
@@ -334,8 +424,11 @@ describe('Checklist (e2e)', () => {
     it('should update an item and clear optional fields with null', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
-      const checklist = await checklistTestManager.getChecklist(accessToken);
-      const phaseId = checklist.phases[0].id;
+      const phase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Items phase' }),
+        accessToken,
+      );
+      const phaseId = phase.id;
       const item = await checklistTestManager.createItem(
         phaseId,
         checklistTestManager.buildCreateItemDto({
@@ -373,8 +466,11 @@ describe('Checklist (e2e)', () => {
     it('should keep previous item fields when they are omitted in patch dto', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
-      const checklist = await checklistTestManager.getChecklist(accessToken);
-      const phaseId = checklist.phases[0].id;
+      const phase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Items phase' }),
+        accessToken,
+      );
+      const phaseId = phase.id;
       const item = await checklistTestManager.createItem(
         phaseId,
         checklistTestManager.buildCreateItemDto({
@@ -429,8 +525,11 @@ describe('Checklist (e2e)', () => {
     it('should toggle item completion', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
-      const checklist = await checklistTestManager.getChecklist(accessToken);
-      const phaseId = checklist.phases[0].id;
+      const phase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Items phase' }),
+        accessToken,
+      );
+      const phaseId = phase.id;
       const item = await checklistTestManager.createItem(
         phaseId,
         checklistTestManager.buildCreateItemDto(),
@@ -449,8 +548,11 @@ describe('Checklist (e2e)', () => {
     it('should delete an item', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
-      const checklist = await checklistTestManager.getChecklist(accessToken);
-      const phaseId = checklist.phases[0].id;
+      const phase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Items phase' }),
+        accessToken,
+      );
+      const phaseId = phase.id;
       const item = await checklistTestManager.createItem(
         phaseId,
         checklistTestManager.buildCreateItemDto(),
@@ -461,14 +563,20 @@ describe('Checklist (e2e)', () => {
 
       const updatedChecklist =
         await checklistTestManager.getChecklist(accessToken);
-      expect(updatedChecklist.phases[0].items).toEqual([]);
+      const updatedPhase = updatedChecklist.phases.find(
+        (existingPhase: any) => existingPhase.id === phaseId,
+      );
+      expect(updatedPhase.items).toEqual([]);
     });
 
     it('should reorder items within the same phase', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
-      const checklist = await checklistTestManager.getChecklist(accessToken);
-      const phaseId = checklist.phases[0].id;
+      const phase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Items phase' }),
+        accessToken,
+      );
+      const phaseId = phase.id;
       const itemA = await checklistTestManager.createItem(
         phaseId,
         checklistTestManager.buildCreateItemDto({ title: 'Item A' }),
@@ -496,20 +604,32 @@ describe('Checklist (e2e)', () => {
 
       const updatedChecklist =
         await checklistTestManager.getChecklist(accessToken);
-      expect(
-        updatedChecklist.phases[0].items.map((item: any) => item.title),
-      ).toEqual(['Item B', 'Item C', 'Item A']);
-      expect(
-        updatedChecklist.phases[0].items.map((item: any) => item.sortOrder),
-      ).toEqual([0, 1, 2]);
+      const updatedPhase = updatedChecklist.phases.find(
+        (existingPhase: any) => existingPhase.id === phaseId,
+      );
+      expect(updatedPhase.items.map((item: any) => item.title)).toEqual([
+        'Item B',
+        'Item C',
+        'Item A',
+      ]);
+      expect(updatedPhase.items.map((item: any) => item.sortOrder)).toEqual([
+        0, 1, 2,
+      ]);
     });
 
     it('should move an item to another phase and keep source empty when it was the last one', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
-      const checklist = await checklistTestManager.getChecklist(accessToken);
-      const sourcePhaseId = checklist.phases[0].id;
-      const targetPhaseId = checklist.phases[1].id;
+      const sourcePhase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Source phase' }),
+        accessToken,
+      );
+      const targetPhase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Target phase' }),
+        accessToken,
+      );
+      const sourcePhaseId = sourcePhase.id;
+      const targetPhaseId = targetPhase.id;
       const movedItem = await checklistTestManager.createItem(
         sourcePhaseId,
         checklistTestManager.buildCreateItemDto({ title: 'Move me' }),
@@ -527,15 +647,15 @@ describe('Checklist (e2e)', () => {
 
       const updatedChecklist =
         await checklistTestManager.getChecklist(accessToken);
-      const sourcePhase = updatedChecklist.phases.find(
+      const updatedSourcePhase = updatedChecklist.phases.find(
         (phase: any) => phase.id === sourcePhaseId,
       );
-      const targetPhase = updatedChecklist.phases.find(
+      const updatedTargetPhase = updatedChecklist.phases.find(
         (phase: any) => phase.id === targetPhaseId,
       );
 
-      expect(sourcePhase.items).toEqual([]);
-      expect(targetPhase.items).toEqual([
+      expect(updatedSourcePhase.items).toEqual([]);
+      expect(updatedTargetPhase.items).toEqual([
         expect.objectContaining({
           id: movedItem.id,
           title: 'Move me',
@@ -547,8 +667,11 @@ describe('Checklist (e2e)', () => {
     it('should reject creating more than 10 items in a phase', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
-      const checklist = await checklistTestManager.getChecklist(accessToken);
-      const phaseId = checklist.phases[0].id;
+      const phase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Items phase' }),
+        accessToken,
+      );
+      const phaseId = phase.id;
 
       for (let index = 0; index < 10; index += 1) {
         await checklistTestManager.createItem(
@@ -578,9 +701,16 @@ describe('Checklist (e2e)', () => {
     it('should reject moving an item into a full target phase', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();
-      const checklist = await checklistTestManager.getChecklist(accessToken);
-      const sourcePhaseId = checklist.phases[0].id;
-      const targetPhaseId = checklist.phases[1].id;
+      const sourcePhase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Source phase' }),
+        accessToken,
+      );
+      const targetPhase = await checklistTestManager.createPhase(
+        checklistTestManager.buildCreatePhaseDto({ name: 'Target phase' }),
+        accessToken,
+      );
+      const sourcePhaseId = sourcePhase.id;
+      const targetPhaseId = targetPhase.id;
       const movedItem = await checklistTestManager.createItem(
         sourcePhaseId,
         checklistTestManager.buildCreateItemDto({ title: 'Move blocked' }),
@@ -621,14 +751,21 @@ describe('Checklist (e2e)', () => {
       let plainUserId: number;
 
       beforeEach(async () => {
-        const superUserDto = userAccountsTestManager.buildCreateUserDto({ role: UserRole.SUPER_USER });
-        const superUser = await userAccountsTestManager.createUser(superUserDto);
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        const superUser =
+          await userAccountsTestManager.createUser(superUserDto);
         const { body } = await userAccountsTestManager.login(superUserDto);
         superUserToken = body.accessToken;
         superUserId = superUser.id;
 
         const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
-        const plainUser = await userAccountsTestManager.createActivatedPlainUser(superUserId, plainUserDto);
+        const plainUser =
+          await userAccountsTestManager.createActivatedPlainUser(
+            superUserId,
+            plainUserDto,
+          );
         plainUserId = plainUser.id;
       });
 
@@ -640,7 +777,12 @@ describe('Checklist (e2e)', () => {
           plainUserId,
         );
 
-        expect(checklist).toEqual(expect.objectContaining({ id: expect.any(String), phases: expect.any(Array) }));
+        expect(checklist).toEqual(
+          expect.objectContaining({
+            id: expect.any(String),
+            phases: expect.any(Array),
+          }),
+        );
         expect(checklist.phases).toHaveLength(5);
       });
 
@@ -658,7 +800,9 @@ describe('Checklist (e2e)', () => {
           plainUserId,
         );
 
-        expect(phase).toEqual(expect.objectContaining({ name: 'SuperUser Phase' }));
+        expect(phase).toEqual(
+          expect.objectContaining({ name: 'SuperUser Phase' }),
+        );
 
         const updated = await checklistTestManager.getChecklist(
           superUserToken,
@@ -686,13 +830,18 @@ describe('Checklist (e2e)', () => {
           plainUserId,
         );
 
-        expect(item).toEqual(expect.objectContaining({ title: 'SuperUser Item' }));
+        expect(item).toEqual(
+          expect.objectContaining({ title: 'SuperUser Item' }),
+        );
       });
 
       it('should return 403 when a non-creator superUser accesses the plain user checklist', async () => {
-        const otherSuperUserDto = userAccountsTestManager.buildCreateUserDto({ role: UserRole.SUPER_USER });
+        const otherSuperUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
         await userAccountsTestManager.createUser(otherSuperUserDto);
-        const { body: otherBody } = await userAccountsTestManager.login(otherSuperUserDto);
+        const { body: otherBody } =
+          await userAccountsTestManager.login(otherSuperUserDto);
 
         await checklistTestManager.getChecklist(
           otherBody.accessToken,
@@ -704,7 +853,10 @@ describe('Checklist (e2e)', () => {
 
       it('should return 403 when a plain user passes ?userId', async () => {
         const plainUserDto2 = userAccountsTestManager.buildCreatePlainUserDto();
-        await userAccountsTestManager.createActivatedPlainUser(superUserId, plainUserDto2);
+        await userAccountsTestManager.createActivatedPlainUser(
+          superUserId,
+          plainUserDto2,
+        );
         const { body: plainBody } = await userAccountsTestManager.login({
           login: plainUserDto2.login,
           password: plainUserDto2.password,

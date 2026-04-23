@@ -2,50 +2,78 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { ChecklistRepository } from '../../infra/checklist.repository';
 import { ChecklistPhasesRepository } from '../../infra/checklist-phases.repository';
-import { buildDefaultChecklistPhases, ChecklistLocale } from './default-checklist-phases';
+import { ChecklistItemsRepository } from '../../infra/checklist-items.repository';
+import {
+  buildDefaultChecklistItems,
+  buildDefaultChecklistPhases,
+  ChecklistLocale,
+} from './default-checklist-phases';
 
 export class CreateDefaultChecklistCommand {
   constructor(
     public readonly userId: number,
-    public readonly locale: ChecklistLocale = 'ru',
+    public readonly locale: ChecklistLocale,
   ) {}
 }
 
 @CommandHandler(CreateDefaultChecklistCommand)
-export class CreateDefaultChecklistUseCase
-  implements ICommandHandler<CreateDefaultChecklistCommand, string>
-{
+export class CreateDefaultChecklistUseCase implements ICommandHandler<
+  CreateDefaultChecklistCommand,
+  string
+> {
   constructor(
     private readonly dataSource: DataSource,
     private readonly checklistRepository: ChecklistRepository,
     private readonly checklistPhasesRepository: ChecklistPhasesRepository,
+    private readonly checklistItemsRepository: ChecklistItemsRepository,
   ) {}
 
-  async execute({ userId, locale }: CreateDefaultChecklistCommand): Promise<string> {
-    const existingChecklist = await this.checklistRepository.findByUserId(userId);
+  async execute({
+    userId,
+    locale,
+  }: CreateDefaultChecklistCommand): Promise<string> {
+    const existingChecklist =
+      await this.checklistRepository.findByUserId(userId);
     if (existingChecklist) {
-      return existingChecklist.id;
+      const phasesCount =
+        await this.checklistPhasesRepository.countByChecklistId(
+          existingChecklist.id,
+        );
+      if (phasesCount > 0) {
+        return existingChecklist.id;
+      }
     }
 
     return this.dataSource.transaction(async (manager) => {
-      const checklist = await this.checklistRepository.findByUserIdWithManager(
+      let checklist = await this.checklistRepository.findByUserIdWithManager(
         manager,
         userId,
       );
-      if (checklist) {
+      if (!checklist) {
+        checklist = await this.checklistRepository.saveWithManager(manager, {
+          userId,
+        });
+      }
+
+      const phasesCount =
+        await this.checklistPhasesRepository.countByChecklistId(
+          checklist.id,
+          manager,
+        );
+      if (phasesCount > 0) {
         return checklist.id;
       }
 
-      const newChecklist = await this.checklistRepository.saveWithManager(
+      const phases = await this.checklistPhasesRepository.saveManyWithManager(
         manager,
-        { userId },
+        buildDefaultChecklistPhases(checklist.id, locale),
       );
-      await this.checklistPhasesRepository.saveManyWithManager(
+      await this.checklistItemsRepository.saveManyWithManager(
         manager,
-        buildDefaultChecklistPhases(newChecklist.id, locale),
+        buildDefaultChecklistItems(phases, locale),
       );
 
-      return newChecklist.id;
+      return checklist.id;
     });
   }
 }

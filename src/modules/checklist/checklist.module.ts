@@ -10,6 +10,7 @@ import { ChecklistRepository } from './infra/checklist.repository';
 import { ChecklistPhasesRepository } from './infra/checklist-phases.repository';
 import { ChecklistItemsRepository } from './infra/checklist-items.repository';
 import { ChecklistQueryRepository } from './infra/query/checklist.query-repository';
+import { CreateChecklistUseCase } from './app/usecases/create-checklist.usecase';
 import { CreateDefaultChecklistUseCase } from './app/usecases/create-default-checklist.usecase';
 import { ResetChecklistUseCase } from './app/usecases/reset-checklist.usecase';
 import { CreatePhaseUseCase } from './app/usecases/create-phase.usecase';
@@ -22,7 +23,9 @@ import { DeleteItemUseCase } from './app/usecases/delete-item.usecase';
 import { MoveItemUseCase } from './app/usecases/move-item.usecase';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Checklist, ChecklistPhase, ChecklistItem])],
+  imports: [
+    TypeOrmModule.forFeature([Checklist, ChecklistPhase, ChecklistItem]),
+  ],
   controllers: [
     ChecklistController,
     ChecklistPhasesController,
@@ -33,6 +36,7 @@ import { MoveItemUseCase } from './app/usecases/move-item.usecase';
     ChecklistPhasesRepository,
     ChecklistItemsRepository,
     ChecklistQueryRepository,
+    CreateChecklistUseCase,
     CreateDefaultChecklistUseCase,
     ResetChecklistUseCase,
     CreatePhaseUseCase,
