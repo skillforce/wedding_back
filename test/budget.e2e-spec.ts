@@ -243,6 +243,31 @@ describe('Budget (e2e)', () => {
       );
     });
 
+    it('should return 422 when creating a section with a duplicate name', async () => {
+      const { accessToken } =
+        await userAccountsTestManager.createUserAndLogin();
+
+      await budgetSectionsTestManager.createSection(
+        { name: 'Duplicate' },
+        accessToken,
+      );
+
+      const response = await budgetSectionsTestManager.createSection(
+        { name: 'Duplicate' },
+        accessToken,
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+
+      expect(response).toEqual({
+        errorsMessages: [
+          {
+            field: 'name',
+            message: 'Section with this name already exists',
+          },
+        ],
+      });
+    });
+
     it('should return 409 when exceeding 30 sections per budget', async () => {
       const { accessToken } =
         await userAccountsTestManager.createUserAndLogin();

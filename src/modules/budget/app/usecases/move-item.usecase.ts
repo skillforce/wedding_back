@@ -1,4 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { MoveBudgetItemInputDto } from '../../api/input-dto/move-budget-item.input-dto';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
@@ -6,6 +7,9 @@ import { BudgetItemsRepository } from '../../infra/budget-items.repository';
 import { BudgetItem } from '../../domain/entities/budget-item.entity';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
+import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
+import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 const BUDGET_ITEMS_LIMIT = 20;
 
@@ -24,10 +28,11 @@ export class MoveItemUseCase
     private readonly dataSource: DataSource,
     private readonly sectionsRepository: BudgetSectionsRepository,
     private readonly itemsRepository: BudgetItemsRepository,
+    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
   ) {}
 
   async execute({ dto, userId }: MoveItemCommand): Promise<number[]> {
-    return this.dataSource.transaction(async (manager) => {
+    const affectedIds = await this.dataSource.transaction(async (manager) => {
       const item = await this.itemsRepository.findByIdForUpdateOrFail(
         manager,
         dto.itemId,
@@ -109,6 +114,8 @@ export class MoveItemUseCase
 
       return [sourceSection.id, targetSection.id];
     });
+    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Budget, userId));
+    return affectedIds;
   }
 
   private validateTargetIndex(targetIndex: number, itemsLength: number): void {

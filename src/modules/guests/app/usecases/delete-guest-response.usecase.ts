@@ -1,8 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import { GuestsRepository } from '../../infra/guests.repository';
 import { GuestResponseRepository } from '../../infra/guest-response.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
+import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
+import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class DeleteGuestResponseCommand {
   constructor(
@@ -18,6 +22,7 @@ export class DeleteGuestResponseUseCase
   constructor(
     private readonly guestsRepository: GuestsRepository,
     private readonly guestResponseRepository: GuestResponseRepository,
+    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
   ) {}
 
   async execute({ guestId, userId }: DeleteGuestResponseCommand): Promise<void> {
@@ -39,5 +44,6 @@ export class DeleteGuestResponseUseCase
     }
 
     await this.guestResponseRepository.deleteByGuestId(guestId);
+    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Guests, userId));
   }
 }

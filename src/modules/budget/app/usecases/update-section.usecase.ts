@@ -1,10 +1,14 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import { BudgetRepository } from '../../infra/budget.repository';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
 import { UpdateSectionInputDto } from '../../api/input-dto/update-section.input-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { Budget } from '../../domain/entities/budget.entity';
+import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
+import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
+import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class UpdateSectionCommand {
   constructor(
@@ -21,12 +25,14 @@ export class UpdateSectionUseCase
   constructor(
     private readonly budgetRepository: BudgetRepository,
     private readonly sectionsRepository: BudgetSectionsRepository,
+    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
   ) {}
 
   async execute({ sectionId, dto, userId }: UpdateSectionCommand): Promise<void> {
     const budget = await this.findBudgetByUserIdOrFail(userId);
     await this.findSectionAndCheckOwnership(sectionId, budget.id);
     await this.sectionsRepository.update(sectionId, dto);
+    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Budget, userId));
   }
 
   private async findBudgetByUserIdOrFail(userId: number): Promise<Budget> {

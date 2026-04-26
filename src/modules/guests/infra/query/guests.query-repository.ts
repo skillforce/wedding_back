@@ -6,12 +6,16 @@ import { GuestsViewDto } from '../../api/view-dto/guests.view-dto';
 import { GuestDetailViewDto } from '../../api/view-dto/guest-detail.view-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CacheService } from '../../../../adapters/redis/cache.service';
+import { CacheKey } from '../../../../adapters/redis/cache-key';
+import { CachePrefix } from '../../../../adapters/redis/constants';
 
 @Injectable()
 export class GuestsQueryRepository {
   constructor(
     @InjectRepository(Guest)
     private readonly guestsOrmRepository: Repository<Guest>,
+    private readonly cache: CacheService,
   ) {}
 
   async findOneByIdOrFail(guestId: string) {
@@ -31,14 +35,20 @@ export class GuestsQueryRepository {
   }
 
   async findAllGuestsByUserId(userId: number): Promise<GuestDetailViewDto[]> {
-    const guests = await this.guestsOrmRepository.find({
-      where: { user_id: userId },
-      relations: ['response', 'guestForm'],
-    });
-    if (!guests.length) {
-      return [];
-    }
-    return guests.map(GuestDetailViewDto.mapToDetailViewDto);
+    return this.cache.wrap(
+      CacheKey.userScope(CachePrefix.Guests, userId, 'all'),
+      undefined,
+      async () => {
+        const guests = await this.guestsOrmRepository.find({
+          where: { user_id: userId },
+          relations: ['response', 'guestForm'],
+        });
+        if (!guests.length) {
+          return [];
+        }
+        return guests.map(GuestDetailViewDto.mapToDetailViewDto);
+      },
+    );
   }
 
   async findGuestsById(guestId: string): Promise<GuestsViewDto> {

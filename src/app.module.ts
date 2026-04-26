@@ -20,6 +20,7 @@ import { ScenarioModule } from './modules/scenario/scenario.module';
 import { CurrencyModule } from './modules/currency/currency.module';
 import { EmailModule } from './modules/email/email.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { RedisModule } from './adapters/redis/redis.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
       serveRoot: SWAGGER_PREFIX,
     }),
     CoreModule,
+    RedisModule,
     TypeOrmModule.forRootAsync({
       useFactory: (DBConfig: DBConfig) => {
         const logger = new Logger('TypeOrmConfig');

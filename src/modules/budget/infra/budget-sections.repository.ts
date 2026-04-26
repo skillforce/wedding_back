@@ -49,6 +49,16 @@ export class BudgetSectionsRepository {
     return repository.countBy({ budgetId });
   }
 
+  async existsByBudgetIdAndName(
+    budgetId: number,
+    name: string,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    const repository =
+      manager?.getRepository(BudgetSection) ?? this.sectionOrmRepository;
+    return repository.existsBy({ budgetId, name });
+  }
+
   async findMaxSortOrderByBudgetId(
     budgetId: number,
     manager?: EntityManager,

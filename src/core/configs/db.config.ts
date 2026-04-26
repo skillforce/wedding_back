@@ -39,6 +39,23 @@ export class DBConfig {
   })
   isTesting: boolean;
 
+  @IsNotEmpty({
+    message: 'Set REDIS_HOST to connect to Redis',
+  })
+  redisHost: string;
+
+  @IsNotEmpty({
+    message: 'Set REDIS_PORT to connect to Redis',
+  })
+  redisPort: number;
+
+  redisPassword: string | undefined;
+
+  @IsNotEmpty({
+    message: 'Set REDIS_CACHE_TTL for Redis cache expiration',
+  })
+  redisTtl: number;
+
   constructor(private configService: ConfigService<object, true>) {
     this.postgresHost = this.configService.get('POSTGRES_HOST');
     this.postgresPort = this.configService.get('POSTGRES_PORT');
@@ -51,6 +68,10 @@ export class DBConfig {
     this.isTesting = configValidationUtility.convertToBoolean(
       this.configService.get('IS_TESTING_ENABLED'),
     ) as boolean;
+    this.redisHost = this.configService.get('REDIS_HOST');
+    this.redisPort = this.configService.get('REDIS_PORT');
+    this.redisPassword = this.configService.get('REDIS_PASSWORD');
+    this.redisTtl = this.configService.get('REDIS_CACHE_TTL');
 
     // Validate after all assignments
     configValidationUtility.validateConfig(this);

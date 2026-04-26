@@ -18,6 +18,8 @@ import { ProfileTestManager } from './profile.test-manager';
 import { CurrencyRateQueryRepository } from '../../src/modules/currency/infra/query/currency-rate.query-repository';
 import { CurrencyRateViewDto } from '../../src/modules/currency/api/view-dto/currency-rate.view-dto';
 import { BaseCurrency } from '../../src/modules/currency/domain/entities/base-currency.enum';
+import { REDIS_CLIENT } from '../../src/adapters/redis/constants';
+import { MockRedisClient } from './mock-redis.client';
 
 class MockCurrencyRateQueryRepository {
   async findLatest(): Promise<CurrencyRateViewDto> {
@@ -46,6 +48,10 @@ export const initTesting = async (
   testingModuleBuilder
     .overrideProvider(ResendAdapter)
     .useValue(mockResendAdapter);
+
+  testingModuleBuilder
+    .overrideProvider(REDIS_CLIENT)
+    .useValue(new MockRedisClient());
 
   if (addSettingsToModuleBuilder) {
     addSettingsToModuleBuilder(testingModuleBuilder);

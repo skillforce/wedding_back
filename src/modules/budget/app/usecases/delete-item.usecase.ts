@@ -1,8 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { BudgetItemsRepository } from '../../infra/budget-items.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
+import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
+import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class DeleteItemCommand {
   constructor(
@@ -18,6 +22,7 @@ export class DeleteItemUseCase
   constructor(
     private readonly dataSource: DataSource,
     private readonly itemsRepository: BudgetItemsRepository,
+    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
   ) {}
 
   async execute({ itemId, userId }: DeleteItemCommand): Promise<void> {
@@ -46,6 +51,7 @@ export class DeleteItemUseCase
         await this.itemsRepository.saveManyWithManager(manager, reorderedItems);
       }
     });
+    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Budget, userId));
   }
 
   private checkOwnership(ownerUserId: number | undefined, userId: number): void {

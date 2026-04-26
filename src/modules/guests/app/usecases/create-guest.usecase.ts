@@ -1,10 +1,14 @@
 import { CreateGuestInputDto } from '../../api/input-dto/guest.input-dto';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import { GuestsRepository } from '../../infra/guests.repository';
 import { GuestFormRepository } from '../../infra/guest-form.repository';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { SyncCoupleLinkCommand } from './sync-couple-link.usecase';
+import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
+import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
+import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class CreateGuestCommand {
   constructor(public dto: CreateGuestInputDto) {}
@@ -19,6 +23,7 @@ export class CreateGuestUseCase implements ICommandHandler<
     private readonly commandBus: CommandBus,
     private guestsRepository: GuestsRepository,
     private guestFormRepository: GuestFormRepository,
+    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
   ) {}
 
   async execute({ dto }: CreateGuestCommand): Promise<string[]> {
@@ -54,6 +59,7 @@ export class CreateGuestUseCase implements ICommandHandler<
       }
     }
 
+    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Guests, dto.user_id));
     return affectedIds;
   }
 

@@ -7,6 +7,9 @@ import { BudgetViewDto } from '../../api/view-dto/budget.view-dto';
 import { BudgetSectionViewDto } from '../../api/view-dto/budget-section.view-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CacheService } from '../../../../adapters/redis/cache.service';
+import { CacheKey } from '../../../../adapters/redis/cache-key';
+import { CachePrefix } from '../../../../adapters/redis/constants';
 
 @Injectable()
 export class BudgetQueryRepository {
@@ -15,32 +18,39 @@ export class BudgetQueryRepository {
     private readonly budgetOrmRepository: Repository<Budget>,
     @InjectRepository(BudgetSection)
     private readonly sectionOrmRepository: Repository<BudgetSection>,
+    private readonly cache: CacheService,
   ) {}
 
   async findFullBudgetByUserId(userId: number): Promise<BudgetViewDto> {
-    const budget = await this.budgetOrmRepository.findOne({
-      where: { userId },
-      relations: {
-        sections: {
-          items: true,
-        },
-      },
-      order: {
-        sections: {
-          sortOrder: 'ASC',
-          items: {
-            sortOrder: 'ASC',
+    return this.cache.wrap(
+      CacheKey.userScope(CachePrefix.Budget, userId, 'full'),
+      undefined,
+      async () => {
+        const budget = await this.budgetOrmRepository.findOne({
+          where: { userId },
+          relations: {
+            sections: {
+              items: true,
+            },
           },
-        },
+          order: {
+            sections: {
+              sortOrder: 'ASC',
+              items: {
+                sortOrder: 'ASC',
+              },
+            },
+          },
+        });
+        if (!budget) {
+          throw new DomainException({
+            code: DomainExceptionCode.NotFound,
+            message: 'Budget not found',
+          });
+        }
+        return BudgetViewDto.mapToViewDto(budget);
       },
-    });
-    if (!budget) {
-      throw new DomainException({
-        code: DomainExceptionCode.NotFound,
-        message: 'Budget not found',
-      });
-    }
-    return BudgetViewDto.mapToViewDto(budget);
+    );
   }
 
   async findSectionViewsByIdsForUser(

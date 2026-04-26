@@ -1,10 +1,14 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import { BudgetRepository } from '../../infra/budget.repository';
 import { BudgetItemsRepository } from '../../infra/budget-items.repository';
 import { UpdateBudgetSectionItemInputDto } from '../../api/input-dto/update-budget-section-item-input.dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { Budget } from '../../domain/entities/budget.entity';
+import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
+import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
+import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class UpdateItemCommand {
   constructor(
@@ -22,12 +26,14 @@ export class UpdateItemUseCase implements ICommandHandler<
   constructor(
     private readonly budgetRepository: BudgetRepository,
     private readonly itemsRepository: BudgetItemsRepository,
+    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
   ) {}
 
   async execute({ itemId, dto, userId }: UpdateItemCommand): Promise<void> {
     const budget = await this.findBudgetByUserIdOrFail(userId);
     await this.findItemAndCheckOwnership(itemId, budget.id);
     await this.itemsRepository.update(itemId, dto);
+    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Budget, userId));
   }
 
   private async findBudgetByUserIdOrFail(userId: number): Promise<Budget> {

@@ -1,10 +1,14 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Inject } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { BudgetRepository } from '../../infra/budget.repository';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
 import { CreateSectionInputDto } from '../../api/input-dto/create-section.input-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
+import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
+import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class CreateSectionCommand {
   constructor(
@@ -21,15 +25,17 @@ export class CreateSectionUseCase
     private readonly dataSource: DataSource,
     private readonly budgetRepository: BudgetRepository,
     private readonly sectionsRepository: BudgetSectionsRepository,
+    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
   ) {}
 
   async execute({ dto, userId }: CreateSectionCommand): Promise<number> {
-    return this.dataSource.transaction(async (manager) => {
+    const sectionId = await this.dataSource.transaction(async (manager) => {
       const budget = await this.budgetRepository.findByUserIdForUpdateOrFail(
         manager,
         userId,
       );
       await this.checkSectionsLimit(budget.id, manager);
+      await this.checkNameUnique(budget.id, dto.name, manager);
 
       const maxSortOrder =
         await this.sectionsRepository.findMaxSortOrderByBudgetId(
@@ -45,6 +51,29 @@ export class CreateSectionUseCase
 
       return section.id;
     });
+    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Budget, userId));
+    return sectionId;
+  }
+
+  private async checkNameUnique(
+    budgetId: number,
+    name: string,
+    manager: EntityManager,
+  ): Promise<void> {
+    const exists = await this.sectionsRepository.existsByBudgetIdAndName(
+      budgetId,
+      name,
+      manager,
+    );
+    if (exists) {
+      throw new DomainException({
+        code: DomainExceptionCode.ValidationError,
+        message: 'Section with this name already exists',
+        extensions: [
+          { field: 'name', message: 'Section with this name already exists' },
+        ],
+      });
+    }
   }
 
   private async checkSectionsLimit(
