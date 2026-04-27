@@ -1,5 +1,5 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { MoveBudgetItemInputDto } from '../../api/input-dto/move-budget-item.input-dto';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
@@ -7,9 +7,6 @@ import { BudgetItemsRepository } from '../../infra/budget-items.repository';
 import { BudgetItem } from '../../domain/entities/budget-item.entity';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
-import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
-import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 const BUDGET_ITEMS_LIMIT = 20;
 
@@ -28,7 +25,7 @@ export class MoveItemUseCase
     private readonly dataSource: DataSource,
     private readonly sectionsRepository: BudgetSectionsRepository,
     private readonly itemsRepository: BudgetItemsRepository,
-    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ dto, userId }: MoveItemCommand): Promise<number[]> {
@@ -114,7 +111,7 @@ export class MoveItemUseCase
 
       return [sourceSection.id, targetSection.id];
     });
-    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Budget, userId));
+    await this.cache.evictBudget(userId);
     return affectedIds;
   }
 

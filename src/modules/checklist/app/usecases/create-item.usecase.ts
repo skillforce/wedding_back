@@ -6,6 +6,7 @@ import { ChecklistItemsRepository } from '../../infra/checklist-items.repository
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { ChecklistItemPriority } from '../../domain/entities/checklist-item.entity';
+import { CacheService } from '../../../../adapters/redis/cache.service';
 
 const CHECKLIST_ITEMS_LIMIT = 10;
 
@@ -26,10 +27,11 @@ export class CreateItemUseCase implements ICommandHandler<
     private readonly dataSource: DataSource,
     private readonly checklistPhasesRepository: ChecklistPhasesRepository,
     private readonly checklistItemsRepository: ChecklistItemsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ phaseId, dto, userId }: CreateItemCommand): Promise<string> {
-    return this.dataSource.transaction(async (manager) => {
+    const itemId = await this.dataSource.transaction(async (manager) => {
       const phase =
         await this.checklistPhasesRepository.findByIdForUpdateOrFail(
           manager,
@@ -76,6 +78,8 @@ export class CreateItemUseCase implements ICommandHandler<
 
       return item.id;
     });
+    await this.cache.evictChecklist(userId);
+    return itemId;
   }
 
   private checkOwnership(

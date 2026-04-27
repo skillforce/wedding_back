@@ -1,14 +1,11 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { GuestFormRepository } from '../../infra/guest-form.repository';
 import { UpdateGuestFormInputDto } from '../../api/input-dto/update-guest-form.input-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { SyncCoupleLinkCommand } from './sync-couple-link.usecase';
-import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
-import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
-import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class UpdateGuestFormCommand {
   constructor(
@@ -27,7 +24,7 @@ export class UpdateGuestFormUseCase implements ICommandHandler<
     private readonly dataSource: DataSource,
     private readonly commandBus: CommandBus,
     private readonly guestFormRepository: GuestFormRepository,
-    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({
@@ -88,7 +85,7 @@ export class UpdateGuestFormUseCase implements ICommandHandler<
       }
     });
 
-    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Guests, userId));
+    await this.cache.evictGuests(userId);
     return [guestId, ...affectedPartnerIds];
   }
 

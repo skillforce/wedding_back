@@ -1,12 +1,9 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
-import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
-import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class DeleteSectionCommand {
   constructor(
@@ -22,7 +19,7 @@ export class DeleteSectionUseCase
   constructor(
     private readonly dataSource: DataSource,
     private readonly sectionsRepository: BudgetSectionsRepository,
-    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ sectionId, userId }: DeleteSectionCommand): Promise<void> {
@@ -55,7 +52,7 @@ export class DeleteSectionUseCase
         );
       }
     });
-    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Budget, userId));
+    await this.cache.evictBudget(userId);
   }
 
   private checkOwnership(ownerUserId: number | undefined, userId: number): void {

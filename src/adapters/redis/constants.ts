@@ -6,4 +6,6 @@ export const CACHE_INVALIDATOR = Symbol('CACHE_INVALIDATOR');
 export enum CachePrefix {
   Budget = 'budget',
   Guests = 'guests',
+  Checklist = 'checklist',
+  SeatingArrangement = 'seating-arrangement',
 }

@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { ChecklistPhasesRepository } from '../../infra/checklist-phases.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CacheService } from '../../../../adapters/redis/cache.service';
 
 export class DeletePhaseCommand {
   constructor(
@@ -18,6 +19,7 @@ export class DeletePhaseUseCase
   constructor(
     private readonly dataSource: DataSource,
     private readonly checklistPhasesRepository: ChecklistPhasesRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ phaseId, userId }: DeletePhaseCommand): Promise<void> {
@@ -49,6 +51,7 @@ export class DeletePhaseUseCase
         );
       }
     });
+    await this.cache.evictChecklist(userId);
   }
 
   private checkOwnership(ownerUserId: number | undefined, userId: number): void {

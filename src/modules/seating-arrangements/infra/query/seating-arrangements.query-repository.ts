@@ -5,26 +5,30 @@ import { SeatingArrangement } from '../../domain/entities/seating-arrangement.en
 import { SeatingArrangementViewDto } from '../../api/view-dto/seating-arrangement.view-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CacheService } from '../../../../adapters/redis/cache.service';
 
 @Injectable()
 export class SeatingArrangementsQueryRepository {
   constructor(
     @InjectRepository(SeatingArrangement)
     private readonly arrangementOrmRepository: Repository<SeatingArrangement>,
+    private readonly cache: CacheService,
   ) {}
 
   async findByUserId(userId: number): Promise<SeatingArrangementViewDto> {
-    const arrangement = await this.arrangementOrmRepository.findOne({
-      where: { user_id: userId },
-      relations: ['tables', 'tables.seats', 'tables.seats.guest'],
-      order: { tables: { createdAt: 'ASC' } },
-    });
-    if (!arrangement) {
-      throw new DomainException({
-        code: DomainExceptionCode.NotFound,
-        message: 'Seating arrangement not found',
+    return this.cache.wrapSeatingArrangement(userId, async () => {
+        const arrangement = await this.arrangementOrmRepository.findOne({
+          where: { user_id: userId },
+          relations: ['tables', 'tables.seats', 'tables.seats.guest'],
+          order: { tables: { createdAt: 'ASC' } },
+        });
+        if (!arrangement) {
+          throw new DomainException({
+            code: DomainExceptionCode.NotFound,
+            message: 'Seating arrangement not found',
+          });
+        }
+        return SeatingArrangementViewDto.mapToViewDto(arrangement);
       });
-    }
-    return SeatingArrangementViewDto.mapToViewDto(arrangement);
   }
 }

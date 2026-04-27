@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { UpdateChecklistPhaseItemInputDto } from '../../api/input-dto/update-checklist-phase-item-input.dto';
@@ -22,6 +23,7 @@ export class UpdateItemUseCase implements ICommandHandler<
   constructor(
     private readonly dataSource: DataSource,
     private readonly checklistItemsRepository: ChecklistItemsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({
@@ -57,6 +59,7 @@ export class UpdateItemUseCase implements ICommandHandler<
 
       await this.checklistItemsRepository.saveEntityWithManager(manager, item);
     });
+    await this.cache.evictChecklist(userId);
   }
 
   private checkOwnership(

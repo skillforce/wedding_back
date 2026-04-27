@@ -1,14 +1,11 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { MoveBudgetSectionInputDto } from '../../api/input-dto/move-budget-section.input-dto';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
 import { BudgetSection } from '../../domain/entities/budget-section.entity';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
-import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
-import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class MoveSectionCommand {
   constructor(
@@ -24,7 +21,7 @@ export class MoveSectionUseCase
   constructor(
     private readonly dataSource: DataSource,
     private readonly sectionsRepository: BudgetSectionsRepository,
-    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ dto, userId }: MoveSectionCommand): Promise<number[]> {
@@ -71,7 +68,7 @@ export class MoveSectionUseCase
         .slice(affectedRangeStart, affectedRangeEnd + 1)
         .map((reorderedSection) => reorderedSection.id);
     });
-    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Budget, userId));
+    await this.cache.evictBudget(userId);
     return affectedIds;
   }
 

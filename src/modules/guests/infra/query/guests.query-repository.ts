@@ -7,8 +7,6 @@ import { GuestDetailViewDto } from '../../api/view-dto/guest-detail.view-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { CacheService } from '../../../../adapters/redis/cache.service';
-import { CacheKey } from '../../../../adapters/redis/cache-key';
-import { CachePrefix } from '../../../../adapters/redis/constants';
 
 @Injectable()
 export class GuestsQueryRepository {
@@ -35,10 +33,7 @@ export class GuestsQueryRepository {
   }
 
   async findAllGuestsByUserId(userId: number): Promise<GuestDetailViewDto[]> {
-    return this.cache.wrap(
-      CacheKey.userScope(CachePrefix.Guests, userId, 'all'),
-      undefined,
-      async () => {
+    return this.cache.wrapGuests(userId, async () => {
         const guests = await this.guestsOrmRepository.find({
           where: { user_id: userId },
           relations: ['response', 'guestForm'],
@@ -47,8 +42,7 @@ export class GuestsQueryRepository {
           return [];
         }
         return guests.map(GuestDetailViewDto.mapToDetailViewDto);
-      },
-    );
+      });
   }
 
   async findGuestsById(guestId: string): Promise<GuestsViewDto> {

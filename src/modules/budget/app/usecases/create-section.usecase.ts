@@ -1,14 +1,11 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { BudgetRepository } from '../../infra/budget.repository';
 import { BudgetSectionsRepository } from '../../infra/budget-sections.repository';
 import { CreateSectionInputDto } from '../../api/input-dto/create-section.input-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
-import { CACHE_INVALIDATOR, CachePrefix } from '../../../../adapters/redis/constants';
-import { ICacheInvalidator } from '../../../../adapters/redis/cache-invalidator';
-import { CacheKey } from '../../../../adapters/redis/cache-key';
 
 export class CreateSectionCommand {
   constructor(
@@ -25,7 +22,7 @@ export class CreateSectionUseCase
     private readonly dataSource: DataSource,
     private readonly budgetRepository: BudgetRepository,
     private readonly sectionsRepository: BudgetSectionsRepository,
-    @Inject(CACHE_INVALIDATOR) private readonly cacheInvalidator: ICacheInvalidator,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ dto, userId }: CreateSectionCommand): Promise<number> {
@@ -51,7 +48,7 @@ export class CreateSectionUseCase
 
       return section.id;
     });
-    await this.cacheInvalidator.invalidate(CacheKey.userPrefix(CachePrefix.Budget, userId));
+    await this.cache.evictBudget(userId);
     return sectionId;
   }
 

@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateSeatingSeatInputDto } from '../../api/input-dto/create-seating-seat.input-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
@@ -23,6 +24,7 @@ export class CreateSeatingSeatUseCase implements ICommandHandler<
     private readonly dataSource: DataSource,
     private readonly tablesRepository: SeatingTablesRepository,
     private readonly seatsRepository: SeatingSeatsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({
@@ -30,7 +32,7 @@ export class CreateSeatingSeatUseCase implements ICommandHandler<
     dto,
     userId,
   }: CreateSeatingSeatCommand): Promise<string> {
-    return this.dataSource.transaction(async (manager) => {
+    const seatId = await this.dataSource.transaction(async (manager) => {
       const table = await this.tablesRepository.findByIdForUpdateOrFail(manager, tableId);
       this.checkTableOwnership(table.arrangement!.user_id, userId);
 
@@ -41,6 +43,8 @@ export class CreateSeatingSeatUseCase implements ICommandHandler<
         guest_id: dto.guest_id,
       });
     });
+    await this.cache.evictSeatingArrangement(userId);
+    return seatId;
   }
 
   private checkTableOwnership(ownerUserId: number, userId: number): void {

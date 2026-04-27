@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource, EntityManager } from 'typeorm';
 import { MoveItemInputDto } from '../../api/input-dto/move-item.input-dto';
@@ -22,6 +23,7 @@ export class MoveItemUseCase implements ICommandHandler<MoveItemCommand, void> {
     private readonly dataSource: DataSource,
     private readonly checklistPhasesRepository: ChecklistPhasesRepository,
     private readonly checklistItemsRepository: ChecklistItemsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ dto, userId }: MoveItemCommand): Promise<void> {
@@ -114,6 +116,7 @@ export class MoveItemUseCase implements ICommandHandler<MoveItemCommand, void> {
         reIndexedTargetItems,
       );
     });
+    await this.cache.evictChecklist(userId);
   }
 
   private validateTargetIndex(targetIndex: number, itemsLength: number): void {

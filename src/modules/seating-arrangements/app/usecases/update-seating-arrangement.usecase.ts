@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { SeatingArrangementsRepository } from '../../infra/seating-arrangements.repository';
@@ -17,6 +18,7 @@ export class UpdateSeatingArrangementUseCase
   constructor(
     private readonly dataSource: DataSource,
     private readonly arrangementRepository: SeatingArrangementsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ dto, userId }: UpdateSeatingArrangementCommand): Promise<void> {
@@ -34,5 +36,6 @@ export class UpdateSeatingArrangementUseCase
 
       await this.arrangementRepository.saveEntityWithManager(manager, arrangement);
     });
+    await this.cache.evictSeatingArrangement(userId);
   }
 }

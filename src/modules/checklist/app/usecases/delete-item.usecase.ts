@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { ChecklistItemsRepository } from '../../infra/checklist-items.repository';
@@ -19,6 +20,7 @@ export class DeleteItemUseCase
   constructor(
     private readonly dataSource: DataSource,
     private readonly checklistItemsRepository: ChecklistItemsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ phaseId, itemId, userId }: DeleteItemCommand): Promise<void> {
@@ -32,6 +34,7 @@ export class DeleteItemUseCase
       this.checkOwnership(item.phase?.checklist?.userId, userId);
       await this.checklistItemsRepository.deleteByIdWithManager(manager, itemId);
     });
+    await this.cache.evictChecklist(userId);
   }
 
   private checkOwnership(ownerUserId: number | undefined, userId: number): void {

@@ -10,6 +10,7 @@ import { ChecklistItemViewDto } from '../../api/view-dto/checklist-item.view-dto
 import { ChecklistItemCompletionViewDto } from '../../api/view-dto/checklist-item-completion.view-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CacheService } from '../../../../adapters/redis/cache.service';
 
 @Injectable()
 export class ChecklistQueryRepository {
@@ -20,27 +21,30 @@ export class ChecklistQueryRepository {
     private readonly phaseOrmRepository: Repository<ChecklistPhase>,
     @InjectRepository(ChecklistItem)
     private readonly itemOrmRepository: Repository<ChecklistItem>,
+    private readonly cache: CacheService,
   ) {}
 
   async findFullChecklistByUserId(userId: number): Promise<ChecklistViewDto | null> {
-    const checklist = await this.checklistOrmRepository.findOne({
-      where: { userId },
-      relations: {
-        phases: {
-          items: true,
-        },
-      },
-      order: {
-        phases: {
-          sortOrder: 'ASC',
-          items: {
-            sortOrder: 'ASC',
+    return this.cache.wrapChecklist(userId, async () => {
+        const checklist = await this.checklistOrmRepository.findOne({
+          where: { userId },
+          relations: {
+            phases: {
+              items: true,
+            },
           },
-        },
-      },
-    });
+          order: {
+            phases: {
+              sortOrder: 'ASC',
+              items: {
+                sortOrder: 'ASC',
+              },
+            },
+          },
+        });
 
-    return checklist ? ChecklistViewDto.mapToViewDto(checklist) : null;
+        return checklist ? ChecklistViewDto.mapToViewDto(checklist) : null;
+      });
   }
 
   async findFullChecklistByUserIdOrFail(userId: number): Promise<ChecklistViewDto> {

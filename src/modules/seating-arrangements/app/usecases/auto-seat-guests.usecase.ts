@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { SeatingArrangementsRepository } from '../../infra/seating-arrangements.repository';
@@ -45,6 +46,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     private readonly tablesRepository: SeatingTablesRepository,
     private readonly seatsRepository: SeatingSeatsRepository,
     private readonly guestsRepository: GuestsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ userId }: AutoSeatGuestsCommand): Promise<void> {
@@ -83,6 +85,7 @@ export class AutoSeatGuestsUseCase implements ICommandHandler<
     this.assignPositions(allTables, arrangement.width, arrangement.height);
 
     await this.saveArrangement(arrangement.id, allTables);
+    await this.cache.evictSeatingArrangement(userId);
   }
 
   private async saveArrangement(

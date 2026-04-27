@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { ChecklistItemsRepository } from '../../infra/checklist-items.repository';
@@ -19,6 +20,7 @@ export class ToggleItemCompletionUseCase
   constructor(
     private readonly dataSource: DataSource,
     private readonly checklistItemsRepository: ChecklistItemsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({
@@ -38,6 +40,7 @@ export class ToggleItemCompletionUseCase
       item.completed = !item.completed;
       await this.checklistItemsRepository.saveEntityWithManager(manager, item);
     });
+    await this.cache.evictChecklist(userId);
   }
 
   private checkOwnership(ownerUserId: number | undefined, userId: number): void {

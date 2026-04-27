@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { SeatingTablesRepository } from '../../infra/seating-tables.repository';
 import { SeatingArrangementsRepository } from '../../infra/seating-arrangements.repository';
@@ -19,12 +20,13 @@ export class CreateSeatingTableUseCase implements ICommandHandler<
   constructor(
     private readonly tablesRepository: SeatingTablesRepository,
     private readonly arrangementRepository: SeatingArrangementsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ dto, userId }: CreateSeatingTableCommand): Promise<string> {
     const arrangement =
       await this.arrangementRepository.findByUserIdOrFail(userId);
-    return this.tablesRepository.save({
+    const tableId = await this.tablesRepository.save({
       arrangement_id: arrangement.id,
       name: dto.name,
       position: dto.position,
@@ -32,5 +34,7 @@ export class CreateSeatingTableUseCase implements ICommandHandler<
       rotation: dto.rotation ?? 0,
       radius: dto.radius ?? 70,
     });
+    await this.cache.evictSeatingArrangement(userId);
+    return tableId;
   }
 }

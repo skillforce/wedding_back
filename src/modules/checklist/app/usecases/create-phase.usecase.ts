@@ -5,6 +5,7 @@ import { ChecklistRepository } from '../../infra/checklist.repository';
 import { ChecklistPhasesRepository } from '../../infra/checklist-phases.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CacheService } from '../../../../adapters/redis/cache.service';
 
 const CHECKLIST_PHASES_LIMIT = 10;
 
@@ -23,10 +24,11 @@ export class CreatePhaseUseCase
     private readonly dataSource: DataSource,
     private readonly checklistRepository: ChecklistRepository,
     private readonly checklistPhasesRepository: ChecklistPhasesRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ dto, userId }: CreatePhaseCommand): Promise<string> {
-    return this.dataSource.transaction(async (manager) => {
+    const phaseId = await this.dataSource.transaction(async (manager) => {
       const checklist = await this.checklistRepository.findByUserIdForUpdateOrFail(
         manager,
         userId,
@@ -67,5 +69,7 @@ export class CreatePhaseUseCase
 
       return phase.id;
     });
+    await this.cache.evictChecklist(userId);
+    return phaseId;
   }
 }

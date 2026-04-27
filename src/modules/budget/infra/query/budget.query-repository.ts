@@ -8,8 +8,6 @@ import { BudgetSectionViewDto } from '../../api/view-dto/budget-section.view-dto
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { CacheService } from '../../../../adapters/redis/cache.service';
-import { CacheKey } from '../../../../adapters/redis/cache-key';
-import { CachePrefix } from '../../../../adapters/redis/constants';
 
 @Injectable()
 export class BudgetQueryRepository {
@@ -22,10 +20,7 @@ export class BudgetQueryRepository {
   ) {}
 
   async findFullBudgetByUserId(userId: number): Promise<BudgetViewDto> {
-    return this.cache.wrap(
-      CacheKey.userScope(CachePrefix.Budget, userId, 'full'),
-      undefined,
-      async () => {
+    return this.cache.wrapBudget(userId, async () => {
         const budget = await this.budgetOrmRepository.findOne({
           where: { userId },
           relations: {
@@ -49,8 +44,7 @@ export class BudgetQueryRepository {
           });
         }
         return BudgetViewDto.mapToViewDto(budget);
-      },
-    );
+      });
   }
 
   async findSectionViewsByIdsForUser(

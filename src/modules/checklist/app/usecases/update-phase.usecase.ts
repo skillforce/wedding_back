@@ -4,6 +4,7 @@ import { UpdatePhaseInputDto } from '../../api/input-dto/update-phase.input-dto'
 import { ChecklistPhasesRepository } from '../../infra/checklist-phases.repository';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { CacheService } from '../../../../adapters/redis/cache.service';
 
 export class UpdatePhaseCommand {
   constructor(
@@ -21,6 +22,7 @@ export class UpdatePhaseUseCase implements ICommandHandler<
   constructor(
     private readonly dataSource: DataSource,
     private readonly checklistPhasesRepository: ChecklistPhasesRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ phaseId, dto, userId }: UpdatePhaseCommand): Promise<void> {
@@ -48,6 +50,7 @@ export class UpdatePhaseUseCase implements ICommandHandler<
         phase,
       );
     });
+    await this.cache.evictChecklist(userId);
   }
 
   private checkOwnership(

@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateSeatingTableInputDto } from '../../api/input-dto/update-seating-table.input-dto';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
@@ -20,6 +21,7 @@ export class UpdateSeatingTableUseCase
   constructor(
     private readonly dataSource: DataSource,
     private readonly tablesRepository: SeatingTablesRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ tableId, dto, userId }: UpdateSeatingTableCommand): Promise<void> {
@@ -29,6 +31,7 @@ export class UpdateSeatingTableUseCase
       Object.assign(table, dto);
       await this.tablesRepository.saveEntityWithManager(manager, table);
     });
+    await this.cache.evictSeatingArrangement(userId);
   }
 
   private checkTableOwnership(ownerUserId: number, userId: number): void {

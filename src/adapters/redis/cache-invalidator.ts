@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CacheService } from './cache.service';
+import { RedisCacheService } from './redis-cache.service';
 
 export interface ICacheInvalidator {
   invalidate(prefix: string): Promise<void>;
@@ -7,7 +7,7 @@ export interface ICacheInvalidator {
 
 @Injectable()
 export class RedisCacheInvalidator implements ICacheInvalidator {
-  constructor(private readonly cache: CacheService) {}
+  constructor(private readonly cache: RedisCacheService) {}
 
   async invalidate(prefix: string): Promise<void> {
     await this.cache.delByPrefix(prefix);

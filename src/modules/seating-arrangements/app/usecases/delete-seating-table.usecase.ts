@@ -1,3 +1,4 @@
+import { CacheService } from '../../../../adapters/redis/cache.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
@@ -18,6 +19,7 @@ export class DeleteSeatingTableUseCase
   constructor(
     private readonly dataSource: DataSource,
     private readonly tablesRepository: SeatingTablesRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ tableId, userId }: DeleteSeatingTableCommand): Promise<void> {
@@ -26,6 +28,7 @@ export class DeleteSeatingTableUseCase
       this.checkTableOwnership(table.arrangement!.user_id, userId);
       await this.tablesRepository.deleteByIdWithManager(manager, tableId);
     });
+    await this.cache.evictSeatingArrangement(userId);
   }
 
   private checkTableOwnership(ownerUserId: number, userId: number): void {

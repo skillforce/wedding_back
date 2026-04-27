@@ -2,6 +2,7 @@ import { Global, Inject, Logger, Module, OnApplicationShutdown } from '@nestjs/c
 import Redis from 'ioredis';
 import { DBConfig } from '../../core/configs/db.config';
 import { CACHE_INVALIDATOR, REDIS_CLIENT } from './constants';
+import { RedisCacheService } from './redis-cache.service';
 import { CacheService } from './cache.service';
 import { RedisCacheInvalidator } from './cache-invalidator';
 
@@ -27,6 +28,7 @@ import { RedisCacheInvalidator } from './cache-invalidator';
         return client;
       },
     },
+    RedisCacheService,
     CacheService,
     { provide: CACHE_INVALIDATOR, useClass: RedisCacheInvalidator },
   ],

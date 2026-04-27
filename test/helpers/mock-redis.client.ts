@@ -7,7 +7,7 @@ export class MockRedisClient {
     return this.store.get(key) ?? null;
   }
 
-  async set(key: string, value: string): Promise<'OK'> {
+  async set(key: string, value: string, _expiryMode?: string, _time?: number): Promise<'OK'> {
     this.store.set(key, value);
     return 'OK';
   }

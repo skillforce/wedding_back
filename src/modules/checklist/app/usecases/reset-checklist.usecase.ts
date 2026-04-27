@@ -8,6 +8,7 @@ import {
   buildDefaultChecklistPhases,
   ChecklistLocale,
 } from './default-checklist-phases';
+import { CacheService } from '../../../../adapters/redis/cache.service';
 
 export class ResetChecklistCommand {
   constructor(
@@ -26,10 +27,11 @@ export class ResetChecklistUseCase implements ICommandHandler<
     private readonly checklistRepository: ChecklistRepository,
     private readonly checklistPhasesRepository: ChecklistPhasesRepository,
     private readonly checklistItemsRepository: ChecklistItemsRepository,
+    private readonly cache: CacheService,
   ) {}
 
   async execute({ userId, locale }: ResetChecklistCommand): Promise<string> {
-    return this.dataSource.transaction(async (manager) => {
+    const checklistId = await this.dataSource.transaction(async (manager) => {
       let checklist = await this.checklistRepository.findByUserIdWithManager(
         manager,
         userId,
@@ -61,5 +63,7 @@ export class ResetChecklistUseCase implements ICommandHandler<
 
       return checklist.id;
     });
+    await this.cache.evictChecklist(userId);
+    return checklistId;
   }
 }
