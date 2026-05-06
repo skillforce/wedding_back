@@ -193,7 +193,7 @@ export class AuthController {
   @ApiResponse({ status: 204, description: 'Email confirmed successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async confirmEmail(@Body() dto: ConfirmEmailInputDto): Promise<void> {
-    await this.commandBus.execute(new ConfirmEmailCommand(dto.token));
+    await this.commandBus.execute(new ConfirmEmailCommand(dto.token, dto.password));
   }
 
   @Delete('sessions/:id')

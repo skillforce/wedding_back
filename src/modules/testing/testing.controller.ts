@@ -40,7 +40,7 @@ export class TestingController {
   async createActivatedPlainUser(@Body() dto: CreateActivatedPlainUserInputDto) {
     const userId = await this.commandBus.execute<CreatePlainUserCommand, number>(
       new CreatePlainUserCommand(
-        { login: dto.login, password: dto.password, email: dto.email },
+        { login: dto.login, email: dto.email },
         dto.creatorUserId,
       ),
     );
@@ -49,7 +49,7 @@ export class TestingController {
       where: { userId, confirmedAt: IsNull() },
     });
 
-    await this.commandBus.execute(new ConfirmEmailCommand(confirmation!.token));
+    await this.commandBus.execute(new ConfirmEmailCommand(confirmation!.token, dto.password));
 
     return { id: userId };
   }

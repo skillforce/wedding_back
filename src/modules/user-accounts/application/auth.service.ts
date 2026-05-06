@@ -23,7 +23,7 @@ export class AuthService {
 
     const isPasswordValid = await this.bcryptService.comparePasswords(
       password,
-      user.passwordHash,
+      user.passwordHash ?? '',
     );
 
     if (!isPasswordValid) {

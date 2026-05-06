@@ -6,6 +6,15 @@ import { LoginInputDto } from '../../src/modules/user-accounts/api/input-dto/aut
 import { CreatePlainUserInputDto } from '../../src/modules/user-accounts/api/input-dto/create-plain-user.input-dto';
 import { UpdateProfileInputDto } from '../../src/modules/user-accounts/api/input-dto/update-profile.input-dto';
 
+// Password used when activating plain users through the testing endpoint or confirming email in tests.
+// Must be ≥ 10 chars (firstPasswordConstraints.minLength).
+const PLAIN_USER_TEST_PASSWORD = 'testpassword1';
+
+// CreatePlainUserInputDto has no password (SuperUser doesn't set it).
+// Tests need a password to activate users via the testing endpoint and to log in afterward,
+// so we carry it as a test-only field alongside the real DTO shape.
+type PlainUserTestDto = CreatePlainUserInputDto & { password: string };
+
 type BasicAuthCredentials = {
   username: string;
   password: string;
@@ -32,12 +41,12 @@ export class UserAccountsTestManager {
   }
 
   buildCreatePlainUserDto(
-    overrides: Partial<CreatePlainUserInputDto> = {},
-  ): CreatePlainUserInputDto {
+    overrides: Partial<PlainUserTestDto> = {},
+  ): PlainUserTestDto {
     return {
       login: overrides.login ?? this.generateUniqueLogin(),
-      password: overrides.password ?? 'pass123',
       email: overrides.email ?? this.generateUniqueEmail(),
+      password: overrides.password ?? PLAIN_USER_TEST_PASSWORD,
       ...(overrides.locale !== undefined && { locale: overrides.locale }),
     };
   }
@@ -76,7 +85,7 @@ export class UserAccountsTestManager {
 
   async createActivatedPlainUser(
     creatorUserId: number,
-    dto: CreatePlainUserInputDto,
+    dto: PlainUserTestDto,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
   ) {
     const response = await request(this.httpServer)
@@ -105,10 +114,11 @@ export class UserAccountsTestManager {
   async confirmEmail(
     token: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+    password: string = PLAIN_USER_TEST_PASSWORD,
   ) {
     const response = await request(this.httpServer)
       .post('/api/auth/confirm-email')
-      .send({ token })
+      .send({ token, password })
       .expect(expectedStatus);
 
     return response.body;

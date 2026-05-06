@@ -21,9 +21,8 @@ export class User extends NumericIdEntity {
   @Length(loginConstraints.minLength, loginConstraints.maxLength)
   login: string;
 
-  @Column({ nullable: false })
-  @Length(passwordConstraints.minLength, passwordConstraints.maxLength)
-  passwordHash: string;
+  @Column({ nullable: true, type: 'varchar' })
+  passwordHash: string | null;
 
   @Column({ type: 'varchar', default: UserRole.PLAIN_USER })
   role: UserRole;

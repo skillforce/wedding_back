@@ -1,6 +1,5 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UsersRepository } from '../../infra/users.repository';
-import { BcryptService } from '../bcrypt.service';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
 import { UserRole } from '../../domain/entities/user-role.enum';
@@ -29,7 +28,6 @@ export class CreatePlainUserUseCase implements ICommandHandler<
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly emailConfirmationRepository: EmailConfirmationRepository,
-    private readonly bcryptService: BcryptService,
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -39,11 +37,9 @@ export class CreatePlainUserUseCase implements ICommandHandler<
   }: CreatePlainUserCommand): Promise<number> {
     await this.checkUniqueFields(dto.login, dto.email);
 
-    const passwordHash = await this.bcryptService.hashPassword(dto.password);
-
     const userId = await this.usersRepository.save({
       login: dto.login,
-      passwordHash,
+      passwordHash: null,
       role: UserRole.PLAIN_USER,
       status: UserStatus.PENDING_CONFIRMATION,
       createdByUserId: creatorUserId,

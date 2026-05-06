@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, MoreThan, Repository } from 'typeorm';
 import { EmailConfirmation } from '../domain/entities/email-confirmation.entity';
 
 @Injectable()
@@ -29,8 +29,12 @@ export class EmailConfirmationRepository {
     await this.ormRepository.delete({ userId });
   }
 
-  async markConfirmed(token: string): Promise<void> {
-    await this.ormRepository.update({ token }, { confirmedAt: new Date() });
+  async markConfirmed(token: string): Promise<boolean> {
+    const result = await this.ormRepository.update(
+      { token, confirmedAt: IsNull(), expiresAt: MoreThan(new Date()) },
+      { confirmedAt: new Date() },
+    );
+    return result.affected === 1;
   }
 
   async existsByEmail(email: string): Promise<boolean> {
