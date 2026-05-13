@@ -688,10 +688,7 @@ describe('GuestsController & GuestResponsesController (e2e)', () => {
       it('should return 403 when a plain user passes ?userId', async () => {
         const plainUserDto2 = userAccountsTestManager.buildCreatePlainUserDto();
         const plainUser2 = await userAccountsTestManager.createActivatedPlainUser(superUserId, plainUserDto2);
-        const { body: plainBody } = await userAccountsTestManager.login({
-          login: plainUserDto2.login,
-          password: plainUserDto2.password,
-        });
+        const { body: plainBody } = await userAccountsTestManager.login(plainUserDto2);
 
         await guestsTestManager.getAllGuests(plainBody.accessToken, HttpStatus.FORBIDDEN, plainUserId);
       });

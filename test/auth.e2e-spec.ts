@@ -73,8 +73,7 @@ describe('AuthController (e2e)', () => {
       }),
     );
 
-    const { body, refreshTokenCookie } =
-      await userAccountsTestManager.login(credentials);
+    const { body, refreshTokenCookie } = await userAccountsTestManager.login(credentials);
 
     expect(body).toEqual({
       accessToken: expect.any(String),
@@ -177,7 +176,7 @@ describe('AuthController (e2e)', () => {
 
     const { body } = await userAccountsTestManager.login(
       {
-        login: credentials.login,
+        loginOrEmail: credentials.login,
         password: 'wrong-pass',
       },
       HttpStatus.UNAUTHORIZED,
@@ -202,8 +201,7 @@ describe('AuthController (e2e)', () => {
       role: UserRole.SUPER_USER,
     });
     const superUser = await userAccountsTestManager.createUser(superUserDto);
-    const { body: superUserBody } =
-      await userAccountsTestManager.login(superUserDto);
+    const { body: superUserBody } = await userAccountsTestManager.login(superUserDto);
 
     const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
     const plainUser = await userAccountsTestManager.createActivatedPlainUser(
@@ -216,10 +214,7 @@ describe('AuthController (e2e)', () => {
       superUserBody.accessToken,
     );
 
-    await userAccountsTestManager.login(
-      { login: plainUserDto.login, password: plainUserDto.password },
-      HttpStatus.UNAUTHORIZED,
-    );
+    await userAccountsTestManager.login(plainUserDto, HttpStatus.UNAUTHORIZED);
   });
 
   it('login response should includ    <UserManagementCreateDialog v-model:visible="createDialogVisible" />e deviceId', async () => {
@@ -236,12 +231,7 @@ describe('AuthController (e2e)', () => {
     const credentials = userAccountsTestManager.buildCreateUserDto();
     await userAccountsTestManager.createUser(credentials);
     const customDeviceId = '11111111-1111-1111-1111-111111111111';
-
-    const { body } = await userAccountsTestManager.login(
-      credentials,
-      HttpStatus.OK,
-      customDeviceId,
-    );
+    const { body } = await userAccountsTestManager.login(credentials, HttpStatus.OK, customDeviceId);
 
     expect(body.deviceId).toBe(customDeviceId);
   });
@@ -306,15 +296,13 @@ describe('AuthController (e2e)', () => {
         role: UserRole.SUPER_USER,
       });
       await userAccountsTestManager.createUser(superUser1Dto);
-      const { body: body1 } =
-        await userAccountsTestManager.login(superUser1Dto);
+      const { body: body1 } = await userAccountsTestManager.login(superUser1Dto);
 
       const superUser2Dto = userAccountsTestManager.buildCreateUserDto({
         role: UserRole.SUPER_USER,
       });
       await userAccountsTestManager.createUser(superUser2Dto);
-      const { body: body2 } =
-        await userAccountsTestManager.login(superUser2Dto);
+      const { body: body2 } = await userAccountsTestManager.login(superUser2Dto);
 
       const sharedEmail = `shared${Date.now()}@example.com`;
       const plainDto1 = userAccountsTestManager.buildCreatePlainUserDto({
@@ -393,11 +381,7 @@ describe('AuthController (e2e)', () => {
       const deviceId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
       await userAccountsTestManager.login(credentials, HttpStatus.OK, deviceId);
-      const { body } = await userAccountsTestManager.login(
-        credentials,
-        HttpStatus.OK,
-        deviceId,
-      );
+      const { body } = await userAccountsTestManager.login(credentials, HttpStatus.OK, deviceId);
 
       const sessions = await userAccountsTestManager.getSessions(
         body.accessToken,
@@ -411,16 +395,8 @@ describe('AuthController (e2e)', () => {
       await userAccountsTestManager.createUser(credentials);
 
       const { refreshTokenCookie: cookie1 } =
-        await userAccountsTestManager.login(
-          credentials,
-          HttpStatus.OK,
-          'device-ccc-0000-0000-0000-000000000003',
-        );
-      const { body: body2 } = await userAccountsTestManager.login(
-        credentials,
-        HttpStatus.OK,
-        'device-ddd-0000-0000-0000-000000000004',
-      );
+        await userAccountsTestManager.login(credentials, HttpStatus.OK, 'device-ccc-0000-0000-0000-000000000003');
+      const { body: body2 } = await userAccountsTestManager.login(credentials, HttpStatus.OK, 'device-ddd-0000-0000-0000-000000000004');
 
       const sessions = await userAccountsTestManager.getSessions(
         body2.accessToken,
@@ -539,10 +515,7 @@ describe('AuthController (e2e)', () => {
 
         await userAccountsTestManager.confirmEmail(token);
 
-        const { body } = await userAccountsTestManager.login({
-          login: dto.login,
-          password: dto.password,
-        });
+        const { body } = await userAccountsTestManager.login(dto);
         expect(body.accessToken).toBeDefined();
       });
 
@@ -553,10 +526,7 @@ describe('AuthController (e2e)', () => {
           dto,
         );
 
-        await userAccountsTestManager.login(
-          { login: dto.login, password: dto.password },
-          HttpStatus.UNAUTHORIZED,
-        );
+        await userAccountsTestManager.login(dto, HttpStatus.UNAUTHORIZED);
       });
 
       it('should reject plain user creation with duplicate email', async () => {

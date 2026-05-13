@@ -531,8 +531,7 @@ describe('Scenario (e2e)', () => {
         role: UserRole.SUPER_USER,
       });
       await userAccountsTestManager.createUser(otherSuperUserDto);
-      const { body: otherBody } =
-        await userAccountsTestManager.login(otherSuperUserDto);
+      const { body: otherBody } = await userAccountsTestManager.login(otherSuperUserDto);
 
       await scenarioTestManager.getScenario(
         otherBody.accessToken,
@@ -547,10 +546,7 @@ describe('Scenario (e2e)', () => {
         superUserId,
         plainUserDto2,
       );
-      const { body: plainBody } = await userAccountsTestManager.login({
-        login: plainUserDto2.login,
-        password: plainUserDto2.password,
-      });
+      const { body: plainBody } = await userAccountsTestManager.login(plainUserDto2);
 
       await scenarioTestManager.getScenario(
         plainBody.accessToken,

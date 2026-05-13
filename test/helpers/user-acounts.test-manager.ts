@@ -32,7 +32,9 @@ export class UserAccountsTestManager {
     this.httpServer = this.app.getHttpServer();
   }
 
-  buildCreateUserDto(overrides: Partial<CreateUserInputDto> = {}): CreateUserInputDto {
+  buildCreateUserDto(
+    overrides: Partial<CreateUserInputDto> = {},
+  ): CreateUserInputDto {
     return {
       login: overrides.login ?? this.generateUniqueLogin(),
       password: overrides.password ?? 'pass123',
@@ -54,7 +56,8 @@ export class UserAccountsTestManager {
   async createUser(
     dto: CreateUserInputDto,
     expectedStatus: HttpStatus = HttpStatus.CREATED,
-    basicAuthCredentials: BasicAuthCredentials = this.defaultBasicAuthCredentials,
+    basicAuthCredentials: BasicAuthCredentials = this
+      .defaultBasicAuthCredentials,
   ) {
     const encodedCredentials = Buffer.from(
       `${basicAuthCredentials.username}:${basicAuthCredentials.password}`,
@@ -125,12 +128,16 @@ export class UserAccountsTestManager {
   }
 
   async login(
-    dto: Partial<LoginInputDto>,
+    dto: Partial<LoginInputDto> | { login: string; password?: string },
     expectedStatus: HttpStatus = HttpStatus.OK,
     deviceId?: string,
     userAgent?: string,
   ): Promise<{ body: any; refreshTokenCookie: string | undefined }> {
-    const req = request(this.httpServer).post('/api/auth/login').send(dto);
+    const payload: Partial<LoginInputDto> =
+      'login' in dto && !('loginOrEmail' in dto)
+        ? { loginOrEmail: (dto as { login: string }).login, password: dto.password }
+        : (dto as Partial<LoginInputDto>);
+    const req = request(this.httpServer).post('/api/auth/login').send(payload);
 
     if (deviceId) {
       req.set('X-Device-Id', deviceId);
@@ -142,8 +149,14 @@ export class UserAccountsTestManager {
     const response = await req.expect(expectedStatus);
 
     const setCookie = response.headers['set-cookie'];
-    const cookieArray = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
-    const refreshTokenCookie = cookieArray.find((c) => c.startsWith('refreshToken='));
+    const cookieArray = Array.isArray(setCookie)
+      ? setCookie
+      : setCookie
+        ? [setCookie]
+        : [];
+    const refreshTokenCookie = cookieArray.find((c) =>
+      c.startsWith('refreshToken='),
+    );
 
     return { body: response.body, refreshTokenCookie };
   }
@@ -158,8 +171,14 @@ export class UserAccountsTestManager {
       .expect(expectedStatus);
 
     const setCookie = response.headers['set-cookie'];
-    const cookieArray = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
-    const newRefreshTokenCookie = cookieArray.find((c) => c.startsWith('refreshToken='));
+    const cookieArray = Array.isArray(setCookie)
+      ? setCookie
+      : setCookie
+        ? [setCookie]
+        : [];
+    const newRefreshTokenCookie = cookieArray.find((c) =>
+      c.startsWith('refreshToken='),
+    );
 
     return { body: response.body, refreshTokenCookie: newRefreshTokenCookie };
   }
@@ -198,7 +217,10 @@ export class UserAccountsTestManager {
     return response.body;
   }
 
-  async getSessions(accessToken: string, expectedStatus: HttpStatus = HttpStatus.OK) {
+  async getSessions(
+    accessToken: string,
+    expectedStatus: HttpStatus = HttpStatus.OK,
+  ) {
     const response = await request(this.httpServer)
       .get('/api/auth/sessions')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -245,7 +267,7 @@ export class UserAccountsTestManager {
     const credentials = this.buildCreateUserDto(overrides);
     const createUserResponse = await this.createUser(credentials);
     const { body: loginBody, refreshTokenCookie } = await this.login(
-      credentials,
+      { loginOrEmail: credentials.login, password: credentials.password },
       HttpStatus.OK,
       deviceId,
     );

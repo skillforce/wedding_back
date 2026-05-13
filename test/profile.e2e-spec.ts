@@ -167,10 +167,7 @@ describe('Profile (e2e)', () => {
         plainUserDto,
       );
 
-      const { body: plainUserBody } = await userAccountsTestManager.login({
-        login: plainUserDto.login,
-        password: plainUserDto.password,
-      });
+      const { body: plainUserBody } = await userAccountsTestManager.login(plainUserDto);
       plainUserAccessToken = plainUserBody.accessToken;
       plainUserEmail = plainUserDto.email;
     });

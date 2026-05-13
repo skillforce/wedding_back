@@ -13,6 +13,18 @@ export class UsersRepository {
     return await this.usersOrmRepository.findOneBy({ login });
   }
 
+  async findUserByConfirmedEmail(email: string): Promise<User | null> {
+    return this.usersOrmRepository
+      .createQueryBuilder('user')
+      .innerJoin(
+        'email_confirmations',
+        'ec',
+        'ec."userId" = user.id AND ec.email = :email AND ec."confirmedAt" IS NOT NULL',
+        { email },
+      )
+      .getOne();
+  }
+
   async findUserById(id: number): Promise<User | null> {
     return await this.usersOrmRepository.findOneBy({ id });
   }

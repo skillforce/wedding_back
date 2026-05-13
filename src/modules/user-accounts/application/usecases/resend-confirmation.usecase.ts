@@ -39,7 +39,7 @@ export class ResendConfirmationUseCase
     }
 
     await this.commandBus.execute(
-      new SendEmailConfirmationCommand(targetUserId, existing.email, locale),
+      new SendEmailConfirmationCommand(targetUserId, existing.email, user.login, locale),
     );
   }
 }

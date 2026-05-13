@@ -13,6 +13,7 @@ export class SendEmailConfirmationCommand {
   constructor(
     public readonly userId: number,
     public readonly email: string,
+    public readonly login: string,
     public readonly locale: Locale = 'en',
   ) {}
 }
@@ -31,6 +32,7 @@ export class SendEmailConfirmationUseCase implements ICommandHandler<
   async execute({
     userId,
     email,
+    login,
     locale,
   }: SendEmailConfirmationCommand): Promise<void> {
     await this.emailConfirmationRepository.invalidateAllForUser(userId);
@@ -46,11 +48,12 @@ export class SendEmailConfirmationUseCase implements ICommandHandler<
       confirmedAt: null,
     });
 
-    void this.sendConfirmationEmail(email, token, locale);
+    void this.sendConfirmationEmail(email, login, token, locale);
   }
 
   private async sendConfirmationEmail(
     email: string,
+    login: string,
     token: string,
     locale: Locale,
   ): Promise<void> {
@@ -59,7 +62,7 @@ export class SendEmailConfirmationUseCase implements ICommandHandler<
     await this.resendAdapter.send({
       to: email,
       subject: getConfirmationEmailSubject(locale),
-      html: confirmationEmailTemplate(confirmUrl, locale),
+      html: confirmationEmailTemplate(confirmUrl, login, email, locale),
     });
   }
 }

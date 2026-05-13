@@ -8,17 +8,20 @@ import { AuthService } from '../../application/auth.service';
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(private authService: AuthService) {
-    super({ usernameField: 'login' });
+    super({ usernameField: 'loginOrEmail' });
   }
 
-  async validate(login: string, password: string): Promise<{ id: number }> {
-    const user = await this.authService.validateUser(login, password);
+  async validate(
+    loginOrEmail: string,
+    password: string,
+  ): Promise<{ id: number }> {
+    const user = await this.authService.validateUser(loginOrEmail, password);
     if (!user) {
       throw new DomainException({
         code: DomainExceptionCode.Unauthorized,
         extensions: [
           {
-            field: 'login',
+            field: 'loginOrEmail',
             message: 'Invalid username or password',
           },
           {
@@ -26,7 +29,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
             message: 'Invalid username or password',
           },
         ],
-        message: 'Invalid username or password',
+        message: 'Invalid login or password',
       });
     }
 

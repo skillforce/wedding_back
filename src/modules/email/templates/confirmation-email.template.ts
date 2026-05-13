@@ -7,6 +7,9 @@ const translations: Record<Locale, {
   subtitle: string;
   greeting: string;
   body: string;
+  credentialsTitle: string;
+  loginLabel: string;
+  emailLabel: string;
   cta: string;
   fallbackText: string;
   footer: string;
@@ -18,6 +21,9 @@ const translations: Record<Locale, {
     subtitle: 'Your wedding preparation starts here.',
     greeting: 'Hello there,',
     body: "You've been invited to <strong>Doctor Wedding</strong> &mdash; your personal space for making wedding preparation more convenient and stress&#8209;free. To get started, please confirm your email address by clicking the button below.",
+    credentialsTitle: 'Your account details:',
+    loginLabel: 'Login:',
+    emailLabel: 'Email:',
     cta: 'Confirm my email',
     fallbackText: "If the button doesn't work, copy and paste this link into your browser:",
     footer: 'This link expires in <strong>24 hours</strong>. If you weren&rsquo;t expecting this invitation, you can safely ignore this email &mdash; no action is needed.',
@@ -29,13 +35,21 @@ const translations: Record<Locale, {
     subtitle: 'Ваша подготовка к свадьбе начинается здесь.',
     greeting: 'Привет,',
     body: 'Вы были приглашены в <strong>Doctor Wedding</strong> &mdash; ваше личное пространство для удобной и комфортной подготовки к свадьбе. Чтобы начать, подтвердите свой адрес электронной почты, нажав кнопку ниже.',
+    credentialsTitle: 'Данные вашего аккаунта:',
+    loginLabel: 'Логин:',
+    emailLabel: 'Email:',
     cta: 'Подтвердить почту',
     fallbackText: 'Если кнопка не работает, скопируйте и вставьте эту ссылку в браузер:',
     footer: 'Ссылка действительна <strong>24 часа</strong>. Если вы не ожидали этого приглашения, просто проигнорируйте письмо &mdash; никаких действий не требуется.',
   },
 };
 
-export const confirmationEmailTemplate = (confirmUrl: string, locale: Locale = 'en'): string => {
+export const confirmationEmailTemplate = (
+  confirmUrl: string,
+  login: string,
+  email: string,
+  locale: Locale = 'en',
+): string => {
   const t = translations[locale];
 
   return `
@@ -67,9 +81,28 @@ export const confirmationEmailTemplate = (confirmUrl: string, locale: Locale = '
               <p style="margin:0 0 16px;font-size:16px;color:#4a3728;line-height:1.7;">
                 ${t.greeting}
               </p>
-              <p style="margin:0 0 32px;font-size:16px;color:#4a3728;line-height:1.7;">
+              <p style="margin:0 0 20px;font-size:16px;color:#4a3728;line-height:1.7;">
                 ${t.body}
               </p>
+
+              <!-- Credentials -->
+              <table cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 32px;background-color:#fdf6f0;border-radius:8px;border:1px solid #f0e4d4;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0 0 10px;font-size:13px;font-weight:bold;color:#7a5c2e;text-transform:uppercase;letter-spacing:1px;font-family:Arial,sans-serif;">${t.credentialsTitle}</p>
+                    <table cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding:3px 12px 3px 0;font-size:14px;color:#9a8070;font-family:Arial,sans-serif;white-space:nowrap;">${t.loginLabel}</td>
+                        <td style="padding:3px 0;font-size:14px;color:#3d2b1f;font-family:Arial,sans-serif;font-weight:bold;">${login}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:3px 12px 3px 0;font-size:14px;color:#9a8070;font-family:Arial,sans-serif;white-space:nowrap;">${t.emailLabel}</td>
+                        <td style="padding:3px 0;font-size:14px;color:#3d2b1f;font-family:Arial,sans-serif;font-weight:bold;">${email}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
 
               <!-- CTA button -->
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 32px;">

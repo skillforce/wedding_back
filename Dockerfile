@@ -6,7 +6,7 @@ WORKDIR /app
 RUN corepack enable
 RUN corepack prepare pnpm@10.33.0 --activate
 
-COPY pnpm-lock.yaml package.json ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
@@ -21,7 +21,7 @@ WORKDIR /app
 RUN corepack enable
 RUN corepack prepare pnpm@10.33.0 --activate
 
-COPY pnpm-lock.yaml package.json ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 
 COPY --from=builder /app/dist ./dist

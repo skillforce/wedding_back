@@ -56,7 +56,7 @@ export class CreatePlainUserUseCase implements ICommandHandler<
     );
 
     await this.commandBus.execute(
-      new SendEmailConfirmationCommand(userId, dto.email, dto.locale),
+      new SendEmailConfirmationCommand(userId, dto.email, dto.login, dto.locale),
     );
 
     return userId;

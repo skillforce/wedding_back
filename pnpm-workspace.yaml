@@ -3,5 +3,6 @@ packages:
 
 allowBuilds:
   '@nestjs/core': true
+  '@scarf/scarf': true
   '@swc/core': true
   sharp: true

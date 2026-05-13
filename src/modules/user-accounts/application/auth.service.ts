@@ -12,12 +12,17 @@ export class AuthService {
   ) {}
 
   async validateUser(
-    login: string,
+    loginOrEmail: string,
     password: string,
   ): Promise<{ id: number; role: UserRole } | null> {
-    const user = await this.usersRepository.findUserByLogin(login);
-
+    const user =
+      (await this.usersRepository.findUserByLogin(loginOrEmail)) ??
+      (await this.usersRepository.findUserByConfirmedEmail(loginOrEmail));
     if (!user) {
+      return null;
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
       return null;
     }
 
@@ -27,10 +32,6 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      return null;
-    }
-
-    if (user.status !== UserStatus.ACTIVE) {
       return null;
     }
 
