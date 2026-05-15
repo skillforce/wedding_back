@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../domain/entities/user.entity';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class UsersRepository {
@@ -17,9 +17,9 @@ export class UsersRepository {
     return this.usersOrmRepository
       .createQueryBuilder('user')
       .innerJoin(
-        'email_confirmations',
+        'confirmations',
         'ec',
-        'ec."userId" = user.id AND ec.email = :email AND ec."confirmedAt" IS NOT NULL',
+        'ec."userId" = user.id AND ec.email = :email AND ec."confirmedAt" IS NOT NULL AND ec.type = \'EMAIL_CONFIRMATION\'',
         { email },
       )
       .getOne();
@@ -32,6 +32,13 @@ export class UsersRepository {
   async save(user: Partial<User>): Promise<number> {
     const result = await this.usersOrmRepository.save(user);
     return result.id;
+  }
+
+  async saveWithManager(
+    user: Partial<User>,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager.save(User, user);
   }
 
   async deleteUserById(id: number): Promise<boolean> {

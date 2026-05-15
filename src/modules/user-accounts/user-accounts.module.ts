@@ -2,11 +2,14 @@ import { Module } from '@nestjs/common';
 import { BcryptService } from './application/bcrypt.service';
 import { UserAccountsConfig } from './config/user-accounts.config';
 import { EmailModule } from '../email/email.module';
-import { EmailConfirmation } from './domain/entities/email-confirmation.entity';
-import { EmailConfirmationRepository } from './infra/email-confirmation.repository';
+import { Confirmation } from './domain/entities/confirmation.entity';
+import { ConfirmationRepository } from './infra/confirmation.repository';
 import { SendEmailConfirmationUseCase } from './application/usecases/send-email-confirmation.usecase';
 import { ConfirmEmailUseCase } from './application/usecases/confirm-email.usecase';
 import { ResendConfirmationUseCase } from './application/usecases/resend-confirmation.usecase';
+import { ForgotPasswordUseCase } from './application/usecases/forgot-password.usecase';
+import { SendPasswordResetUseCase } from './application/usecases/send-password-reset.usecase';
+import { ResetPasswordUseCase } from './application/usecases/reset-password.usecase';
 import { JwtStrategy } from './guards/bearer/jwt.strategy';
 import { LocalStrategy } from './guards/local/local.strategy';
 import { LoginUserUseCase } from './application/usecases/login-user.usecase';
@@ -53,7 +56,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, AuthSession, UserProfile, EmailConfirmation]),
+    TypeOrmModule.forFeature([User, AuthSession, UserProfile, Confirmation]),
     JwtModule,
     S3Module,
     ImageModule,
@@ -93,10 +96,13 @@ import { ScheduleModule } from '@nestjs/schedule';
     CreateDefaultProfileUseCase,
     UpdateProfileUseCase,
     UploadProfileImageUseCase,
-    EmailConfirmationRepository,
+    ConfirmationRepository,
     SendEmailConfirmationUseCase,
     ConfirmEmailUseCase,
     ResendConfirmationUseCase,
+    ForgotPasswordUseCase,
+    SendPasswordResetUseCase,
+    ResetPasswordUseCase,
     {
       provide: ACCESS_TOKEN_STRATEGY_INJECT_TOKEN,
       useFactory: (userAccountsConfig: UserAccountsConfig): JwtService => {

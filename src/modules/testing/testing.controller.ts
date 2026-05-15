@@ -12,15 +12,15 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { CommandBus } from '@nestjs/cqrs';
 import { CreatePlainUserCommand } from '../user-accounts/application/usecases/create-plain-user.usecase';
 import { ConfirmEmailCommand } from '../user-accounts/application/usecases/confirm-email.usecase';
-import { EmailConfirmation } from '../user-accounts/domain/entities/email-confirmation.entity';
+import { Confirmation, ConfirmationType } from '../user-accounts/domain/entities/confirmation.entity';
 import { CreateActivatedPlainUserInputDto } from './api/input-dto/create-activated-plain-user.input-dto';
 
 @Controller('testing')
 export class TestingController {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    @InjectRepository(EmailConfirmation)
-    private readonly emailConfirmationRepository: Repository<EmailConfirmation>,
+    @InjectRepository(Confirmation)
+    private readonly confirmationRepository: Repository<Confirmation>,
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -45,8 +45,8 @@ export class TestingController {
       ),
     );
 
-    const confirmation = await this.emailConfirmationRepository.findOne({
-      where: { userId, confirmedAt: IsNull() },
+    const confirmation = await this.confirmationRepository.findOne({
+      where: { userId, type: ConfirmationType.EMAIL_CONFIRMATION, confirmedAt: IsNull() },
     });
 
     await this.commandBus.execute(new ConfirmEmailCommand(confirmation!.token, dto.password));

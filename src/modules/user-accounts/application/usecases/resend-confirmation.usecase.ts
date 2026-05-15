@@ -1,6 +1,7 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UsersRepository } from '../../infra/users.repository';
-import { EmailConfirmationRepository } from '../../infra/email-confirmation.repository';
+import { ConfirmationRepository } from '../../infra/confirmation.repository';
+import { ConfirmationType } from '../../domain/entities/confirmation.entity';
 import { SendEmailConfirmationCommand } from './send-email-confirmation.usecase';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
@@ -20,14 +21,14 @@ export class ResendConfirmationUseCase
 {
   constructor(
     private readonly usersRepository: UsersRepository,
-    private readonly emailConfirmationRepository: EmailConfirmationRepository,
+    private readonly confirmationRepository: ConfirmationRepository,
     private readonly commandBus: CommandBus,
   ) {}
 
   async execute({ targetUserId, locale }: ResendConfirmationCommand): Promise<void> {
     const user = await this.usersRepository.findUserById(targetUserId);
     const existing = user
-      ? await this.emailConfirmationRepository.findPendingByUserId(targetUserId)
+      ? await this.confirmationRepository.findPendingByUserId(targetUserId, ConfirmationType.EMAIL_CONFIRMATION)
       : null;
 
     if (!user || user.status === UserStatus.ACTIVE || !existing) {

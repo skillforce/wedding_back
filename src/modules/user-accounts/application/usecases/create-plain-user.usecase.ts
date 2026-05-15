@@ -6,7 +6,7 @@ import { UserRole } from '../../domain/entities/user-role.enum';
 import { UserStatus } from '../../domain/entities/user-status.enum';
 import { CreatePlainUserInputDto } from '../../api/input-dto/create-plain-user.input-dto';
 import { SendEmailConfirmationCommand } from './send-email-confirmation.usecase';
-import { EmailConfirmationRepository } from '../../infra/email-confirmation.repository';
+import { ConfirmationRepository } from '../../infra/confirmation.repository';
 import { CreateDefaultSeatingArrangementCommand } from '../../../seating-arrangements/app/usecases/create-default-seating-arrangement.usecase';
 import { CreateDefaultBudgetCommand } from '../../../budget/app/usecases/create-default-budget.usecase';
 import { CreateChecklistCommand } from '../../../checklist/app/usecases/create-checklist.usecase';
@@ -27,7 +27,7 @@ export class CreatePlainUserUseCase implements ICommandHandler<
 > {
   constructor(
     private readonly usersRepository: UsersRepository,
-    private readonly emailConfirmationRepository: EmailConfirmationRepository,
+    private readonly confirmationRepository: ConfirmationRepository,
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -65,7 +65,7 @@ export class CreatePlainUserUseCase implements ICommandHandler<
   private async checkUniqueFields(login: string, email: string): Promise<void> {
     const [existingLogin, existingEmail] = await Promise.all([
       this.usersRepository.findUserByLogin(login),
-      this.emailConfirmationRepository.existsByEmail(email),
+      this.confirmationRepository.existsByEmail(email),
     ]);
 
     if (existingLogin || existingEmail) {

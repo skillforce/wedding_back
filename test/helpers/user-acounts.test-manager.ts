@@ -296,9 +296,36 @@ export class UserAccountsTestManager {
     return response.body;
   }
 
+  async forgotPassword(
+    email: string,
+    expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+  ) {
+    const response = await request(this.httpServer)
+      .post('/api/auth/forgot-password')
+      .send({ email })
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
+  async resetPassword(
+    token: string,
+    password: string,
+    accessToken: string,
+    expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+  ) {
+    const response = await request(this.httpServer)
+      .post('/api/auth/reset-password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ token, password })
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
   extractTokenFromEmailHtml(html: string): string {
     const match = html.match(/token=([a-f0-9-]{36})/);
-    if (!match) throw new Error('Confirmation token not found in email HTML');
+    if (!match) throw new Error('Token not found in email HTML');
     return match[1];
   }
 

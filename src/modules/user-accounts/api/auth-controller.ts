@@ -43,6 +43,10 @@ import { RevokeAllOtherSessionsCommand } from '../application/usecases/revoke-al
 import { SessionViewDto } from './view-dto/session.view-dto';
 import { ConfirmEmailCommand } from '../application/usecases/confirm-email.usecase';
 import { ConfirmEmailInputDto } from './input-dto/confirm-email.input-dto';
+import { ForgotPasswordCommand } from '../application/usecases/forgot-password.usecase';
+import { ForgotPasswordInputDto } from './input-dto/forgot-password.input-dto';
+import { ResetPasswordCommand } from '../application/usecases/reset-password.usecase';
+import { ResetPasswordInputDto } from './input-dto/reset-password.input-dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -154,7 +158,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get the currently authenticated user' })
-  @ApiResponse({ status: 200, description: 'Current user info', type: MeViewDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user info',
+    type: MeViewDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async me(@ExtractUserFromRequest() user: UserContextDto): Promise<MeViewDto> {
     return this.usersQueryRepository.findMeByIdOrNotFoundFail(user.id);
@@ -193,7 +201,41 @@ export class AuthController {
   @ApiResponse({ status: 204, description: 'Email confirmed successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async confirmEmail(@Body() dto: ConfirmEmailInputDto): Promise<void> {
-    await this.commandBus.execute(new ConfirmEmailCommand(dto.token, dto.password));
+    await this.commandBus.execute(
+      new ConfirmEmailCommand(dto.token, dto.password),
+    );
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Request a password reset email' })
+  @ApiResponse({
+    status: 204,
+    description: 'If the email exists, a reset link has been sent',
+  })
+  async forgotPassword(@Body() dto: ForgotPasswordInputDto): Promise<void> {
+    console.log('slalslslsl');
+    await this.commandBus.execute(new ForgotPasswordCommand(dto.email));
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Reset password using a token received by email (must be logged in)',
+  })
+  @ApiResponse({ status: 204, description: 'Password reset successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async resetPassword(
+    @Body() dto: ResetPasswordInputDto,
+    @ExtractUserFromRequest() user: UserContextDto,
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new ResetPasswordCommand(dto.token, dto.password, user.id),
+    );
   }
 
   @Delete('sessions/:id')
@@ -207,8 +249,6 @@ export class AuthController {
     @Param('id') sessionId: string,
     @ExtractUserFromRequest() user: UserContextDto,
   ): Promise<void> {
-    await this.commandBus.execute(
-      new RevokeSessionCommand(sessionId, user.id),
-    );
+    await this.commandBus.execute(new RevokeSessionCommand(sessionId, user.id));
   }
 }

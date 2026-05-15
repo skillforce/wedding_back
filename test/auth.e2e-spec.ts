@@ -73,7 +73,8 @@ describe('AuthController (e2e)', () => {
       }),
     );
 
-    const { body, refreshTokenCookie } = await userAccountsTestManager.login(credentials);
+    const { body, refreshTokenCookie } =
+      await userAccountsTestManager.login(credentials);
 
     expect(body).toEqual({
       accessToken: expect.any(String),
@@ -201,7 +202,8 @@ describe('AuthController (e2e)', () => {
       role: UserRole.SUPER_USER,
     });
     const superUser = await userAccountsTestManager.createUser(superUserDto);
-    const { body: superUserBody } = await userAccountsTestManager.login(superUserDto);
+    const { body: superUserBody } =
+      await userAccountsTestManager.login(superUserDto);
 
     const plainUserDto = userAccountsTestManager.buildCreatePlainUserDto();
     const plainUser = await userAccountsTestManager.createActivatedPlainUser(
@@ -231,7 +233,11 @@ describe('AuthController (e2e)', () => {
     const credentials = userAccountsTestManager.buildCreateUserDto();
     await userAccountsTestManager.createUser(credentials);
     const customDeviceId = '11111111-1111-1111-1111-111111111111';
-    const { body } = await userAccountsTestManager.login(credentials, HttpStatus.OK, customDeviceId);
+    const { body } = await userAccountsTestManager.login(
+      credentials,
+      HttpStatus.OK,
+      customDeviceId,
+    );
 
     expect(body.deviceId).toBe(customDeviceId);
   });
@@ -296,13 +302,15 @@ describe('AuthController (e2e)', () => {
         role: UserRole.SUPER_USER,
       });
       await userAccountsTestManager.createUser(superUser1Dto);
-      const { body: body1 } = await userAccountsTestManager.login(superUser1Dto);
+      const { body: body1 } =
+        await userAccountsTestManager.login(superUser1Dto);
 
       const superUser2Dto = userAccountsTestManager.buildCreateUserDto({
         role: UserRole.SUPER_USER,
       });
       await userAccountsTestManager.createUser(superUser2Dto);
-      const { body: body2 } = await userAccountsTestManager.login(superUser2Dto);
+      const { body: body2 } =
+        await userAccountsTestManager.login(superUser2Dto);
 
       const sharedEmail = `shared${Date.now()}@example.com`;
       const plainDto1 = userAccountsTestManager.buildCreatePlainUserDto({
@@ -381,7 +389,11 @@ describe('AuthController (e2e)', () => {
       const deviceId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
       await userAccountsTestManager.login(credentials, HttpStatus.OK, deviceId);
-      const { body } = await userAccountsTestManager.login(credentials, HttpStatus.OK, deviceId);
+      const { body } = await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        deviceId,
+      );
 
       const sessions = await userAccountsTestManager.getSessions(
         body.accessToken,
@@ -395,8 +407,16 @@ describe('AuthController (e2e)', () => {
       await userAccountsTestManager.createUser(credentials);
 
       const { refreshTokenCookie: cookie1 } =
-        await userAccountsTestManager.login(credentials, HttpStatus.OK, 'device-ccc-0000-0000-0000-000000000003');
-      const { body: body2 } = await userAccountsTestManager.login(credentials, HttpStatus.OK, 'device-ddd-0000-0000-0000-000000000004');
+        await userAccountsTestManager.login(
+          credentials,
+          HttpStatus.OK,
+          'device-ccc-0000-0000-0000-000000000003',
+        );
+      const { body: body2 } = await userAccountsTestManager.login(
+        credentials,
+        HttpStatus.OK,
+        'device-ddd-0000-0000-0000-000000000004',
+      );
 
       const sessions = await userAccountsTestManager.getSessions(
         body2.accessToken,
@@ -756,6 +776,294 @@ describe('AuthController (e2e)', () => {
             HttpStatus.FORBIDDEN,
           );
         });
+      });
+    });
+
+    describe('forgot password / reset password flow', () => {
+      let superUserAccessToken: string;
+
+      beforeEach(async () => {
+        mockResendAdapter.send.mockClear();
+        const dto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        await userAccountsTestManager.createUser(dto);
+        const { body } = await userAccountsTestManager.login(dto);
+        superUserAccessToken = body.accessToken;
+      });
+
+      it('should return 204 for unknown email (no enumeration)', async () => {
+        await userAccountsTestManager.forgotPassword('nonexistent@example.com');
+        await new Promise((r) => setImmediate(r));
+        expect(mockResendAdapter.send).not.toHaveBeenCalled();
+      });
+
+      it('should return 204 for unconfirmed email and not send reset email', async () => {
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createPlainUser(
+          superUserAccessToken,
+          dto,
+        );
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+        expect(mockResendAdapter.send).not.toHaveBeenCalled();
+      });
+
+      it('should send reset email for confirmed user', async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        const superUser =
+          await userAccountsTestManager.createUser(superUserDto);
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createActivatedPlainUser(
+          superUser.id,
+          dto,
+        );
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+
+        expect(mockResendAdapter.send).toHaveBeenCalledTimes(1);
+        expect(mockResendAdapter.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            to: dto.email,
+            subject: 'Reset your password',
+          }),
+        );
+      });
+
+      it('old password still works while reset token is pending', async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        const superUser =
+          await userAccountsTestManager.createUser(superUserDto);
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createActivatedPlainUser(
+          superUser.id,
+          dto,
+        );
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+
+        const { body } = await userAccountsTestManager.login(dto);
+        expect(body.accessToken).toBeDefined();
+      });
+
+      it('should reset password and allow login with new password', async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        const superUser =
+          await userAccountsTestManager.createUser(superUserDto);
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createActivatedPlainUser(
+          superUser.id,
+          dto,
+        );
+        const { body: loginBody } = await userAccountsTestManager.login(dto);
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+
+        const resetToken = userAccountsTestManager.extractTokenFromEmailHtml(
+          mockResendAdapter.send.mock.calls[0][0].html,
+        );
+        const newPassword = 'newpassword99';
+
+        await userAccountsTestManager.resetPassword(
+          resetToken,
+          newPassword,
+          loginBody.accessToken,
+        );
+
+        const { body } = await userAccountsTestManager.login({
+          ...dto,
+          password: newPassword,
+        });
+        expect(body.accessToken).toBeDefined();
+      });
+
+      it('old password no longer works after reset', async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        const superUser =
+          await userAccountsTestManager.createUser(superUserDto);
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createActivatedPlainUser(
+          superUser.id,
+          dto,
+        );
+        const { body: loginBody } = await userAccountsTestManager.login(dto);
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+
+        const resetToken = userAccountsTestManager.extractTokenFromEmailHtml(
+          mockResendAdapter.send.mock.calls[0][0].html,
+        );
+        await userAccountsTestManager.resetPassword(
+          resetToken,
+          'newpassword99',
+          loginBody.accessToken,
+        );
+
+        await userAccountsTestManager.login(dto, HttpStatus.UNAUTHORIZED);
+      });
+
+      it('should revoke all sessions after successful password reset', async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        const superUser =
+          await userAccountsTestManager.createUser(superUserDto);
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createActivatedPlainUser(
+          superUser.id,
+          dto,
+        );
+
+        const { body: loginBody, refreshTokenCookie } =
+          await userAccountsTestManager.login(dto);
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+
+        const resetToken = userAccountsTestManager.extractTokenFromEmailHtml(
+          mockResendAdapter.send.mock.calls[0][0].html,
+        );
+        await userAccountsTestManager.resetPassword(
+          resetToken,
+          'newpassword99',
+          loginBody.accessToken,
+        );
+
+        await userAccountsTestManager.refresh(
+          refreshTokenCookie!,
+          HttpStatus.UNAUTHORIZED,
+        );
+      });
+
+      it('should reject reset attempt without auth (401)', async () => {
+        await userAccountsTestManager.resetPassword(
+          '00000000-0000-0000-0000-000000000000',
+          'newpassword99',
+          '',
+          HttpStatus.UNAUTHORIZED,
+        );
+      });
+
+      it('should reject expired or unknown reset token', async () => {
+        await userAccountsTestManager.resetPassword(
+          '00000000-0000-0000-0000-000000000000',
+          'newpassword99',
+          superUserAccessToken,
+          HttpStatus.BAD_REQUEST,
+        );
+      });
+
+      it('should reject already-consumed reset token', async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        const superUser =
+          await userAccountsTestManager.createUser(superUserDto);
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createActivatedPlainUser(
+          superUser.id,
+          dto,
+        );
+        const { body: loginBody } = await userAccountsTestManager.login(dto);
+
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+
+        const resetToken = userAccountsTestManager.extractTokenFromEmailHtml(
+          mockResendAdapter.send.mock.calls[0][0].html,
+        );
+        console.log(resetToken);
+        await userAccountsTestManager.resetPassword(
+          resetToken,
+          'newpassword99',
+          loginBody.accessToken,
+        );
+
+        const { body: newLoginBody } = await userAccountsTestManager.login({ ...dto, password: 'newpassword99' });
+        await userAccountsTestManager.resetPassword(
+          resetToken,
+          'anotherpassword1',
+          newLoginBody.accessToken,
+          HttpStatus.BAD_REQUEST,
+        );
+      });
+
+      it('second forgot-password request invalidates the first token', async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        const superUser =
+          await userAccountsTestManager.createUser(superUserDto);
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createActivatedPlainUser(
+          superUser.id,
+          dto,
+        );
+        const { body: loginBody } = await userAccountsTestManager.login(dto);
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+        const firstToken = userAccountsTestManager.extractTokenFromEmailHtml(
+          mockResendAdapter.send.mock.calls[0][0].html,
+        );
+
+        mockResendAdapter.send.mockClear();
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+
+        await userAccountsTestManager.resetPassword(
+          firstToken,
+          'newpassword99',
+          loginBody.accessToken,
+          HttpStatus.BAD_REQUEST,
+        );
+      });
+
+      it('reset token should not be accepted on confirm-email endpoint', async () => {
+        const superUserDto = userAccountsTestManager.buildCreateUserDto({
+          role: UserRole.SUPER_USER,
+        });
+        const superUser =
+          await userAccountsTestManager.createUser(superUserDto);
+        const dto = userAccountsTestManager.buildCreatePlainUserDto();
+        await userAccountsTestManager.createActivatedPlainUser(
+          superUser.id,
+          dto,
+        );
+        mockResendAdapter.send.mockClear();
+
+        await userAccountsTestManager.forgotPassword(dto.email);
+        await new Promise((r) => setImmediate(r));
+        const resetToken = userAccountsTestManager.extractTokenFromEmailHtml(
+          mockResendAdapter.send.mock.calls[0][0].html,
+        );
+
+        await userAccountsTestManager.confirmEmail(
+          resetToken,
+          HttpStatus.BAD_REQUEST,
+        );
       });
     });
 

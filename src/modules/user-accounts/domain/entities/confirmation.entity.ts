@@ -1,9 +1,10 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { UuidEntity } from '../../../common/domain/base.entity';
 import { User } from './user.entity';
+import { ConfirmationType } from './confirmation-type.enum';
 
-@Entity('email_confirmations')
-export class EmailConfirmation extends UuidEntity {
+@Entity('confirmations')
+export class Confirmation extends UuidEntity {
   @Column({ nullable: false })
   userId: number;
 
@@ -20,7 +21,14 @@ export class EmailConfirmation extends UuidEntity {
   @Column({ nullable: true, type: 'timestamptz' })
   confirmedAt: Date | null;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @Column({ nullable: false, default: ConfirmationType.EMAIL_CONFIRMATION })
+  type: ConfirmationType;
+
+  @ManyToOne(() => User, (user) => user.confirmations, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   user: User;
 }
+
+export { ConfirmationType };

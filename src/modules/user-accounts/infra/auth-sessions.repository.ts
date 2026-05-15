@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, MoreThan, Not, Repository } from 'typeorm';
+import { EntityManager, LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { AuthSession } from '../domain/entities/auth-session.entity';
 
 @Injectable()
@@ -63,6 +63,10 @@ export class AuthSessionsRepository {
     sessionId: string,
   ): Promise<void> {
     await this.repo.delete({ userId, id: Not(sessionId) });
+  }
+
+  async deleteAllByUserIdWithManager(userId: number, manager: EntityManager): Promise<void> {
+    await manager.delete(AuthSession, { userId });
   }
 
   async deleteExpired(): Promise<void> {

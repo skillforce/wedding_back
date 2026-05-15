@@ -4,13 +4,13 @@ import { ConfirmationRepository } from '../../infra/confirmation.repository';
 import { ConfirmationType } from '../../domain/entities/confirmation.entity';
 import { ResendAdapter } from '../../../email/resend.adapter';
 import {
-  confirmationEmailTemplate,
-  getConfirmationEmailSubject,
+  passwordResetEmailTemplate,
+  getPasswordResetEmailSubject,
   Locale,
-} from '../../../email/templates/confirmation-email.template';
+} from '../../../email/templates/password-reset-email.template';
 import { UserAccountsConfig } from '../../config/user-accounts.config';
 
-export class SendEmailConfirmationCommand {
+export class SendPasswordResetCommand {
   constructor(
     public readonly userId: number,
     public readonly email: string,
@@ -19,52 +19,43 @@ export class SendEmailConfirmationCommand {
   ) {}
 }
 
-@CommandHandler(SendEmailConfirmationCommand)
-export class SendEmailConfirmationUseCase implements ICommandHandler<
-  SendEmailConfirmationCommand,
-  void
-> {
+@CommandHandler(SendPasswordResetCommand)
+export class SendPasswordResetUseCase
+  implements ICommandHandler<SendPasswordResetCommand, void>
+{
   constructor(
     private readonly confirmationRepository: ConfirmationRepository,
     private readonly resendAdapter: ResendAdapter,
     private readonly userAccountsConfig: UserAccountsConfig,
   ) {}
 
-  async execute({
-    userId,
-    email,
-    login,
-    locale,
-  }: SendEmailConfirmationCommand): Promise<void> {
-    await this.confirmationRepository.invalidateAllForUser(userId, ConfirmationType.EMAIL_CONFIRMATION);
+  async execute({ userId, email, login, locale }: SendPasswordResetCommand): Promise<void> {
+    await this.confirmationRepository.invalidateAllForUser(userId, ConfirmationType.PASSWORD_RESET);
 
     const token = randomUUID();
     await this.confirmationRepository.save({
       userId,
       token,
       email,
-      type: ConfirmationType.EMAIL_CONFIRMATION,
-      expiresAt: new Date(
-        Date.now() + this.userAccountsConfig.confirmationTokenTtlMs,
-      ),
+      type: ConfirmationType.PASSWORD_RESET,
+      expiresAt: new Date(Date.now() + this.userAccountsConfig.confirmationTokenTtlMs),
       confirmedAt: null,
     });
 
-    void this.sendConfirmationEmail(email, login, token, locale);
+    void this.sendResetEmail(email, login, token, locale);
   }
 
-  private async sendConfirmationEmail(
+  private async sendResetEmail(
     email: string,
     login: string,
     token: string,
     locale: Locale,
   ): Promise<void> {
-    const feUrl = this.userAccountsConfig.feUrl;
-    const confirmUrl = `${feUrl}/confirm?token=${token}`;
+    const resetUrl = `${this.userAccountsConfig.feUrl}/reset-password?token=${token}`;
     await this.resendAdapter.send({
       to: email,
-      subject: getConfirmationEmailSubject(locale),
-      html: confirmationEmailTemplate(confirmUrl, login, email, locale),
+      subject: getPasswordResetEmailSubject(locale),
+      html: passwordResetEmailTemplate(resetUrl, login, locale),
     });
   }
 }

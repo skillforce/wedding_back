@@ -2,6 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'type
 import { NumericIdEntity } from '../../../common/domain/base.entity';
 import { Length } from 'class-validator';
 import { Guest } from '../../../guests/domain/enteties/guest.entity';
+import { Confirmation } from './confirmation.entity';
 import { UserProfile } from './user-profile.entity';
 import { UserRole } from './user-role.enum';
 import { UserStatus } from './user-status.enum';
@@ -45,4 +46,7 @@ export class User extends NumericIdEntity {
 
   @OneToMany(() => Guest, (guest) => guest.user)
   public guests?: Guest[];
+
+  @OneToMany(() => Confirmation, (confirmation) => confirmation.user)
+  confirmations?: Confirmation[];
 }
