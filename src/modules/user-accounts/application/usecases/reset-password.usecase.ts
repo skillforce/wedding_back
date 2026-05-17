@@ -13,7 +13,6 @@ export class ResetPasswordCommand {
   constructor(
     public readonly token: string,
     public readonly password: string,
-    public readonly userId: number,
   ) {}
 }
 
@@ -27,13 +26,13 @@ export class ResetPasswordUseCase implements ICommandHandler<ResetPasswordComman
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
-  async execute({ token, password, userId }: ResetPasswordCommand): Promise<void> {
+  async execute({ token, password }: ResetPasswordCommand): Promise<void> {
     const confirmation = await this.confirmationRepository.findByToken(
       token,
       ConfirmationType.PASSWORD_RESET,
     );
 
-    if (!confirmation || confirmation.userId !== userId) {
+    if (!confirmation) {
       throw new DomainException({
         code: DomainExceptionCode.BadRequest,
         message: 'Invalid or expired password reset token',

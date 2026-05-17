@@ -867,7 +867,6 @@ describe('AuthController (e2e)', () => {
           superUser.id,
           dto,
         );
-        const { body: loginBody } = await userAccountsTestManager.login(dto);
         mockResendAdapter.send.mockClear();
 
         await userAccountsTestManager.forgotPassword(dto.email);
@@ -878,11 +877,7 @@ describe('AuthController (e2e)', () => {
         );
         const newPassword = 'newpassword99';
 
-        await userAccountsTestManager.resetPassword(
-          resetToken,
-          newPassword,
-          loginBody.accessToken,
-        );
+        await userAccountsTestManager.resetPassword(resetToken, newPassword);
 
         const { body } = await userAccountsTestManager.login({
           ...dto,
@@ -902,7 +897,6 @@ describe('AuthController (e2e)', () => {
           superUser.id,
           dto,
         );
-        const { body: loginBody } = await userAccountsTestManager.login(dto);
         mockResendAdapter.send.mockClear();
 
         await userAccountsTestManager.forgotPassword(dto.email);
@@ -911,11 +905,7 @@ describe('AuthController (e2e)', () => {
         const resetToken = userAccountsTestManager.extractTokenFromEmailHtml(
           mockResendAdapter.send.mock.calls[0][0].html,
         );
-        await userAccountsTestManager.resetPassword(
-          resetToken,
-          'newpassword99',
-          loginBody.accessToken,
-        );
+        await userAccountsTestManager.resetPassword(resetToken, 'newpassword99');
 
         await userAccountsTestManager.login(dto, HttpStatus.UNAUTHORIZED);
       });
@@ -932,7 +922,7 @@ describe('AuthController (e2e)', () => {
           dto,
         );
 
-        const { body: loginBody, refreshTokenCookie } =
+        const { refreshTokenCookie } =
           await userAccountsTestManager.login(dto);
         mockResendAdapter.send.mockClear();
 
@@ -942,23 +932,10 @@ describe('AuthController (e2e)', () => {
         const resetToken = userAccountsTestManager.extractTokenFromEmailHtml(
           mockResendAdapter.send.mock.calls[0][0].html,
         );
-        await userAccountsTestManager.resetPassword(
-          resetToken,
-          'newpassword99',
-          loginBody.accessToken,
-        );
+        await userAccountsTestManager.resetPassword(resetToken, 'newpassword99');
 
         await userAccountsTestManager.refresh(
           refreshTokenCookie!,
-          HttpStatus.UNAUTHORIZED,
-        );
-      });
-
-      it('should reject reset attempt without auth (401)', async () => {
-        await userAccountsTestManager.resetPassword(
-          '00000000-0000-0000-0000-000000000000',
-          'newpassword99',
-          '',
           HttpStatus.UNAUTHORIZED,
         );
       });
@@ -967,7 +944,6 @@ describe('AuthController (e2e)', () => {
         await userAccountsTestManager.resetPassword(
           '00000000-0000-0000-0000-000000000000',
           'newpassword99',
-          superUserAccessToken,
           HttpStatus.BAD_REQUEST,
         );
       });
@@ -983,7 +959,6 @@ describe('AuthController (e2e)', () => {
           superUser.id,
           dto,
         );
-        const { body: loginBody } = await userAccountsTestManager.login(dto);
 
         mockResendAdapter.send.mockClear();
 
@@ -993,18 +968,11 @@ describe('AuthController (e2e)', () => {
         const resetToken = userAccountsTestManager.extractTokenFromEmailHtml(
           mockResendAdapter.send.mock.calls[0][0].html,
         );
-        console.log(resetToken);
-        await userAccountsTestManager.resetPassword(
-          resetToken,
-          'newpassword99',
-          loginBody.accessToken,
-        );
+        await userAccountsTestManager.resetPassword(resetToken, 'newpassword99');
 
-        const { body: newLoginBody } = await userAccountsTestManager.login({ ...dto, password: 'newpassword99' });
         await userAccountsTestManager.resetPassword(
           resetToken,
           'anotherpassword1',
-          newLoginBody.accessToken,
           HttpStatus.BAD_REQUEST,
         );
       });
@@ -1020,7 +988,6 @@ describe('AuthController (e2e)', () => {
           superUser.id,
           dto,
         );
-        const { body: loginBody } = await userAccountsTestManager.login(dto);
         mockResendAdapter.send.mockClear();
 
         await userAccountsTestManager.forgotPassword(dto.email);
@@ -1036,7 +1003,6 @@ describe('AuthController (e2e)', () => {
         await userAccountsTestManager.resetPassword(
           firstToken,
           'newpassword99',
-          loginBody.accessToken,
           HttpStatus.BAD_REQUEST,
         );
       });

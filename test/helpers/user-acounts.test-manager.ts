@@ -311,12 +311,10 @@ export class UserAccountsTestManager {
   async resetPassword(
     token: string,
     password: string,
-    accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
   ) {
     const response = await request(this.httpServer)
       .post('/api/auth/reset-password')
-      .set('Authorization', `Bearer ${accessToken}`)
       .send({ token, password })
       .expect(expectedStatus);
 

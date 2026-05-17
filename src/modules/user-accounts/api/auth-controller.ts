@@ -214,27 +214,17 @@ export class AuthController {
     description: 'If the email exists, a reset link has been sent',
   })
   async forgotPassword(@Body() dto: ForgotPasswordInputDto): Promise<void> {
-    console.log('slalslslsl');
     await this.commandBus.execute(new ForgotPasswordCommand(dto.email));
   }
 
   @Post('reset-password')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary:
-      'Reset password using a token received by email (must be logged in)',
-  })
+  @ApiOperation({ summary: 'Reset password using a token received by email' })
   @ApiResponse({ status: 204, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async resetPassword(
-    @Body() dto: ResetPasswordInputDto,
-    @ExtractUserFromRequest() user: UserContextDto,
-  ): Promise<void> {
+  async resetPassword(@Body() dto: ResetPasswordInputDto): Promise<void> {
     await this.commandBus.execute(
-      new ResetPasswordCommand(dto.token, dto.password, user.id),
+      new ResetPasswordCommand(dto.token, dto.password),
     );
   }
 
