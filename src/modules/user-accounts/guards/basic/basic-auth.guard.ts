@@ -1,40 +1,37 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
 import { DomainException } from '../../../../core/exceptions/domain-exceptions';
-import { Reflector } from '@nestjs/core';
 import { DomainExceptionCode } from '../../../../core/exceptions/domain-exception-codes';
+import { UserAccountsConfig } from '../../config/user-accounts.config';
 
 @Injectable()
 export class BasicAuthGuard implements CanActivate {
-  private readonly validUsername = 'admin';
-  private readonly validPassword = 'qwerty';
+  constructor(private readonly userAccountsConfig: UserAccountsConfig) {}
 
-  constructor(private reflector: Reflector) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Basic ')) {
+    if (!authHeader?.startsWith('Basic ')) {
       throw new DomainException({
         code: DomainExceptionCode.Unauthorized,
         message: 'Unauthorised',
       });
     }
 
-    const base64Credentials = authHeader.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString(
-      'utf-8',
-    );
-    const [username, password] = credentials.split(':');
+    const decoded = Buffer.from(authHeader.split(' ')[1], 'base64').toString('utf-8');
+    const [username, password] = decoded.split(':');
 
-    if (username === this.validUsername && password === this.validPassword) {
+    if (
+      username === this.userAccountsConfig.adminUsername &&
+      password === this.userAccountsConfig.adminPassword
+    ) {
       return true;
-    } else {
-      throw new DomainException({
-        code: DomainExceptionCode.Unauthorized,
-        message: 'Unauthorised',
-      });
     }
+
+    throw new DomainException({
+      code: DomainExceptionCode.Unauthorized,
+      message: 'Unauthorised',
+    });
   }
 }

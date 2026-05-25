@@ -34,6 +34,12 @@ export class UserAccountsConfig {
   @IsPositive({ message: 'Set Env variable CONFIRMATION_TOKEN_TTL_MS, e.g. 86400000 (24h)' })
   confirmationTokenTtlMs!: number;
 
+  @IsNotEmpty({ message: 'Set Env variable ADMIN_USERNAME' })
+  adminUsername!: string;
+
+  @IsNotEmpty({ message: 'Set Env variable ADMIN_PASSWORD' })
+  adminPassword!: string;
+
   constructor(private readonly configService: ConfigService<any, true>) {
     this.feUrl = this.configService.get<string>('FE_URL');
     this.accessTokenExpireIn = this.configService.get<string>(
@@ -54,6 +60,8 @@ export class UserAccountsConfig {
     this.confirmationTokenTtlMs = parseInt(
       this.configService.get<string>('CONFIRMATION_TOKEN_TTL_MS') ?? 86400000,
     );
+    this.adminUsername = this.configService.get<string>('ADMIN_USERNAME');
+    this.adminPassword = this.configService.get<string>('ADMIN_PASSWORD');
     configValidationUtility.validateConfig(this);
   }
 }
