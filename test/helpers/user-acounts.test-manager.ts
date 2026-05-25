@@ -205,14 +205,27 @@ export class UserAccountsTestManager {
     return response.body;
   }
 
-  async deleteUserById(
+  async deletePlainUserById(
     id: number,
     accessToken: string,
     expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
   ) {
     const response = await request(this.httpServer)
-      .delete(`/api/users/${id}`)
+      .delete(`/api/users/plain/${id}`)
       .set('Authorization', `Bearer ${accessToken}`)
+      .expect(expectedStatus);
+
+    return response.body;
+  }
+
+  async deleteUserByIdAsAdmin(
+    id: number,
+    expectedStatus: HttpStatus = HttpStatus.NO_CONTENT,
+    credentials = { username: 'admin', password: 'qwerty' },
+  ) {
+    const response = await request(this.httpServer)
+      .delete(`/api/users/${id}`)
+      .auth(credentials.username, credentials.password)
       .expect(expectedStatus);
 
     return response.body;

@@ -75,6 +75,22 @@ export class UserController {
     return this.userQueryRepository.findUserByIdOrNotFoundFail(createdUserId);
   }
 
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(BasicAuthGuard)
+  @ApiBasicAuth()
+  @ApiOperation({ summary: 'Delete a user by ID (admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: Number })
+  @ApiResponse({ status: 204, description: 'User deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async deleteUser(@Param() { id }: IdNumberParamDto): Promise<void> {
+    await this.userQueryRepository.findUserByIdOrNotFoundFail(id);
+    return this.commandBus.execute<DeleteUserCommand, void>(
+      new DeleteUserCommand(id),
+    );
+  }
+
   @Post('plain')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -141,7 +157,7 @@ export class UserController {
     return this.userQueryRepository.findUserByIdOrNotFoundFail(effectiveUserId);
   }
 
-  @Delete(':id')
+  @Delete('plain/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_USER)

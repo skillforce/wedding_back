@@ -211,7 +211,7 @@ describe('AuthController (e2e)', () => {
       plainUserDto,
     );
 
-    await userAccountsTestManager.deleteUserById(
+    await userAccountsTestManager.deletePlainUserById(
       plainUser.id,
       superUserBody.accessToken,
     );
