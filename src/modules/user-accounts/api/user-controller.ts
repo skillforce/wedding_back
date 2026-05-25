@@ -33,7 +33,7 @@ import { ValidateUserOwnershipCommand } from '../application/usecases/validate-u
 import { UsersQueryRepository } from '../infra/query/users.query-repository';
 import { DeleteUserCommand } from '../application/usecases/delete-user.usecase';
 import { UsersViewDto } from './view-dto/users.view-dto';
-import { BasicAuthGuard } from '../guards/basic/basic-auth.guard';  // kept for POST /users (admin)
+import { BasicAuthGuard } from '../guards/basic/basic-auth.guard';
 import { JwtAuthGuard } from '../guards/bearer/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles/roles.guard';
 import { Roles } from '../guards/roles/roles.decorator';
@@ -81,7 +81,11 @@ export class UserController {
   @Roles(UserRole.SUPER_USER)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a plain user (superUser only)' })
-  @ApiResponse({ status: 201, description: 'Plain user created', type: UsersViewDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Plain user created',
+    type: UsersViewDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -89,9 +93,10 @@ export class UserController {
     @ExtractUserFromRequest() user: UserContextDto,
     @Body() dto: CreatePlainUserInputDto,
   ): Promise<UsersViewDto> {
-    const createdUserId = await this.commandBus.execute<CreatePlainUserCommand, number>(
-      new CreatePlainUserCommand(dto, user.id),
-    );
+    const createdUserId = await this.commandBus.execute<
+      CreatePlainUserCommand,
+      number
+    >(new CreatePlainUserCommand(dto, user.id));
     return this.userQueryRepository.findUserByIdOrNotFoundFail(createdUserId);
   }
 
@@ -100,7 +105,9 @@ export class UserController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_USER)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List plain users created by the requesting superUser' })
+  @ApiOperation({
+    summary: 'List plain users created by the requesting superUser',
+  })
   @ApiResponse({ status: 200, type: [UsersViewDto] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -115,7 +122,9 @@ export class UserController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_USER)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get a plain user by ID (superUser only, must be creator)' })
+  @ApiOperation({
+    summary: 'Get a plain user by ID (superUser only, must be creator)',
+  })
   @ApiParam({ name: 'id', description: 'User ID', type: Number })
   @ApiResponse({ status: 200, type: UsersViewDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -125,9 +134,10 @@ export class UserController {
     @ExtractUserFromRequest() user: UserContextDto,
     @Param() { id }: IdNumberParamDto,
   ): Promise<UsersViewDto> {
-    const effectiveUserId = await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
-      new ValidateUserOwnershipCommand(user.id, user.role, id),
-    );
+    const effectiveUserId = await this.commandBus.execute<
+      ValidateUserOwnershipCommand,
+      number
+    >(new ValidateUserOwnershipCommand(user.id, user.role, id));
     return this.userQueryRepository.findUserByIdOrNotFoundFail(effectiveUserId);
   }
 
@@ -136,7 +146,9 @@ export class UserController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_USER)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete a plain user (superUser only, must be creator)' })
+  @ApiOperation({
+    summary: 'Delete a plain user (superUser only, must be creator)',
+  })
   @ApiParam({ name: 'id', description: 'User ID', type: Number })
   @ApiResponse({ status: 204, description: 'User deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -149,7 +161,9 @@ export class UserController {
     await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
       new ValidateUserOwnershipCommand(user.id, user.role, id),
     );
-    return this.commandBus.execute<DeleteUserCommand, void>(new DeleteUserCommand(id));
+    return this.commandBus.execute<DeleteUserCommand, void>(
+      new DeleteUserCommand(id),
+    );
   }
 
   @Post(':id/resend-confirmation')
@@ -157,10 +171,15 @@ export class UserController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_USER)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Resend confirmation email for a plain user (superUser only)' })
+  @ApiOperation({
+    summary: 'Resend confirmation email for a plain user (superUser only)',
+  })
   @ApiParam({ name: 'id', description: 'User ID', type: Number })
   @ApiResponse({ status: 204, description: 'Confirmation email resent' })
-  @ApiResponse({ status: 400, description: 'User already confirmed or not found' })
+  @ApiResponse({
+    status: 400,
+    description: 'User already confirmed or not found',
+  })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async resendConfirmation(
     @ExtractUserFromRequest() user: UserContextDto,
@@ -212,7 +231,9 @@ export class UserController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_USER)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update profile of a plain user (superUser only, must be creator)' })
+  @ApiOperation({
+    summary: 'Update profile of a plain user (superUser only, must be creator)',
+  })
   @ApiParam({ name: 'id', description: 'User ID', type: Number })
   @ApiResponse({ status: 200, type: ProfileViewDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -223,9 +244,10 @@ export class UserController {
     @Param() { id }: IdNumberParamDto,
     @Body() dto: UpdateProfileInputDto,
   ): Promise<ProfileViewDto> {
-    const effectiveUserId = await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
-      new ValidateUserOwnershipCommand(user.id, user.role, id),
-    );
+    const effectiveUserId = await this.commandBus.execute<
+      ValidateUserOwnershipCommand,
+      number
+    >(new ValidateUserOwnershipCommand(user.id, user.role, id));
     return this.commandBus.execute<UpdateProfileCommand, ProfileViewDto>(
       new UpdateProfileCommand(effectiveUserId, dto),
     );
@@ -238,7 +260,10 @@ export class UserController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload profile image for a plain user (superUser only, must be creator)' })
+  @ApiOperation({
+    summary:
+      'Upload profile image for a plain user (superUser only, must be creator)',
+  })
   @ApiParam({ name: 'id', description: 'User ID', type: Number })
   @ApiResponse({ status: 200, type: ProfileViewDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -249,11 +274,16 @@ export class UserController {
     @Param() { id }: IdNumberParamDto,
     @ParseProfileImage() file: Express.Multer.File,
   ): Promise<ProfileViewDto> {
-    const effectiveUserId = await this.commandBus.execute<ValidateUserOwnershipCommand, number>(
-      new ValidateUserOwnershipCommand(user.id, user.role, id),
-    );
+    const effectiveUserId = await this.commandBus.execute<
+      ValidateUserOwnershipCommand,
+      number
+    >(new ValidateUserOwnershipCommand(user.id, user.role, id));
     return this.commandBus.execute<UploadProfileImageCommand, ProfileViewDto>(
-      new UploadProfileImageCommand(effectiveUserId, file.buffer, file.mimetype),
+      new UploadProfileImageCommand(
+        effectiveUserId,
+        file.buffer,
+        file.mimetype,
+      ),
     );
   }
 }

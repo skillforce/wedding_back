@@ -37,6 +37,7 @@ export class UserAccountsTestManager {
   ): CreateUserInputDto {
     return {
       login: overrides.login ?? this.generateUniqueLogin(),
+      email: overrides.email ?? this.generateUniqueEmail(),
       password: overrides.password ?? 'pass123',
       ...(overrides.role !== undefined && { role: overrides.role }),
     };

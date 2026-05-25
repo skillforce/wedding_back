@@ -12,6 +12,7 @@ import { CreateDefaultBudgetCommand } from '../../../budget/app/usecases/create-
 import { CreateChecklistCommand } from '../../../checklist/app/usecases/create-checklist.usecase';
 import { CreateDefaultProfileCommand } from './create-default-profile.usecase';
 import { CreateDefaultScenarioCommand } from '../../../scenario/app/usecases/create-default-scenario.usecase';
+import { ConfirmationRepository } from '../../infra/confirmation.repository';
 
 export class CreateUserCommand {
   constructor(public dto: UserDto) {}
@@ -26,10 +27,11 @@ export class CreateUserUseCase implements ICommandHandler<
     public userRepository: UsersRepository,
     public bcryptService: BcryptService,
     private readonly commandBus: CommandBus,
+    private readonly confirmationRepository: ConfirmationRepository,
   ) {}
 
   async execute({ dto }: CreateUserCommand) {
-    await this.checkUniqueFields(dto.login);
+    await this.checkUniqueFields(dto.login, dto.email);
     const passwordHash = await this.bcryptService.hashPassword(dto.password);
 
     const newUser = this.createUser({
@@ -46,18 +48,23 @@ export class CreateUserUseCase implements ICommandHandler<
     await this.commandBus.execute(new CreateDefaultBudgetCommand(userId));
     await this.commandBus.execute(new CreateChecklistCommand(userId));
     await this.commandBus.execute(new CreateDefaultScenarioCommand(userId));
-    await this.commandBus.execute(new CreateDefaultProfileCommand(userId));
+    await this.commandBus.execute(new CreateDefaultProfileCommand(userId, dto.email));
     return userId;
   }
 
-  private async checkUniqueFields(login: string): Promise<void> {
-    const existing = await this.userRepository.findUserByLogin(login);
+  private async checkUniqueFields(login: string, email: string): Promise<void> {
+    const [existingLogin, existingEmail] = await Promise.all([
+      this.userRepository.findUserByLogin(login),
+      this.confirmationRepository.existsByEmail(email),
+    ]);
 
-    if (existing) {
+    if (existingLogin || existingEmail) {
       throw new DomainException({
         code: DomainExceptionCode.BadRequest,
-        extensions: [{ field: 'login', message: 'login is already in use' }],
-        message: 'login is already in use',
+        extensions: [
+          { field: 'login or email', message: 'login or email is already in use' },
+        ],
+        message: 'login or email is already in use',
       });
     }
   }

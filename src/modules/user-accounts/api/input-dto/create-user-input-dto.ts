@@ -4,7 +4,7 @@ import {
   loginConstraints,
   passwordConstraints,
 } from '../../domain/entities/user.entity';
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional } from 'class-validator';
 import { UserRole } from '../../domain/entities/user-role.enum';
 
 export class CreateUserInputDto {
@@ -20,6 +20,10 @@ export class CreateUserInputDto {
     loginConstraints.maxLength,
   )
   login: string;
+
+  @ApiProperty({ description: 'User email address', example: 'user@example.com' })
+  @IsEmail()
+  email: string;
 
   @ApiProperty({
     description: 'User password',
