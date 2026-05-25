@@ -75,15 +75,15 @@ describe('Profile (e2e)', () => {
   };
 
   it('should auto-create a default profile (all nulls) when a user is created', async () => {
-    const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+    const { accessToken, credentials } = await userAccountsTestManager.createUserAndLogin();
 
     const me = await userAccountsTestManager.me(accessToken);
 
-    expect(me.profile).toEqual(defaultProfile);
+    expect(me.profile).toEqual({ ...defaultProfile, email: credentials.email });
   });
 
   it('should update only provided profile fields (partial patch)', async () => {
-    const { accessToken } = await userAccountsTestManager.createUserAndLogin();
+    const { accessToken, credentials } = await userAccountsTestManager.createUserAndLogin();
 
     const updated = await profileTestManager.updateProfile(accessToken, {
       invitationUrl: 'https://example.com/invite/abc',
@@ -91,6 +91,7 @@ describe('Profile (e2e)', () => {
 
     expect(updated).toEqual({
       ...defaultProfile,
+      email: credentials.email,
       invitationUrl: 'https://example.com/invite/abc',
     });
   });
@@ -119,8 +120,8 @@ describe('Profile (e2e)', () => {
 
     expect(updated).toEqual({
       ...defaultProfile,
-      invitationUrl: 'https://example.com/invite/abc',
       email: 'user@example.com',
+      invitationUrl: 'https://example.com/invite/abc',
     });
   });
 

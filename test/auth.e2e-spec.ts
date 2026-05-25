@@ -88,7 +88,7 @@ describe('AuthController (e2e)', () => {
         isConfirmed: true,
         profileImg: null,
         weddingDate: null,
-        email: null,
+        email: credentials.email,
       },
     });
     expect(refreshTokenCookie).toBeDefined();
@@ -111,7 +111,7 @@ describe('AuthController (e2e)', () => {
         isSuperUser: false,
         isConfirmed: true,
         weddingDate: null,
-        email: null,
+        email: credentials.email,
       },
     });
   });
@@ -164,8 +164,8 @@ describe('AuthController (e2e)', () => {
     expect(duplicateResponse).toEqual({
       errorsMessages: [
         {
-          field: 'login',
-          message: 'login is already in use',
+          field: 'login or email',
+          message: 'login or email is already in use',
         },
       ],
     });
@@ -279,7 +279,7 @@ describe('AuthController (e2e)', () => {
 
       expect(response).toEqual({
         errorsMessages: [
-          { field: 'login', message: 'login is already in use' },
+          { field: 'login or email', message: 'login or email is already in use' },
         ],
       });
     });
